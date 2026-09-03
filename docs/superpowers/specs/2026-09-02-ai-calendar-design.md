@@ -46,9 +46,9 @@ This placement makes the existing `normalized()` migration insert the missing it
 
 `EditWindowController.performToolbarItem` dispatches `.aiCalendar` to `performAICalendar()`. The method commits active text editing and calls the existing `currentCompositeImage()`, which is already shared by save, upload, pin, and confirm. It never calls OCR and never captures the screen again when a final editor image is available.
 
-The controller stores one `Task<Void, Never>?` and a monotonically increasing request generation. While a request is active, every visible AI Calendar button is disabled and visually dimmed; a project-style toast shows analysis progress. Repeated clicks are ignored. `tearDown()` cancels the task, increments the generation, and prevents late results from opening a confirmation window after the editor closes. All AppKit state changes execute on the main actor; image encoding and networking execute asynchronously.
+The editor hands the final composited image to an application-lifetime AI Calendar workflow coordinator. The coordinator owns one `Task<Void, Never>?`, its extraction task, request generation, EventKit service, and confirmation controller. Repeated submissions are ignored while extraction or confirmation is active. All AppKit state changes execute on the main actor; image encoding and networking execute asynchronously.
 
-The editor stays open during analysis. On success, the confirmation window is presented above it. Cancelling confirmation returns to the editor. Successful calendar saves do not implicitly copy, upload, save, or close the screenshot.
+After a valid request is handed off, the editor immediately tears down the capture overlay and returns focus to the user's previous application. Editor teardown does not cancel the independent workflow. A short project-style toast indicates that recognition started without blocking desktop interaction. On success, the coordinator activates and presents the confirmation window. On an empty result or failure, it shows a localized toast in the center of the main screen. Cancelling confirmation ends the workflow; successful calendar saves do not implicitly copy, upload, or save the screenshot.
 
 ## Configuration and settings UI
 
@@ -144,6 +144,8 @@ An AI result with `calendar_type == unknown` always requires the user to choose 
 ## Confirmation window and native visual style
 
 Use an AppKit `NSPanel`/`NSWindowController` that follows capcap's existing adaptive dark chrome, compact card spacing, `NSStackView`, `NSTextField`, `NSSecureTextField`, `NSPopUpButton`, `NSDatePicker`, `NSTextView`, and rounded `NSButton` conventions. The new window must look like an extension of the current editor and settings UI, not a standalone design system.
+
+The panel measures the actual Auto Layout fitting height of its event cards. One event produces a compact window with no unused gap between the recognized-count header and the card. Additional events increase the window height until it reaches the smaller of the native panel cap and the current screen's safe visible height; only then does the event area scroll. The scroll document uses a flipped coordinate system and an explicit content-height constraint so its first card stays pinned to the top rather than the bottom of an oversized viewport.
 
 For multiple results, show a left event list with inclusion checkboxes and a right editable form for the selected event. The header shows `Recognized N events`. Each event permits editing:
 
