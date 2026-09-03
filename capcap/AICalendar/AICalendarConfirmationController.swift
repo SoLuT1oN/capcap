@@ -26,6 +26,34 @@ enum AICalendarConfirmationValidationError: Equatable {
     }
 }
 
+struct AICalendarConfirmationSizing: Equatable {
+    let contentHeight: CGFloat
+    let scrollHeight: CGFloat
+    let isScrollable: Bool
+
+    static func calculate(
+        cardsHeight: CGFloat,
+        headerHeight: CGFloat,
+        footerHeight: CGFloat,
+        layoutSpacing: CGFloat,
+        verticalInsets: CGFloat,
+        maximumContentHeight: CGFloat
+    ) -> AICalendarConfirmationSizing {
+        let fixedHeight = max(0, headerHeight)
+            + max(0, footerHeight)
+            + max(0, layoutSpacing) * 2
+            + max(0, verticalInsets)
+        let measuredCardsHeight = max(0, cardsHeight)
+        let contentHeight = min(fixedHeight + measuredCardsHeight, max(0, maximumContentHeight))
+        let scrollHeight = max(0, contentHeight - fixedHeight)
+        return AICalendarConfirmationSizing(
+            contentHeight: contentHeight,
+            scrollHeight: scrollHeight,
+            isScrollable: measuredCardsHeight > scrollHeight + 0.5
+        )
+    }
+}
+
 /// Value state for one confirmation card. Keeping this separate from AppKit
 /// controls makes the save button rules deterministic and unit-testable.
 struct AICalendarConfirmationEventModel: Equatable {
@@ -86,6 +114,10 @@ struct AICalendarConfirmationEventModel: Equatable {
 
 typealias AICalendarConfirmationEvent = AICalendarConfirmationEventModel
 
+private final class AICalendarConfirmationDocumentView: NSView {
+    override var isFlipped: Bool { true }
+}
+
 /// AppKit-only confirmation window for AI Calendar suggestions. The window
 /// never writes an event until the user presses Add to Calendar.
 final class AICalendarConfirmationController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate {
@@ -140,6 +172,16 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
     private var savedEventIndices = Set<Int>()
     private var onCancel: (() -> Void)?
     private var onSaved: ((CalendarEventSaveResult) -> Void)?
+    private var headerStack: NSStackView?
+    private var cardsStack: NSStackView?
+    private var footerStack: NSStackView?
+    private var layoutStack: NSStackView?
+    private var eventScrollView: NSScrollView?
+    private var scrollHeightConstraint: NSLayoutConstraint?
+    private var documentHeightConstraint: NSLayoutConstraint?
+    private var isUpdatingWindowSize = false
+
+    private static let panelWidth: CGFloat = 560
 
     init(
         events: [AICalendarEventDraft],
@@ -153,7 +195,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         self.onSaved = onSaved
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 700),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: 360),
             styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: true
@@ -161,6 +203,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         panel.title = L10n.aiCalendarConfirmTitle
         panel.isReleasedWhenClosed = false
         panel.level = .floating
+        panel.contentMinSize = NSSize(width: 520, height: 280)
         super.init(window: panel)
         panel.delegate = self
         buildContent()
@@ -184,10 +227,11 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
     }
 
     override func showWindow(_ sender: Any?) {
+        refreshAllControls()
+        resizeWindowToFitContent()
         super.showWindow(sender)
         window?.center()
         NSApp.activate(ignoringOtherApps: true)
-        refreshAllControls()
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -329,6 +373,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         let count = NSTextField(labelWithString: L10n.aiCalendarRecognizedCount(models.count))
         count.font = .systemFont(ofSize: 13, weight: .regular)
         header.addArrangedSubview(count)
+        headerStack = header
 
         let cards = NSStackView()
         cards.orientation = .vertical
@@ -337,29 +382,35 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         cards.edgeInsets = NSEdgeInsets(top: 4, left: 0, bottom: 4, right: 0)
         cards.translatesAutoresizingMaskIntoConstraints = false
         for index in models.indices {
-            cards.addArrangedSubview(makeEventCard(at: index))
+            let card = makeEventCard(at: index)
+            cards.addArrangedSubview(card)
+            card.widthAnchor.constraint(equalTo: cards.widthAnchor).isActive = true
         }
         if models.isEmpty {
             let empty = NSTextField(wrappingLabelWithString: L10n.aiCalendarNoEvents)
             empty.textColor = .secondaryLabelColor
             cards.addArrangedSubview(empty)
         }
+        cardsStack = cards
 
         let scroll = NSScrollView()
         scroll.drawsBackground = false
-        scroll.hasVerticalScroller = true
+        scroll.hasVerticalScroller = false
         scroll.autohidesScrollers = true
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        let document = NSView()
+        let document = AICalendarConfirmationDocumentView()
         document.translatesAutoresizingMaskIntoConstraints = false
         document.addSubview(cards)
+        let documentHeight = document.heightAnchor.constraint(equalToConstant: 1)
         NSLayoutConstraint.activate([
             cards.leadingAnchor.constraint(equalTo: document.leadingAnchor),
             cards.trailingAnchor.constraint(equalTo: document.trailingAnchor),
             cards.topAnchor.constraint(equalTo: document.topAnchor),
-            cards.bottomAnchor.constraint(equalTo: document.bottomAnchor),
+            documentHeight,
         ])
         scroll.documentView = document
+        eventScrollView = scroll
+        documentHeightConstraint = documentHeight
 
         let footer = NSStackView()
         footer.orientation = .vertical
@@ -389,6 +440,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         addButton = add
         buttons.addArrangedSubview(add)
         footer.addArrangedSubview(buttons)
+        footerStack = footer
 
         let layout = NSStackView(views: [header, scroll, footer])
         layout.orientation = .vertical
@@ -396,16 +448,74 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         layout.spacing = 12
         layout.translatesAutoresizingMaskIntoConstraints = false
         root.addSubview(layout)
+        let scrollHeight = scroll.heightAnchor.constraint(equalToConstant: 1)
         NSLayoutConstraint.activate([
             layout.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             layout.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             layout.topAnchor.constraint(equalTo: root.topAnchor),
             layout.bottomAnchor.constraint(equalTo: root.bottomAnchor),
             scroll.widthAnchor.constraint(equalTo: layout.widthAnchor),
-            scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 180),
+            scrollHeight,
             document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
         ])
+        layoutStack = layout
+        scrollHeightConstraint = scrollHeight
         refreshAllControls()
+    }
+
+    private func resizeWindowToFitContent() {
+        guard !isUpdatingWindowSize,
+              let window,
+              let contentView = window.contentView,
+              let headerStack,
+              let cardsStack,
+              let footerStack,
+              let layoutStack,
+              let eventScrollView,
+              let scrollHeightConstraint,
+              let documentHeightConstraint else { return }
+
+        isUpdatingWindowSize = true
+        defer { isUpdatingWindowSize = false }
+
+        let visibleHeight = (window.screen ?? NSScreen.main)?.visibleFrame.height ?? 800
+        let maximumContentHeight = max(300, min(720, visibleHeight - 100))
+
+        func measure() -> (cardsHeight: CGFloat, sizing: AICalendarConfirmationSizing) {
+            contentView.layoutSubtreeIfNeeded()
+            let cardsHeight = ceil(max(1, cardsStack.fittingSize.height))
+            let sizing = AICalendarConfirmationSizing.calculate(
+                cardsHeight: cardsHeight,
+                headerHeight: ceil(max(1, headerStack.fittingSize.height)),
+                footerHeight: ceil(max(1, footerStack.fittingSize.height)),
+                layoutSpacing: layoutStack.spacing,
+                verticalInsets: 40,
+                maximumContentHeight: maximumContentHeight
+            )
+            return (cardsHeight, sizing)
+        }
+
+        // Measure once at the widest viewport. If a scroller is needed, add
+        // it and measure again because its gutter can change text wrapping.
+        eventScrollView.hasVerticalScroller = false
+        var measurement = measure()
+        if measurement.sizing.isScrollable {
+            eventScrollView.hasVerticalScroller = true
+            measurement = measure()
+        }
+
+        documentHeightConstraint.constant = measurement.cardsHeight
+        scrollHeightConstraint.constant = max(1, measurement.sizing.scrollHeight)
+        let currentContentWidth = contentView.bounds.width > 0
+            ? contentView.bounds.width
+            : Self.panelWidth
+        window.setContentSize(
+            NSSize(
+                width: max(window.contentMinSize.width, currentContentWidth),
+                height: ceil(max(1, measurement.sizing.contentHeight))
+            )
+        )
+        contentView.layoutSubtreeIfNeeded()
     }
 
     private func makeEventCard(at index: Int) -> NSView {
@@ -602,6 +712,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         }
         let selected = models.filter(\.included)
         addButton?.isEnabled = !isSaving && !selected.isEmpty && selected.allSatisfy(\.isValid)
+        resizeWindowToFitContent()
     }
 
     private func refreshCalendarPopup(at index: Int) {

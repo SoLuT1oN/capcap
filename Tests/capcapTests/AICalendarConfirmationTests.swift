@@ -78,4 +78,58 @@ final class AICalendarConfirmationTests: XCTestCase {
         XCTAssertTrue(model.isValid)
         XCTAssertNil(model.submission)
     }
+
+    func testSingleCardUsesMeasuredContentWithoutScrolling() {
+        let result = AICalendarConfirmationSizing.calculate(
+            cardsHeight: 180,
+            headerHeight: 32,
+            footerHeight: 48,
+            layoutSpacing: 12,
+            verticalInsets: 40,
+            maximumContentHeight: 500
+        )
+
+        XCTAssertEqual(result.contentHeight, 324, accuracy: 0.001)
+        XCTAssertEqual(result.scrollHeight, 180, accuracy: 0.001)
+        XCTAssertFalse(result.isScrollable)
+    }
+
+    func testTwoCardsIncreaseContentHeightByMeasuredCardGrowth() {
+        let singleCard = AICalendarConfirmationSizing.calculate(
+            cardsHeight: 180,
+            headerHeight: 32,
+            footerHeight: 48,
+            layoutSpacing: 12,
+            verticalInsets: 40,
+            maximumContentHeight: 600
+        )
+        let twoCards = AICalendarConfirmationSizing.calculate(
+            cardsHeight: 360,
+            headerHeight: 32,
+            footerHeight: 48,
+            layoutSpacing: 12,
+            verticalInsets: 40,
+            maximumContentHeight: 600
+        )
+
+        XCTAssertGreaterThan(twoCards.contentHeight, singleCard.contentHeight)
+        XCTAssertEqual(twoCards.contentHeight - singleCard.contentHeight, 180, accuracy: 0.001)
+        XCTAssertEqual(twoCards.scrollHeight, 360, accuracy: 0.001)
+        XCTAssertFalse(twoCards.isScrollable)
+    }
+
+    func testContentHeightIsCappedAndScrollHeightIsTruncatedWhenCardsExceedMaximum() {
+        let result = AICalendarConfirmationSizing.calculate(
+            cardsHeight: 900,
+            headerHeight: 32,
+            footerHeight: 48,
+            layoutSpacing: 12,
+            verticalInsets: 40,
+            maximumContentHeight: 500
+        )
+
+        XCTAssertEqual(result.contentHeight, 500, accuracy: 0.001)
+        XCTAssertEqual(result.scrollHeight, 356, accuracy: 0.001)
+        XCTAssertTrue(result.isScrollable)
+    }
 }
