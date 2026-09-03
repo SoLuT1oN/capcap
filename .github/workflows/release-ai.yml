@@ -1,0 +1,318 @@
+name: Release AI Calendar Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-ai-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build private macOS release
+    runs-on: macos-latest
+    outputs:
+      base_version: ${{ steps.version.outputs.base_version }}
+      custom_version: ${{ steps.version.outputs.custom_version }}
+      tag: ${{ steps.version.outputs.tag }}
+      skip: ${{ steps.version.outputs.skip }}
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.package.outputs.artifact_sha256 }}
+      dmg_name: ${{ steps.package.outputs.dmg_name }}
+      dmg_sha256: ${{ steps.package.outputs.dmg_sha256 }}
+      signing_mode: ${{ steps.signing.outputs.mode }}
+    steps:
+      - name: Checkout private main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Determine private version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          base_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' capcap/App/Info.plist)"
+          if [[ ! "$base_version" =~ ^[0-9]+(\.[0-9]+){2}$ ]]; then
+            echo "Invalid CFBundleShortVersionString: $base_version" >&2
+            exit 1
+          fi
+
+          current_sha="$(git rev-parse HEAD)"
+          existing_tag=""
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            if [ "$(git rev-list -n 1 "$tag")" = "$current_sha" ]; then
+              existing_tag="$tag"
+              break
+            fi
+          done < <(git tag -l "custom-v${base_version}-ai.*" --sort=-version:refname)
+
+          if [ -n "$existing_tag" ]; then
+            custom_version="${existing_tag#custom-v}"
+            echo "base_version=$base_version" >> "$GITHUB_OUTPUT"
+            echo "custom_version=$custom_version" >> "$GITHUB_OUTPUT"
+            echo "tag=$existing_tag" >> "$GITHUB_OUTPUT"
+            if gh release view "$existing_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Private Release $existing_tag already exists for $current_sha"
+            else
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              echo "Reusing incomplete tag $existing_tag for $current_sha"
+            fi
+            exit 0
+          fi
+
+          max_revision=0
+          while IFS= read -r tag; do
+            revision="${tag##*.}"
+            if [[ "$revision" =~ ^[0-9]+$ ]] && [ "$revision" -gt "$max_revision" ]; then
+              max_revision="$revision"
+            fi
+          done < <(git tag -l "custom-v${base_version}-ai.*")
+
+          next_revision=$((max_revision + 1))
+          custom_version="${base_version}-ai.${next_revision}"
+          tag="custom-v${custom_version}"
+          if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            echo "Refusing to reuse existing tag $tag" >&2
+            exit 1
+          fi
+
+          echo "base_version=$base_version" >> "$GITHUB_OUTPUT"
+          echo "custom_version=$custom_version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Private version: $custom_version (tag: $tag)"
+
+      - name: Report existing Release
+        if: steps.version.outputs.skip == 'true'
+        run: |
+          {
+            echo "## Private Release"
+            echo
+            echo "Release \`${{ steps.version.outputs.tag }}\` already exists for this main commit"
+            echo "No duplicate build or Release was created"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Select Xcode
+        if: steps.version.outputs.skip != 'true'
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show toolchain info
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Run release tests
+        if: steps.version.outputs.skip != 'true'
+        run: swift test -c release
+
+      - name: Run AI Calendar release regression tests
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          test -f capcap/AICalendar/AICalendarService.swift
+          test -f capcap/AICalendar/CalendarEventService.swift
+          test -f capcap/AICalendar/AICalendarConfig.swift
+          grep -q 'case aiCalendar' capcap/Editor/ToolbarLayout.swift
+          grep -q 'case \.aiCalendar' capcap/Editor/EditWindowController.swift
+          grep -q 'settingsTabAICalendar' capcap/Utilities/Defaults.swift
+          swift test -c release --filter 'AICalendar|CalendarEventService|ToolbarLayoutTests'
+
+      - name: Prepare signing identity
+        if: steps.version.outputs.skip != 'true'
+        id: signing
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ]; then
+            echo "mode=ad-hoc" >> "$GITHUB_OUTPUT"
+            echo "identity=__capcap_ci_ad_hoc__" >> "$GITHUB_OUTPUT"
+            echo "::warning::MACOS_CERTIFICATE is not configured; using ad-hoc signing. macOS TCC permissions may need to be granted again after upgrades."
+            exit 0
+          fi
+
+          for value in MACOS_CERTIFICATE_PWD MACOS_SIGNING_IDENTITY KEYCHAIN_PASSWORD; do
+            if [ -z "${!value:-}" ]; then
+              echo "$value must be configured when MACOS_CERTIFICATE is set" >&2
+              exit 1
+            fi
+          done
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import certificate.p12 -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm -f certificate.p12
+
+          echo "mode=stable-certificate" >> "$GITHUB_OUTPUT"
+          echo "identity=$MACOS_SIGNING_IDENTITY" >> "$GITHUB_OUTPUT"
+          echo "Stable signing identity imported"
+
+      - name: Build, sign, and package universal app
+        if: steps.version.outputs.skip != 'true'
+        id: package
+        env:
+          CUSTOM_VERSION: ${{ steps.version.outputs.custom_version }}
+          SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: |
+          set -euo pipefail
+          CONFIG=release UNIVERSAL=1 bash scripts/bundle.sh
+
+          app_dir="build/capcap.app"
+          app_binary="$app_dir/Contents/MacOS/capcap"
+          extension_binary="$app_dir/Contents/PlugIns/CapcapShareExtension.appex/Contents/MacOS/CapcapShareExtension"
+          permission_bundle="$app_dir/Contents/Resources/capcap_PermissionFlow.bundle"
+
+          test -f "$app_binary"
+          test -f "$extension_binary"
+          test -d "$permission_bundle"
+          codesign --verify --strict --verbose=2 "$app_dir/Contents/PlugIns/CapcapShareExtension.appex"
+          codesign --verify --strict --verbose=2 "$app_dir"
+
+          for binary in "$app_binary" "$extension_binary"; do
+            archs="$(lipo -archs "$binary")"
+            echo "$binary architectures: $archs"
+            [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]
+          done
+
+          artifact="capcap-${CUSTOM_VERSION}-macos.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$app_dir" "$artifact"
+          artifact_sha256="$(shasum -a 256 "$artifact" | awk '{print $1}')"
+          printf '%s  %s\n' "$artifact_sha256" "$artifact" > "${artifact}.sha256"
+
+          dmg_name="capcap-${CUSTOM_VERSION}-macos.dmg"
+          bash scripts/create-dmg.sh "$app_dir" "$dmg_name" capcap
+          dmg_sha256="$(shasum -a 256 "$dmg_name" | awk '{print $1}')"
+          printf '%s  %s\n' "$dmg_sha256" "$dmg_name" > "${dmg_name}.sha256"
+
+          echo "artifact_name=$artifact" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=$artifact_sha256" >> "$GITHUB_OUTPUT"
+          echo "dmg_name=$dmg_name" >> "$GITHUB_OUTPUT"
+          echo "dmg_sha256=$dmg_sha256" >> "$GITHUB_OUTPUT"
+          ls -lh "$artifact" "${artifact}.sha256" "$dmg_name" "${dmg_name}.sha256"
+
+      - name: Upload packaged assets
+        if: steps.version.outputs.skip != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: capcap-${{ steps.version.outputs.custom_version }}
+          path: |
+            ${{ steps.package.outputs.artifact_name }}
+            ${{ steps.package.outputs.artifact_name }}.sha256
+            ${{ steps.package.outputs.dmg_name }}
+            ${{ steps.package.outputs.dmg_name }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Summarize build
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          {
+            echo "## Private build"
+            echo
+            echo "Version: \`${{ steps.version.outputs.custom_version }}\`"
+            echo "Tag: \`${{ steps.version.outputs.tag }}\`"
+            echo "Signing: \`${{ steps.signing.outputs.mode }}\`"
+            echo "ZIP SHA256: \`${{ steps.package.outputs.artifact_sha256 }}\`"
+            echo "DMG SHA256: \`${{ steps.package.outputs.dmg_sha256 }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Publish private GitHub Release
+    needs: build
+    if: needs.build.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packaged assets
+        uses: actions/download-artifact@v8
+        with:
+          name: capcap-${{ needs.build.outputs.custom_version }}
+          path: dist
+
+      - name: Write private release notes
+        run: |
+          cat > release-notes.md <<'EOF'
+          Based on upstream capcap ${{ needs.build.outputs.base_version }}
+
+          Custom features:
+          - AI Calendar
+
+          Upstream:
+          https://github.com/realskyrin/capcap
+
+          Custom fork:
+          https://github.com/SoLuT1oN/capcap
+          EOF
+
+      - name: Create private GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: capcap ${{ needs.build.outputs.custom_version }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dispatch Homebrew tap update
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.build.outputs.custom_version }}
+          SHA256: ${{ needs.build.outputs.artifact_sha256 }}
+          TAG: ${{ needs.build.outputs.tag }}
+          ASSET_NAME: ${{ needs.build.outputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
+            echo "::warning::Homebrew tap update skipped because HOMEBREW_TAP_TOKEN is not configured."
+            {
+              echo "## Homebrew tap"
+              echo
+              echo "Homebrew tap update skipped because HOMEBREW_TAP_TOKEN is not configured."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          payload="$(jq -n \
+            --arg version "$VERSION" \
+            --arg sha256 "$SHA256" \
+            --arg tag "$TAG" \
+            --arg asset_name "$ASSET_NAME" \
+            '{event_type:"capcap_ai_release_published",client_payload:{version:$version,sha256:$sha256,tag:$tag,asset_name:$asset_name}}')"
+
+          curl -fsSL \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${HOMEBREW_TAP_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/SoLuT1oN/homebrew-tap/dispatches \
+            -d "$payload"
+
+          {
+            echo "## Homebrew tap"
+            echo
+            echo "Dispatched \`capcap_ai_release_published\` to \`SoLuT1oN/homebrew-tap\`"
+          } >> "$GITHUB_STEP_SUMMARY"

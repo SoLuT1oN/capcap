@@ -126,6 +126,29 @@ brew install --cask realskyrin/tap/capcap
 
 Tap 维护流程见 [homebrew-tap](https://github.com/realskyrin/homebrew-tap)。
 
+## Custom Build / AI Calendar
+
+这是基于 [realskyrin/capcap](https://github.com/realskyrin/capcap) 维护的私人定制 Fork，包含 AI Calendar 功能。私人发行版仍安装为 `capcap.app`，通过独立的 `capcap-ai` Cask 安装：
+
+```bash
+brew tap SoLuT1oN/tap
+brew install --cask SoLuT1oN/tap/capcap-ai
+```
+
+后续升级：
+
+```bash
+brew update
+brew upgrade --cask SoLuT1oN/tap/capcap-ai
+```
+
+官方 `capcap` Cask 与 `capcap-ai` 都安装 `capcap.app`，不应同时安装。如果已经安装官方版，请先手动执行：
+
+```bash
+brew uninstall --cask capcap
+brew install --cask SoLuT1oN/tap/capcap-ai
+```
+
 ## macOS 校验拦截
 
 如果 macOS 弹出类似 `Apple 无法验证 “capcap” 是否包含恶意软件` 的提示，可以对你信任的应用包移除 quarantine 标记后再重新打开：

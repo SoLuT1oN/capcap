@@ -1,0 +1,132 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge, test, and update main
+    runs-on: macos-latest
+    steps:
+      - name: Checkout private main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Fetch and merge upstream locally
+        id: upstream
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/realskyrin/capcap.git
+          else
+            git remote add upstream https://github.com/realskyrin/capcap.git
+          fi
+
+          git fetch upstream main --tags
+
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No upstream changes."
+            {
+              echo "## Upstream sync"
+              echo
+              echo "No upstream changes."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          set +e
+          git merge --no-edit upstream/main
+          merge_status=$?
+          set -e
+
+          if [ "$merge_status" -ne 0 ]; then
+            conflicts="$(git diff --name-only --diff-filter=U)"
+            {
+              echo "## Upstream synchronization requires manual conflict resolution"
+              echo
+              echo "Upstream commit: \`$(git rev-parse --short upstream/main)\`"
+              echo
+              echo "Conflicting files:"
+              echo '```text'
+              if [ -n "$conflicts" ]; then
+                printf '%s\n' "$conflicts"
+              else
+                echo "Git did not report an unmerged path"
+              fi
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Upstream synchronization requires manual conflict resolution."
+            git merge --abort || true
+            exit 1
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Upstream merge prepared"
+            echo
+            echo "Merged upstream commit \`$(git rev-parse --short upstream/main)\` locally"
+            echo "Remote main has not been changed yet"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build
+        if: steps.upstream.outputs.changed == 'true'
+        run: swift build
+
+      - name: Run full test suite
+        if: steps.upstream.outputs.changed == 'true'
+        run: swift test
+
+      - name: Guard AI Calendar integration
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          test -f capcap/AICalendar/AICalendarService.swift
+          test -f capcap/AICalendar/CalendarEventService.swift
+          test -f capcap/AICalendar/AICalendarConfig.swift
+          grep -q 'case aiCalendar' capcap/Editor/ToolbarLayout.swift
+          grep -q 'case \.aiCalendar' capcap/Editor/EditWindowController.swift
+          grep -q 'settingsTabAICalendar' capcap/Utilities/Defaults.swift
+          swift test --filter 'AICalendar|CalendarEventService|ToolbarLayoutTests'
+
+      - name: Build universal release binary
+        if: steps.upstream.outputs.changed == 'true'
+        run: swift build -c release --arch arm64 --arch x86_64
+
+      - name: Push tested merge to private main
+        if: steps.upstream.outputs.changed == 'true'
+        run: git push origin HEAD:main
+
+      - name: Start private release
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-ai.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Summarize update
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          {
+            echo
+            echo "Builds and tests passed"
+            echo "Private main updated to \`$(git rev-parse --short HEAD)\`"
+            echo "Private release workflow dispatched"
+          } >> "$GITHUB_STEP_SUMMARY"
