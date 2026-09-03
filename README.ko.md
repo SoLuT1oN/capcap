@@ -49,6 +49,7 @@
 - **Finder 이미지 직접 편집**: Finder에서 이미지 하나를 선택하고 같은 단축키를 누르면 원본을 건드리지 않고 편집기에 엽니다.
 - **기록 패널**: 최근 스크린샷, 색상, 업로드 링크를 로컬에 보관하고 마우스를 올리면 나타나는 별표로 즐겨찾기에 추가합니다.
 - **OCR 및 온디바이스 번역**: Apple Vision이 이미지 텍스트를 로컬에서 인식하며 macOS 15 이상에서는 Apple Translation으로 기기 내 번역도 할 수 있습니다. 기존 AI 또는 DeepL 제공자도 계속 사용할 수 있습니다.
+- **AI 캘린더**: 스크린샷 → AI → Apple Calendar 흐름으로 일정을 추출하고 추가 전에 확인합니다. Calendar Full Access와 사용자가 설정한 OpenAI 호환 API가 필요하며 Work와 Personal이 기본 매핑입니다
 - **내 이미지 호스트 업로드**: Tencent COS, Qiniu Kodo, Aliyun OSS를 설정할 수 있으며 자격 증명은 Mac에만 저장됩니다.
 - **네이티브 AppKit 인터페이스**: Electron과 텔레메트리 없이 작고 빠르게 동작합니다.
 
@@ -73,6 +74,7 @@
 - 손쉬운 사용 권한: 기본 `⌘` 두 번 탭 트리거에 사용
 - 화면 기록 권한: ScreenCaptureKit 캡처에 사용
 - Finder 자동화 권한: 선택한 이미지를 편집할 때 사용
+- Calendar Full Access: AI 캘린더를 처음 사용할 때 확인한 일정을 선택한 Work 또는 Personal 캘린더에 추가하는 데 사용
 
 ## Homebrew 설치
 

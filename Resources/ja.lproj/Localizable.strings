@@ -264,6 +264,7 @@
 "tipUndo" = "取り消す";
 "tipRedo" = "やり直す";
 "tipMoveSelection" = "選択範囲を移動";
+"tipAICalendar" = "カレンダーに追加";
 "tipScrollCapture" = "長いスクリーンショット";
 "tipBeautify" = "装飾";
 "tipOCR" = "文字認識";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "画像ホスト";
 "settingsTabAbout" = "情報";
 "settingsTabTranslation" = "翻訳";
+"settingsTabAICalendar" = "AIカレンダー";
 "settingsTabToolbar" = "ツールバー";
 "settingsQuit" = "アプリを終了";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "API キーが設定されていません";
 "translationErrBadEndpoint" = "エンドポイントが無効です";
 "translationErrBadResponse" = "予期しない応答";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "AIカレンダー";
+"aiCalendarSettingsSubtitle" = "カレンダーイベントの作成に使う OpenAI 互換サービスを設定";
+"aiCalendarEndpoint" = "エンドポイント";
+"aiCalendarApiKey" = "API キー";
+"aiCalendarApiKeyPlaceholder" = "API キーを入力";
+"aiCalendarModel" = "モデル";
+"aiCalendarSave" = "保存";
+"aiCalendarTestConnection" = "接続をテスト";
+"aiCalendarTesting" = "テスト中";
+"aiCalendarConfigSaved" = "設定を保存しました";
+"aiCalendarTestPassed" = "接続テストに成功";
+"aiCalendarTestFailed" = "接続テストに失敗";
+"aiCalendarMissingAPIKey" = "API キーが設定されていません";
+"aiCalendarInvalidEndpoint" = "エンドポイントが無効です";
+"aiCalendarInvalidRequest" = "リクエストが無効です";
+"aiCalendarAnalyzing" = "予定を解析中";
+"aiCalendarImageEncodingFailed" = "スクリーンショットを処理できません";
+"aiCalendarUnauthorized" = "認証に失敗しました、API Key を確認してください";
+"aiCalendarForbidden" = "AI サービスへのアクセスが拒否されました";
+"aiCalendarRateLimited" = "リクエストが多すぎます、しばらくしてから再試行してください";
+"aiCalendarServiceUnavailable" = "AI サービスは一時的に利用できません";
+"aiCalendarRequestFailed" = "AI カレンダーのリクエストに失敗しました";
+"aiCalendarRequestTimedOut" = "AI カレンダーのリクエストがタイムアウトしました";
+"aiCalendarNetworkError" = "AI サービスに接続できません";
+"aiCalendarInvalidResponse" = "AI サービスから無効な応答が返されました";
+"aiCalendarCalendarAccessDenied" = "カレンダーへのアクセスが拒否されました";
+"aiCalendarCalendarAccessRestricted" = "この Mac ではカレンダーへのアクセスが制限されています";
+"aiCalendarFullAccessRequired" = "カレンダーへのフルアクセスが必要です";
+"aiCalendarCalendarAccessUnavailable" = "カレンダーへのアクセスを利用できません";
+"aiCalendarCalendarAccessRequestFailed" = "カレンダーへのアクセスを要求できません";
+"aiCalendarAccessNotGranted" = "カレンダーへのアクセスが許可されていません";
+"aiCalendarCalendarNotFound" = "選択したカレンダーは利用できなくなりました";
+"aiCalendarSaveFailed" = "予定をカレンダーに追加できません";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "カレンダーに追加";
+"aiCalendarRecognizedCount" = "%d 件の予定を認識";
+"aiCalendarNoEvents" = "スクリーンショットから明確な予定を認識できませんでした";
+"aiCalendarCancel" = "キャンセル";
+"aiCalendarAdd" = "カレンダーに追加";
+"aiCalendarEventNumber" = "予定 %d";
+"aiCalendarWork" = "仕事";
+"aiCalendarPersonal" = "個人";
+"aiCalendarUnknown" = "不明";
+"aiCalendarTitle" = "タイトル";
+"aiCalendarStart" = "開始";
+"aiCalendarEnd" = "終了";
+"aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
+"aiCalendarLocation" = "場所";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "メモ";
+"aiCalendarChooseCalendar" = "カレンダー";
+"aiCalendarChooseCalendarPlaceholder" = "カレンダーを選択";
+"aiCalendarAttendees" = "参加者";
+"aiCalendarNoAttendees" = "参加者なし";
+"aiCalendarRequiresConfirmation" = "⚠ 正確な時刻を判定できないため確認してください";
+"aiCalendarReviewSuggestion" = "⚠ AI が特定できなかった情報を確認してください";
+"aiCalendarMissingTitle" = "タイトルを入力";
+"aiCalendarMissingStart" = "有効な開始日時を入力";
+"aiCalendarMissingEnd" = "有効な終了日時を入力";
+"aiCalendarInvalidRange" = "終了時刻は開始時刻より後にしてください";
+"aiCalendarMissingCalendar" = "書き込み可能なカレンダーを選択";
+"aiCalendarCalendarNotWritable" = "選択したカレンダーは変更できません";
+"aiCalendarNoWritableCalendar" = "書き込み可能なカレンダーがありません";
+"aiCalendarSaveResult" = "%d 件を追加、%d 件に失敗";
+"aiCalendarEventFailed" = "予定の追加に失敗";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "画像を結合";

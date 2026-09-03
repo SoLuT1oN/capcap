@@ -71,6 +71,7 @@ extension Notification.Name {
     static let hotkeyDidChange = Notification.Name("capcap.hotkeyDidChange")
     static let editorShortcutsDidChange = Notification.Name("capcap.editorShortcutsDidChange")
     static let translationConfigDidChange = Notification.Name("capcap.translationConfigDidChange")
+    static let aiCalendarConfigDidChange = Notification.Name("capcap.aiCalendarConfigDidChange")
 }
 
 /// Centralized accessor for every user-facing string. Each property resolves a
@@ -443,6 +444,7 @@ enum L10n {
     static var tipUndo: String { s("tipUndo") }
     static var tipRedo: String { s("tipRedo") }
     static var tipMoveSelection: String { s("tipMoveSelection") }
+    static var tipAICalendar: String { s("tipAICalendar") }
     static var tipScrollCapture: String { s("tipScrollCapture") }
     static var tipBeautify: String { s("tipBeautify") }
     static var tipOCR: String { s("tipOCR") }
@@ -816,6 +818,81 @@ enum L10n {
     static var translationErrMissingAPIKey: String { s("translationErrMissingAPIKey") }
     static var translationErrBadEndpoint: String { s("translationErrBadEndpoint") }
     static var translationErrBadResponse: String { s("translationErrBadResponse") }
+
+    // AI Calendar — settings tab
+    static var settingsTabAICalendar: String { s("settingsTabAICalendar") }
+    static var aiCalendarSettingsTitle: String { s("aiCalendarSettingsTitle") }
+    static var aiCalendarSettingsSubtitle: String { s("aiCalendarSettingsSubtitle") }
+    static var aiCalendarEndpoint: String { s("aiCalendarEndpoint") }
+    static var aiCalendarApiKey: String { s("aiCalendarApiKey") }
+    static var aiCalendarApiKeyPlaceholder: String { s("aiCalendarApiKeyPlaceholder") }
+    static var aiCalendarModel: String { s("aiCalendarModel") }
+    static var aiCalendarSave: String { s("aiCalendarSave") }
+    static var aiCalendarTestConnection: String { s("aiCalendarTestConnection") }
+    static var aiCalendarTesting: String { s("aiCalendarTesting") }
+    static var aiCalendarConfigSaved: String { s("aiCalendarConfigSaved") }
+    static var aiCalendarTestPassed: String { s("aiCalendarTestPassed") }
+    static var aiCalendarTestFailed: String { s("aiCalendarTestFailed") }
+    static var aiCalendarMissingAPIKey: String { s("aiCalendarMissingAPIKey") }
+    static var aiCalendarInvalidEndpoint: String { s("aiCalendarInvalidEndpoint") }
+    static var aiCalendarInvalidRequest: String { s("aiCalendarInvalidRequest") }
+    static var aiCalendarAnalyzing: String { s("aiCalendarAnalyzing") }
+    static var aiCalendarImageEncodingFailed: String { s("aiCalendarImageEncodingFailed") }
+    static var aiCalendarUnauthorized: String { s("aiCalendarUnauthorized") }
+    static var aiCalendarForbidden: String { s("aiCalendarForbidden") }
+    static var aiCalendarRateLimited: String { s("aiCalendarRateLimited") }
+    static var aiCalendarServiceUnavailable: String { s("aiCalendarServiceUnavailable") }
+    static var aiCalendarRequestFailed: String { s("aiCalendarRequestFailed") }
+    static var aiCalendarRequestTimedOut: String { s("aiCalendarRequestTimedOut") }
+    static var aiCalendarNetworkError: String { s("aiCalendarNetworkError") }
+    static var aiCalendarInvalidResponse: String { s("aiCalendarInvalidResponse") }
+    static var aiCalendarCalendarAccessDenied: String { s("aiCalendarCalendarAccessDenied") }
+    static var aiCalendarCalendarAccessRestricted: String { s("aiCalendarCalendarAccessRestricted") }
+    static var aiCalendarFullAccessRequired: String { s("aiCalendarFullAccessRequired") }
+    static var aiCalendarCalendarAccessUnavailable: String { s("aiCalendarCalendarAccessUnavailable") }
+    static var aiCalendarCalendarAccessRequestFailed: String { s("aiCalendarCalendarAccessRequestFailed") }
+    static var aiCalendarAccessNotGranted: String { s("aiCalendarAccessNotGranted") }
+    static var aiCalendarCalendarNotFound: String { s("aiCalendarCalendarNotFound") }
+    static var aiCalendarSaveFailed: String { s("aiCalendarSaveFailed") }
+
+    // AI Calendar — confirmation
+    static var aiCalendarConfirmTitle: String { s("aiCalendarConfirmTitle") }
+    static func aiCalendarRecognizedCount(_ count: Int) -> String {
+        String(format: s("aiCalendarRecognizedCount"), count)
+    }
+    static var aiCalendarNoEvents: String { s("aiCalendarNoEvents") }
+    static var aiCalendarCancel: String { s("aiCalendarCancel") }
+    static var aiCalendarAdd: String { s("aiCalendarAdd") }
+    static func aiCalendarEventNumber(_ number: Int) -> String {
+        String(format: s("aiCalendarEventNumber"), number)
+    }
+    static var aiCalendarWork: String { s("aiCalendarWork") }
+    static var aiCalendarPersonal: String { s("aiCalendarPersonal") }
+    static var aiCalendarUnknown: String { s("aiCalendarUnknown") }
+    static var aiCalendarTitle: String { s("aiCalendarTitle") }
+    static var aiCalendarStart: String { s("aiCalendarStart") }
+    static var aiCalendarEnd: String { s("aiCalendarEnd") }
+    static var aiCalendarDateTimePlaceholder: String { s("aiCalendarDateTimePlaceholder") }
+    static var aiCalendarLocation: String { s("aiCalendarLocation") }
+    static var aiCalendarURL: String { s("aiCalendarURL") }
+    static var aiCalendarNotes: String { s("aiCalendarNotes") }
+    static var aiCalendarChooseCalendar: String { s("aiCalendarChooseCalendar") }
+    static var aiCalendarChooseCalendarPlaceholder: String { s("aiCalendarChooseCalendarPlaceholder") }
+    static var aiCalendarAttendees: String { s("aiCalendarAttendees") }
+    static var aiCalendarNoAttendees: String { s("aiCalendarNoAttendees") }
+    static var aiCalendarRequiresConfirmation: String { s("aiCalendarRequiresConfirmation") }
+    static var aiCalendarReviewSuggestion: String { s("aiCalendarReviewSuggestion") }
+    static var aiCalendarMissingTitle: String { s("aiCalendarMissingTitle") }
+    static var aiCalendarMissingStart: String { s("aiCalendarMissingStart") }
+    static var aiCalendarMissingEnd: String { s("aiCalendarMissingEnd") }
+    static var aiCalendarInvalidRange: String { s("aiCalendarInvalidRange") }
+    static var aiCalendarMissingCalendar: String { s("aiCalendarMissingCalendar") }
+    static var aiCalendarCalendarNotWritable: String { s("aiCalendarCalendarNotWritable") }
+    static var aiCalendarNoWritableCalendar: String { s("aiCalendarNoWritableCalendar") }
+    static func aiCalendarSaveResult(successes: Int, failures: Int) -> String {
+        String(format: s("aiCalendarSaveResult"), successes, failures)
+    }
+    static var aiCalendarEventFailed: String { s("aiCalendarEventFailed") }
 
     // Image Merge workbench
     static var imageMergeWindowTitle: String { s("imageMergeWindowTitle") }

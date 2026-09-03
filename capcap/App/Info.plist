@@ -84,6 +84,8 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>capcap reads the current Finder selection when you use edit, pin, or upload shortcuts</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>capcap reads schedule details from screenshots and adds them to the Work or Personal calendar you choose</string>
 	<key>NSMainNibFile</key>
 	<string></string>
 	<key>NSPrincipalClass</key>
@@ -92,5 +94,17 @@
 	<string>capcap needs microphone access to record audio with screen recordings</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>capcap needs screen recording access to capture screenshots and recordings.</string>
+	<!-- The default user-configurable AI gateway is HTTP by explicit product configuration. Keep this exception scoped to that host; HTTPS endpoints are unaffected. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>aigw-api.cmsrservice.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

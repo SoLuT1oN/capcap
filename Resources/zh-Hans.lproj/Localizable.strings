@@ -264,6 +264,7 @@
 "tipUndo" = "撤销";
 "tipRedo" = "恢复撤销";
 "tipMoveSelection" = "移动选区";
+"tipAICalendar" = "添加到日历";
 "tipScrollCapture" = "长截图";
 "tipBeautify" = "美化";
 "tipOCR" = "文字识别";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "图床";
 "settingsTabAbout" = "关于";
 "settingsTabTranslation" = "翻译";
+"settingsTabAICalendar" = "AI 日历";
 "settingsTabToolbar" = "工具栏";
 "settingsQuit" = "退出应用";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "未配置 API Key";
 "translationErrBadEndpoint" = "接口地址无效";
 "translationErrBadResponse" = "响应格式异常";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "AI 日历";
+"aiCalendarSettingsSubtitle" = "配置用于创建日历事件的 OpenAI 兼容服务";
+"aiCalendarEndpoint" = "接口地址";
+"aiCalendarApiKey" = "API Key";
+"aiCalendarApiKeyPlaceholder" = "请输入 API Key";
+"aiCalendarModel" = "模型";
+"aiCalendarSave" = "保存";
+"aiCalendarTestConnection" = "测试连接";
+"aiCalendarTesting" = "测试中";
+"aiCalendarConfigSaved" = "已保存配置";
+"aiCalendarTestPassed" = "连接测试通过";
+"aiCalendarTestFailed" = "连接测试失败";
+"aiCalendarMissingAPIKey" = "未配置 API Key";
+"aiCalendarInvalidEndpoint" = "接口地址无效";
+"aiCalendarInvalidRequest" = "请求无效";
+"aiCalendarAnalyzing" = "正在识别日程";
+"aiCalendarImageEncodingFailed" = "无法处理当前截图";
+"aiCalendarUnauthorized" = "身份验证失败，请检查 API Key";
+"aiCalendarForbidden" = "AI 服务拒绝访问";
+"aiCalendarRateLimited" = "请求过于频繁，请稍后重试";
+"aiCalendarServiceUnavailable" = "AI 服务暂时不可用";
+"aiCalendarRequestFailed" = "AI 日历请求失败";
+"aiCalendarRequestTimedOut" = "AI 日历请求超时";
+"aiCalendarNetworkError" = "无法连接 AI 服务";
+"aiCalendarInvalidResponse" = "AI 服务返回的内容无效";
+"aiCalendarCalendarAccessDenied" = "日历访问已被拒绝";
+"aiCalendarCalendarAccessRestricted" = "此 Mac 上的日历访问受到限制";
+"aiCalendarFullAccessRequired" = "需要授予日历完全访问权限";
+"aiCalendarCalendarAccessUnavailable" = "日历访问不可用";
+"aiCalendarCalendarAccessRequestFailed" = "无法请求日历访问权限";
+"aiCalendarAccessNotGranted" = "尚未授予日历访问权限";
+"aiCalendarCalendarNotFound" = "所选日历已不可用";
+"aiCalendarSaveFailed" = "无法将日程添加到日历";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "添加到日历";
+"aiCalendarRecognizedCount" = "识别到 %d 个日程";
+"aiCalendarNoEvents" = "未从截图中识别到明确的日程信息";
+"aiCalendarCancel" = "取消";
+"aiCalendarAdd" = "添加到日历";
+"aiCalendarEventNumber" = "日程 %d";
+"aiCalendarWork" = "工作";
+"aiCalendarPersonal" = "个人";
+"aiCalendarUnknown" = "未分类";
+"aiCalendarTitle" = "标题";
+"aiCalendarStart" = "开始";
+"aiCalendarEnd" = "结束";
+"aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
+"aiCalendarLocation" = "地点";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "备注";
+"aiCalendarChooseCalendar" = "日历";
+"aiCalendarChooseCalendarPlaceholder" = "请选择日历";
+"aiCalendarAttendees" = "与会人";
+"aiCalendarNoAttendees" = "无与会人";
+"aiCalendarRequiresConfirmation" = "⚠ AI 无法确定具体时间，请确认";
+"aiCalendarReviewSuggestion" = "⚠ 请检查 AI 无法确定的信息";
+"aiCalendarMissingTitle" = "请输入标题";
+"aiCalendarMissingStart" = "请输入有效的开始日期和时间";
+"aiCalendarMissingEnd" = "请输入有效的结束日期和时间";
+"aiCalendarInvalidRange" = "结束时间必须晚于开始时间";
+"aiCalendarMissingCalendar" = "请选择可写入的日历";
+"aiCalendarCalendarNotWritable" = "所选日历不可修改";
+"aiCalendarNoWritableCalendar" = "没有可写入的日历";
+"aiCalendarSaveResult" = "已添加 %d 条，失败 %d 条";
+"aiCalendarEventFailed" = "添加失败";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "合并图片";

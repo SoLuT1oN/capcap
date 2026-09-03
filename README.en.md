@@ -55,6 +55,7 @@
 - **Edit Finder images too.** Select a single image file in Finder and trigger the same shortcut to load it straight into the editor — the original is never touched.
 - **History panel.** Recent screenshots and picked colors are one click away from re-copying, with hover stars for favorites — local-only, configurable size.
 - **OCR and on-device translation.** Apple Vision recognizes image text locally; on macOS 15+, Apple Translation can translate it on device, while your own AI or DeepL providers remain available.
+- **AI Calendar** — screenshot → AI → Apple Calendar, with human review before anything is added. Calendar Full Access and a user-configured OpenAI-compatible API are required; Work and Personal are the default calendar mappings
 - **One-click upload to your own image host.** Optional: configure Tencent COS, Qiniu Kodo, or Aliyun OSS once and the editor's upload button copies a public URL straight to your clipboard. Credentials stay on your Mac.
 - **Native AppKit interface.** No Electron and no telemetry. Small, fast, and respectful of macOS.
 
@@ -110,6 +111,7 @@
 - Accessibility permission, used for the default double-tap `⌘` trigger
 - Screen Recording permission, used by ScreenCaptureKit and screenshot capture
 - Automation permission for Finder, requested on first use of the "edit selected image" shortcut
+- Calendar Full Access, requested on first use of AI Calendar to add confirmed events to the selected Work or Personal calendar
 
 On first launch, capcap opens a setup window that shows both permission states. The app can launch once both required permissions are granted.
 

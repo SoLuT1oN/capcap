@@ -41,6 +41,7 @@ let package = Package(
                 .linkedFramework("CoreImage"),
                 .linkedFramework("ImageIO"),
                 .linkedFramework("UniformTypeIdentifiers"),
+                .linkedFramework("EventKit"),
                 .linkedFramework("Carbon"),
                 .linkedFramework("VideoToolbox"),
                 .linkedLibrary("z"),

@@ -49,6 +49,7 @@
 - **Modifier les images Finder** : sélectionnez une image dans Finder et ouvrez-la directement dans l'éditeur sans toucher au fichier d'origine.
 - **Panneau d'historique** : recopiez rapidement captures, couleurs et liens, puis ajoutez des éléments aux favoris avec l'étoile affichée au survol.
 - **OCR et traduction sur l’appareil** : Apple Vision reconnaît localement le texte des images ; sous macOS 15 et versions ultérieures, Apple Translation peut le traduire sur l’appareil, tout en conservant vos fournisseurs IA ou DeepL.
+- **Calendrier IA** : capture d'écran → IA → Apple Calendar, avec vérification humaine avant l'ajout. L'accès complet aux calendriers et une API compatible OpenAI configurée par l'utilisateur sont requis, avec Work et Personal comme mappages par défaut
 - **Téléversement vers votre hébergeur** : Tencent COS, Qiniu Kodo et Aliyun OSS sont pris en charge. Les identifiants restent sur votre Mac.
 - **Interface AppKit native** : pas d’Electron ni de télémétrie.
 
@@ -73,6 +74,7 @@
 - Permission Accessibilité pour le déclencheur `⌘`
 - Permission Enregistrement de l'écran pour ScreenCaptureKit
 - Permission Automatisation Finder pour modifier l'image sélectionnée
+- Accès complet aux calendriers, demandé au premier usage du calendrier IA pour ajouter les événements confirmés au calendrier Work ou Personal choisi
 
 ## Installation avec Homebrew
 

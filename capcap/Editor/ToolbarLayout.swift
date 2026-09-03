@@ -25,6 +25,7 @@ enum ToolbarItemID: String, Codable, CaseIterable {
     case undo
     case redo
     case moveSelection
+    case aiCalendar
     case scrollCapture
     case beautify
     case ocr
@@ -41,7 +42,7 @@ enum ToolbarItemID: String, Codable, CaseIterable {
 extension ToolbarItemID {
     /// How the button behaves — drives which `on*` callback it fires and
     /// whether it carries a persistent selected/active state.
-    enum Kind {
+    enum Kind: Equatable {
         /// Annotation tool — selecting it toggles an `EditTool`.
         case toggleTool
         /// Has an on/off state but is not an `EditTool` (scroll capture, beautify).
@@ -60,7 +61,7 @@ extension ToolbarItemID {
             return .toggleAction
         case .moveSelection:
             return .dragHandle
-        case .insertImage, .colorPicker, .undo, .redo, .ocr, .screenshotTranslate, .save, .upload, .pin, .record, .close, .confirm:
+        case .insertImage, .colorPicker, .undo, .redo, .aiCalendar, .ocr, .screenshotTranslate, .save, .upload, .pin, .record, .close, .confirm:
             return .momentary
         }
     }
@@ -106,6 +107,7 @@ extension ToolbarItemID {
         case .undo:          return "arrow.uturn.backward"
         case .redo:          return "arrow.uturn.forward"
         case .moveSelection: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .aiCalendar:    return "calendar.badge.plus"
         case .scrollCapture: return "arrow.up.and.down.text.horizontal"
         case .beautify:      return "sparkles"
         case .ocr:           return "text.viewfinder"
@@ -140,6 +142,7 @@ extension ToolbarItemID {
         case .undo:          return L10n.tipUndo
         case .redo:          return L10n.tipRedo
         case .moveSelection: return L10n.tipMoveSelection
+        case .aiCalendar:    return L10n.tipAICalendar
         case .scrollCapture: return L10n.tipScrollCapture
         case .beautify:      return L10n.tipBeautify
         case .ocr:           return L10n.tipOCR
@@ -201,7 +204,7 @@ struct ToolbarLayout: Equatable {
     /// recorded.
     static let canonicalOrder: [ToolbarItemID] = [
         .rectangle, .ellipse, .line, .arrow, .pen, .marker, .spotlight, .mosaic, .eraser, .numbered, .text, .emoji, .insertImage,
-        .colorPicker, .magnifier, .undo, .redo, .moveSelection, .scrollCapture, .beautify, .qrCode, .ocr,
+        .colorPicker, .magnifier, .undo, .redo, .moveSelection, .aiCalendar, .scrollCapture, .beautify, .qrCode, .ocr,
         .screenshotTranslate,
         .save, .upload, .pin, .record, .close, .confirm,
     ]
@@ -215,7 +218,7 @@ struct ToolbarLayout: Equatable {
                 .rectangle, .ellipse, .line, .arrow, .pen, .marker, .spotlight, .mosaic, .eraser, .numbered, .text, .emoji, .insertImage,
                 .colorPicker, .magnifier, .beautify, .qrCode, .ocr, .screenshotTranslate, .undo, .redo, .moveSelection,
             ],
-            side: [.scrollCapture, .upload, .save, .pin, .record, .close, .confirm],
+            side: [.aiCalendar, .scrollCapture, .upload, .save, .pin, .record, .close, .confirm],
             hidden: []
         )
     }
@@ -233,6 +236,23 @@ struct ToolbarLayout: Equatable {
         var p = dedup(primary)
         var s = dedup(side)
         var h = dedup(hidden)
+
+        // The first release containing AI Calendar must preserve the bucket
+        // chosen by an older persisted layout. Put it immediately before the
+        // existing scroll-capture item when that anchor is present. This is a
+        // migration-only insertion; no existing item changes bucket.
+        if !seen.contains(.aiCalendar) {
+            if let index = p.firstIndex(of: .scrollCapture) {
+                p.insert(.aiCalendar, at: index)
+                seen.insert(.aiCalendar)
+            } else if let index = s.firstIndex(of: .scrollCapture) {
+                s.insert(.aiCalendar, at: index)
+                seen.insert(.aiCalendar)
+            } else if let index = h.firstIndex(of: .scrollCapture) {
+                h.insert(.aiCalendar, at: index)
+                seen.insert(.aiCalendar)
+            }
+        }
 
         let missing = Self.canonicalOrder.filter { !seen.contains($0) }
         for item in missing {

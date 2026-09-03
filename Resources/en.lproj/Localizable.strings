@@ -264,6 +264,7 @@
 "tipUndo" = "Undo";
 "tipRedo" = "Redo";
 "tipMoveSelection" = "Move Selection";
+"tipAICalendar" = "Add to Calendar";
 "tipScrollCapture" = "Scroll Capture";
 "tipBeautify" = "Beautify";
 "tipOCR" = "Text Recognition";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "Upload";
 "settingsTabAbout" = "About";
 "settingsTabTranslation" = "Translation";
+"settingsTabAICalendar" = "AI Calendar";
 "settingsTabToolbar" = "Toolbar";
 "settingsQuit" = "Quit App";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "API key not configured";
 "translationErrBadEndpoint" = "Invalid endpoint";
 "translationErrBadResponse" = "Unexpected response";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "AI Calendar";
+"aiCalendarSettingsSubtitle" = "Configure the OpenAI-compatible service used to create calendar events";
+"aiCalendarEndpoint" = "Endpoint";
+"aiCalendarApiKey" = "API Key";
+"aiCalendarApiKeyPlaceholder" = "Enter API key";
+"aiCalendarModel" = "Model";
+"aiCalendarSave" = "Save";
+"aiCalendarTestConnection" = "Test Connection";
+"aiCalendarTesting" = "Testing";
+"aiCalendarConfigSaved" = "Config saved";
+"aiCalendarTestPassed" = "Connection test passed";
+"aiCalendarTestFailed" = "Connection test failed";
+"aiCalendarMissingAPIKey" = "API key not configured";
+"aiCalendarInvalidEndpoint" = "Invalid endpoint";
+"aiCalendarInvalidRequest" = "Invalid request";
+"aiCalendarAnalyzing" = "Analyzing screenshot";
+"aiCalendarImageEncodingFailed" = "Could not process the screenshot";
+"aiCalendarUnauthorized" = "Authentication failed, check the API key";
+"aiCalendarForbidden" = "The AI service denied access";
+"aiCalendarRateLimited" = "Too many requests, try again later";
+"aiCalendarServiceUnavailable" = "The AI service is temporarily unavailable";
+"aiCalendarRequestFailed" = "AI Calendar request failed";
+"aiCalendarRequestTimedOut" = "AI Calendar request timed out";
+"aiCalendarNetworkError" = "Could not connect to the AI service";
+"aiCalendarInvalidResponse" = "The AI service returned an invalid response";
+"aiCalendarCalendarAccessDenied" = "Calendar access was denied";
+"aiCalendarCalendarAccessRestricted" = "Calendar access is restricted on this Mac";
+"aiCalendarFullAccessRequired" = "Calendar Full Access is required";
+"aiCalendarCalendarAccessUnavailable" = "Calendar access is unavailable";
+"aiCalendarCalendarAccessRequestFailed" = "Could not request Calendar access";
+"aiCalendarAccessNotGranted" = "Calendar access has not been granted";
+"aiCalendarCalendarNotFound" = "The selected calendar is no longer available";
+"aiCalendarSaveFailed" = "Could not add the event to Calendar";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "Add to Calendar";
+"aiCalendarRecognizedCount" = "Recognized %d events";
+"aiCalendarNoEvents" = "No clear calendar events were found in the screenshot";
+"aiCalendarCancel" = "Cancel";
+"aiCalendarAdd" = "Add to Calendar";
+"aiCalendarEventNumber" = "Event %d";
+"aiCalendarWork" = "Work";
+"aiCalendarPersonal" = "Personal";
+"aiCalendarUnknown" = "Unknown";
+"aiCalendarTitle" = "Title";
+"aiCalendarStart" = "Start";
+"aiCalendarEnd" = "End";
+"aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
+"aiCalendarLocation" = "Location";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "Notes";
+"aiCalendarChooseCalendar" = "Calendar";
+"aiCalendarChooseCalendarPlaceholder" = "Choose a calendar";
+"aiCalendarAttendees" = "Attendees";
+"aiCalendarNoAttendees" = "No attendees";
+"aiCalendarRequiresConfirmation" = "⚠ AI could not determine the exact time, please confirm";
+"aiCalendarReviewSuggestion" = "⚠ Review the details AI could not determine";
+"aiCalendarMissingTitle" = "Enter a title";
+"aiCalendarMissingStart" = "Enter a valid start date and time";
+"aiCalendarMissingEnd" = "Enter a valid end date and time";
+"aiCalendarInvalidRange" = "The end time must be after the start time";
+"aiCalendarMissingCalendar" = "Choose a writable calendar";
+"aiCalendarCalendarNotWritable" = "The selected calendar cannot be modified";
+"aiCalendarNoWritableCalendar" = "No writable calendars are available";
+"aiCalendarSaveResult" = "Added %d events, failed %d";
+"aiCalendarEventFailed" = "Event failed";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "Merge Images";

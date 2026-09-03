@@ -264,6 +264,7 @@
 "tipUndo" = "Hoàn tác";
 "tipRedo" = "Làm lại";
 "tipMoveSelection" = "Di chuyển vùng chọn";
+"tipAICalendar" = "Thêm vào lịch";
 "tipScrollCapture" = "Chụp cuộn";
 "tipBeautify" = "Làm đẹp";
 "tipOCR" = "Nhận dạng văn bản";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "Tải lên";
 "settingsTabAbout" = "Giới thiệu";
 "settingsTabTranslation" = "Dịch";
+"settingsTabAICalendar" = "Lịch AI";
 "settingsTabToolbar" = "Thanh công cụ";
 "settingsQuit" = "Thoát ứng dụng";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "Chưa cấu hình API key";
 "translationErrBadEndpoint" = "Endpoint không hợp lệ";
 "translationErrBadResponse" = "Phản hồi không mong đợi";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "Lịch AI";
+"aiCalendarSettingsSubtitle" = "Cấu hình dịch vụ tương thích OpenAI để tạo sự kiện lịch";
+"aiCalendarEndpoint" = "Endpoint";
+"aiCalendarApiKey" = "API Key";
+"aiCalendarApiKeyPlaceholder" = "Nhập API Key";
+"aiCalendarModel" = "Model";
+"aiCalendarSave" = "Lưu";
+"aiCalendarTestConnection" = "Kiểm tra kết nối";
+"aiCalendarTesting" = "Đang kiểm tra";
+"aiCalendarConfigSaved" = "Đã lưu cấu hình";
+"aiCalendarTestPassed" = "Kiểm tra kết nối thành công";
+"aiCalendarTestFailed" = "Kiểm tra kết nối thất bại";
+"aiCalendarMissingAPIKey" = "Chưa cấu hình API Key";
+"aiCalendarInvalidEndpoint" = "Endpoint không hợp lệ";
+"aiCalendarInvalidRequest" = "Yêu cầu không hợp lệ";
+"aiCalendarAnalyzing" = "Đang phân tích lịch";
+"aiCalendarImageEncodingFailed" = "Không thể xử lý ảnh chụp màn hình";
+"aiCalendarUnauthorized" = "Xác thực thất bại, hãy kiểm tra API Key";
+"aiCalendarForbidden" = "Dịch vụ AI đã từ chối quyền truy cập";
+"aiCalendarRateLimited" = "Quá nhiều yêu cầu, hãy thử lại sau";
+"aiCalendarServiceUnavailable" = "Dịch vụ AI tạm thời không khả dụng";
+"aiCalendarRequestFailed" = "Yêu cầu Lịch AI thất bại";
+"aiCalendarRequestTimedOut" = "Yêu cầu Lịch AI đã hết thời gian chờ";
+"aiCalendarNetworkError" = "Không thể kết nối với dịch vụ AI";
+"aiCalendarInvalidResponse" = "Dịch vụ AI trả về phản hồi không hợp lệ";
+"aiCalendarCalendarAccessDenied" = "Quyền truy cập Lịch đã bị từ chối";
+"aiCalendarCalendarAccessRestricted" = "Quyền truy cập Lịch bị hạn chế trên máy Mac này";
+"aiCalendarFullAccessRequired" = "Cần quyền truy cập đầy đủ vào Lịch";
+"aiCalendarCalendarAccessUnavailable" = "Quyền truy cập Lịch không khả dụng";
+"aiCalendarCalendarAccessRequestFailed" = "Không thể yêu cầu quyền truy cập Lịch";
+"aiCalendarAccessNotGranted" = "Quyền truy cập Lịch chưa được cấp";
+"aiCalendarCalendarNotFound" = "Lịch đã chọn không còn khả dụng";
+"aiCalendarSaveFailed" = "Không thể thêm sự kiện vào Lịch";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "Thêm vào lịch";
+"aiCalendarRecognizedCount" = "Đã nhận diện %d sự kiện";
+"aiCalendarNoEvents" = "Không nhận diện được lịch rõ ràng trong ảnh chụp";
+"aiCalendarCancel" = "Hủy";
+"aiCalendarAdd" = "Thêm vào lịch";
+"aiCalendarEventNumber" = "Sự kiện %d";
+"aiCalendarWork" = "Công việc";
+"aiCalendarPersonal" = "Cá nhân";
+"aiCalendarUnknown" = "Không xác định";
+"aiCalendarTitle" = "Tiêu đề";
+"aiCalendarStart" = "Bắt đầu";
+"aiCalendarEnd" = "Kết thúc";
+"aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
+"aiCalendarLocation" = "Địa điểm";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "Ghi chú";
+"aiCalendarChooseCalendar" = "Lịch";
+"aiCalendarChooseCalendarPlaceholder" = "Chọn lịch";
+"aiCalendarAttendees" = "Người tham dự";
+"aiCalendarNoAttendees" = "Không có người tham dự";
+"aiCalendarRequiresConfirmation" = "⚠ AI chưa xác định được giờ chính xác, vui lòng xác nhận";
+"aiCalendarReviewSuggestion" = "⚠ Hãy kiểm tra thông tin AI không thể xác định";
+"aiCalendarMissingTitle" = "Nhập tiêu đề";
+"aiCalendarMissingStart" = "Nhập ngày và giờ bắt đầu hợp lệ";
+"aiCalendarMissingEnd" = "Nhập ngày và giờ kết thúc hợp lệ";
+"aiCalendarInvalidRange" = "Giờ kết thúc phải sau giờ bắt đầu";
+"aiCalendarMissingCalendar" = "Chọn lịch có thể ghi";
+"aiCalendarCalendarNotWritable" = "Không thể sửa lịch đã chọn";
+"aiCalendarNoWritableCalendar" = "Không có lịch có thể ghi";
+"aiCalendarSaveResult" = "Đã thêm %d, thất bại %d";
+"aiCalendarEventFailed" = "Thêm sự kiện thất bại";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "Ghép ảnh";

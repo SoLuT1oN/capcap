@@ -10,6 +10,7 @@ enum SettingsTab: CaseIterable {
     case toolbar
     case upload
     case translation
+    case aiCalendar
     case permissions
     case about
 
@@ -20,6 +21,7 @@ enum SettingsTab: CaseIterable {
         case .toolbar: return L10n.settingsTabToolbar
         case .upload: return L10n.settingsTabUpload
         case .translation: return L10n.settingsTabTranslation
+        case .aiCalendar: return L10n.settingsTabAICalendar
         case .permissions: return L10n.settingsTabPermissions
         case .about: return L10n.settingsTabAbout
         }
@@ -32,6 +34,7 @@ enum SettingsTab: CaseIterable {
         case .toolbar: return "slider.horizontal.3"
         case .upload: return "icloud.and.arrow.up.fill"
         case .translation: return "character.bubble.fill"
+        case .aiCalendar: return "calendar.badge.plus"
         case .permissions: return "lock.shield.fill"
         case .about: return "info.circle.fill"
         }
@@ -44,6 +47,7 @@ enum SettingsTab: CaseIterable {
         case .toolbar: return NSColor(calibratedRed: 0.95, green: 0.54, blue: 0.62, alpha: 1.0)
         case .upload: return NSColor(calibratedRed: 0.99, green: 0.72, blue: 0.32, alpha: 1.0)
         case .translation: return NSColor(calibratedRed: 0.38, green: 0.80, blue: 0.78, alpha: 1.0)
+        case .aiCalendar: return NSColor(calibratedRed: 0.98, green: 0.56, blue: 0.34, alpha: 1.0)
         case .permissions: return NSColor(calibratedRed: 0.36, green: 0.78, blue: 0.50, alpha: 1.0)
         case .about: return NSColor(calibratedRed: 0.70, green: 0.56, blue: 0.96, alpha: 1.0)
         }
@@ -305,6 +309,7 @@ class SettingsView: NSView {
     private var paneViews: [SettingsTab: NSView] = [:]
     private var toolbarPane: ToolbarSettingsPane?
     private var uploadPane: UploadSettingsPane?
+    private var aiCalendarPane: AICalendarSettingsPane?
     private var filenameRuleCard: FilenameRuleCard?
     private var screenshotQualityTitleLabel: NSTextField!
     private var screenshotQualitySubtitleLabel: NSTextField!
@@ -387,6 +392,7 @@ class SettingsView: NSView {
 
     deinit {
         refreshTimer?.invalidate()
+        aiCalendarPane?.cancelConnectionTest()
         cancelShortcutRecording()
         cancelFullScreenScreenshotShortcutRecording()
         cancelColorPickerShortcutRecording()
@@ -458,6 +464,7 @@ class SettingsView: NSView {
         paneViews[.toolbar] = buildToolbarPane()
         paneViews[.upload] = buildUploadPane()
         paneViews[.translation] = buildTranslationPane()
+        paneViews[.aiCalendar] = buildAICalendarPane()
         paneViews[.permissions] = buildPermissionsPane()
         paneViews[.about] = buildAboutPane()
 
@@ -596,6 +603,9 @@ class SettingsView: NSView {
         }
         if selectedTab == .toolbar && tab != .toolbar {
             toolbarPane?.cancelShortcutRecording()
+        }
+        if selectedTab == .aiCalendar && tab != .aiCalendar {
+            aiCalendarPane?.cancelConnectionTest()
         }
         selectedTab = tab
         for btn in tabButtons {
@@ -1945,6 +1955,21 @@ class SettingsView: NSView {
         let host = NSView()
         host.translatesAutoresizingMaskIntoConstraints = false
         let pane = TranslationSettingsPane()
+        host.addSubview(pane)
+        NSLayoutConstraint.activate([
+            pane.topAnchor.constraint(equalTo: host.topAnchor),
+            pane.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            pane.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            pane.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+        ])
+        return host
+    }
+
+    private func buildAICalendarPane() -> NSView {
+        let host = NSView()
+        host.translatesAutoresizingMaskIntoConstraints = false
+        let pane = AICalendarSettingsPane()
+        aiCalendarPane = pane
         host.addSubview(pane)
         NSLayoutConstraint.activate([
             pane.topAnchor.constraint(equalTo: host.topAnchor),

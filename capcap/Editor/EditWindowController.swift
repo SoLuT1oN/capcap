@@ -173,6 +173,19 @@ class EditWindowController {
     private var currentBeautifyPadding: CGFloat = CGFloat(Defaults.lastBeautifyPadding)
     private var currentBeautifyShadowEnabled: Bool = Defaults.lastBeautifyShadowEnabled
 
+    // AI Calendar is intentionally owned by the editor session. The request
+    // token prevents a late response from an older request from touching a
+    // newer editor, while the task is cancelled whenever the editor tears
+    // down. The confirmation controller is retained independently because
+    // the enclosing capture overlay releases its editor after onComplete(nil).
+    private var aiCalendarTask: Task<Void, Never>?
+    private var aiCalendarExtractionTask: Task<[AICalendarEventDraft], Error>?
+    private var aiCalendarRequestID: UUID?
+    private var isAICalendarBusy = false
+    private var aiCalendarEventService: CalendarEventService?
+    private var aiCalendarConfirmationController: AICalendarConfirmationController?
+    private static var retainedAICalendarConfirmationController: AICalendarConfirmationController?
+
     /// True when the capture came from clicking a single window (not a free
     /// drag). Drives the rounded-corner + drop-shadow effect on the final
     /// output. Cleared by OverlayWindowController if the user resizes the
@@ -469,6 +482,8 @@ class EditWindowController {
             _ = canvasView?.undo()
         case .redo:
             _ = canvasView?.redo()
+        case .aiCalendar:
+            return performAICalendar()
         case .scrollCapture:
             toggleScrollCapture()
         case .beautify:
@@ -521,6 +536,7 @@ class EditWindowController {
             $0.setScrollCaptureEnabled(scrollCaptureEnabled)
             $0.setRecordingEnabled(recordingEnabled)
         }
+        updateAICalendarAvailability()
     }
 
     /// Frame the option sub-toolbars (color/size, text, beautify) anchor
@@ -2128,6 +2144,189 @@ class EditWindowController {
         requestFocusReturn()
     }
 
+    /// Extracts calendar events from the image currently represented by this
+    /// editor session. This is deliberately separate from OCR: the complete
+    /// rendered screenshot (including annotations and beautify styling) is
+    /// sent to the configured multimodal model.
+    @discardableResult
+    private func performAICalendar() -> Bool {
+        guard !isAICalendarBusy else { return false }
+
+        canvasView?.commitActiveTextEditing()
+
+        let config = AICalendarConfig.load().normalized()
+        guard Self.isValidAICalendarEndpoint(config.endpoint) else {
+            ToastWindow.show(message: L10n.aiCalendarInvalidEndpoint, on: screen)
+            return true
+        }
+        guard !config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            ToastWindow.show(message: L10n.aiCalendarMissingAPIKey, on: screen)
+            return true
+        }
+        guard !config.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            ToastWindow.show(message: L10n.aiCalendarInvalidRequest, on: screen)
+            return true
+        }
+        guard let image = currentCompositeImage(allowScreenCaptureFallback: false) else {
+            // AI Calendar must never turn a missing editor image into a fresh
+            // screen capture. This can happen for a recording-only selection
+            // without a pre-captured snapshot.
+            ToastWindow.show(message: L10n.aiCalendarInvalidRequest, on: screen)
+            return true
+        }
+
+        let requestID = UUID()
+        let calendarService = CalendarEventService()
+        let aiService = AICalendarService(config: config)
+        let targetScreen = screen
+
+        isAICalendarBusy = true
+        aiCalendarRequestID = requestID
+        aiCalendarEventService = calendarService
+        updateAICalendarAvailability()
+        ToastWindow.show(message: L10n.aiCalendarAnalyzing, on: targetScreen, duration: 600)
+
+        aiCalendarTask = Task { @MainActor [weak self] in
+            do {
+                // The permission prompt is intentionally deferred until the
+                // user explicitly invokes AI Calendar for the first time.
+                guard self?.aiCalendarRequestID == requestID else { return }
+                try await calendarService.ensureFullAccess()
+                try Task.checkCancellation()
+
+                guard self?.aiCalendarRequestID == requestID else { return }
+
+                // AICalendarService encodes and resizes the image before its
+                // first network await. Keep that work off the main actor so
+                // a large screenshot cannot freeze the editor.
+                let extractionTask = Task.detached(priority: .userInitiated) {
+                    try await aiService.extract(from: image)
+                }
+                self?.aiCalendarExtractionTask = extractionTask
+                let events = try await extractionTask.value
+                try Task.checkCancellation()
+
+                guard let self,
+                      self.aiCalendarRequestID == requestID else { return }
+                self.finishAICalendarRequest(
+                    requestID: requestID,
+                    events: events,
+                    calendarService: calendarService,
+                    screen: targetScreen
+                )
+            } catch is CancellationError {
+                // The editor was closed or the request was superseded.
+            } catch {
+                guard let self, self.aiCalendarRequestID == requestID else { return }
+                self.finishAICalendarFailure(requestID: requestID, error: error, screen: targetScreen)
+            }
+        }
+        return true
+    }
+
+    private static func isValidAICalendarEndpoint(_ endpoint: String) -> Bool {
+        guard let url = URL(string: endpoint.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let scheme = url.scheme?.lowercased(),
+              (scheme == "http" || scheme == "https"),
+              url.host != nil else {
+            return false
+        }
+        return true
+    }
+
+    private func finishAICalendarRequest(
+        requestID: UUID,
+        events: [AICalendarEventDraft],
+        calendarService: CalendarEventService,
+        screen: NSScreen
+    ) {
+        guard aiCalendarRequestID == requestID else { return }
+        aiCalendarTask = nil
+        aiCalendarExtractionTask = nil
+        aiCalendarRequestID = nil
+        isAICalendarBusy = false
+        aiCalendarEventService = nil
+        updateAICalendarAvailability()
+        ToastWindow.dismiss()
+
+        guard !events.isEmpty else {
+            ToastWindow.show(message: L10n.aiCalendarNoEvents, on: screen)
+            return
+        }
+
+        presentAICalendarConfirmation(events: events, calendarService: calendarService, screen: screen)
+    }
+
+    private func finishAICalendarFailure(requestID: UUID, error: Error, screen: NSScreen) {
+        guard aiCalendarRequestID == requestID else { return }
+        aiCalendarTask = nil
+        aiCalendarExtractionTask = nil
+        aiCalendarRequestID = nil
+        isAICalendarBusy = false
+        aiCalendarEventService = nil
+        updateAICalendarAvailability()
+        ToastWindow.dismiss()
+        ToastWindow.show(message: Self.aiCalendarUserMessage(for: error), on: screen)
+    }
+
+    private static func aiCalendarUserMessage(for error: Error) -> String {
+        AICalendarErrorMessages.message(for: error)
+    }
+
+    private func presentAICalendarConfirmation(
+        events: [AICalendarEventDraft],
+        calendarService: CalendarEventService,
+        screen: NSScreen
+    ) {
+        let controller = AICalendarConfirmationController(
+            events: events,
+            calendarService: calendarService,
+            onCancel: { [weak self] in
+                self?.aiCalendarConfirmationController = nil
+                Self.retainedAICalendarConfirmationController = nil
+            },
+            onSaved: { [weak self] result in
+                ToastWindow.show(
+                    message: L10n.aiCalendarSaveResult(
+                        successes: result.successCount,
+                        failures: result.failureCount
+                    ),
+                    on: screen
+                )
+                guard result.failures.isEmpty else { return }
+                self?.aiCalendarConfirmationController = nil
+                Self.retainedAICalendarConfirmationController = nil
+            }
+        )
+        aiCalendarConfirmationController = controller
+        Self.retainedAICalendarConfirmationController = controller
+
+        // The capture overlay owns this editor. Retain the confirmation
+        // independently before completing the overlay so a late window-close
+        // callback cannot resurrect or present UI for a dead editor session.
+        tearDown()
+        onComplete(nil)
+        controller.showWindow(nil)
+    }
+
+    private func updateAICalendarAvailability() {
+        toolbars.forEach { $0.setEnabled(!isAICalendarBusy, for: .aiCalendar) }
+    }
+
+    private func cancelAICalendarWork() {
+        aiCalendarTask?.cancel()
+        aiCalendarTask = nil
+        aiCalendarExtractionTask?.cancel()
+        aiCalendarExtractionTask = nil
+        aiCalendarRequestID = nil
+        aiCalendarEventService = nil
+        if isAICalendarBusy {
+            isAICalendarBusy = false
+            updateAICalendarAvailability()
+            ToastWindow.dismiss()
+        }
+    }
+
     private func toolUsesPickedColorSwatch(_ tool: EditTool) -> Bool {
         switch tool {
         case .rectangle, .ellipse, .line, .arrow, .pen, .marker, .numbered, .text:
@@ -2533,6 +2732,7 @@ class EditWindowController {
     }
 
     func tearDown() {
+        cancelAICalendarWork()
         dismissQRCodeOverlay()
         cancelActiveColorSampler()
         isScrollCapturing = false
@@ -2666,7 +2866,7 @@ class EditWindowController {
         showBeautifySubToolbar(selecting: preset)
     }
 
-    private func currentCompositeImage() -> NSImage? {
+    private func currentCompositeImage(allowScreenCaptureFallback: Bool = true) -> NSImage? {
         var fallbackBaseImage: NSImage?
         if canvasView?.hasPreviewImage == true {
             fallbackBaseImage = nil
@@ -2676,8 +2876,17 @@ class EditWindowController {
             fallbackBaseImage = windowBaseImage
         } else if let snapshot = preSnapshot {
             fallbackBaseImage = ScreenCapturer.crop(from: snapshot, captureRect: captureRect, screen: screen)
-        } else {
+        } else if allowScreenCaptureFallback {
             fallbackBaseImage = ScreenCapturer.capture(rect: captureRect, screen: screen)
+        } else {
+            // The AI Calendar path must use only the image already represented
+            // by this editor session. In particular, never fall back to a new
+            // ScreenCapturer.capture call after the user presses the button.
+            fallbackBaseImage = canvasView?.externalBaseImage
+        }
+
+        guard canvasView?.hasPreviewImage == true || fallbackBaseImage != nil else {
+            return nil
         }
 
         if canvasView?.hasPreviewImage != true {

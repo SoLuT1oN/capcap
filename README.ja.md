@@ -49,6 +49,7 @@
 - **Finder の画像を直接編集**：Finder で画像を 1 つ選択して同じショートカットを押すと、元ファイルを変更せずにエディタで開けます。
 - **履歴パネル**：最近のスクリーンショット、抽出した色、アップロード URL をローカルに保持し、ホバー時に表示される星からお気に入りに追加できます。
 - **OCR とオンデバイス翻訳**：Apple Vision が画像内テキストをローカル認識し、macOS 15 以降では Apple Translation による端末内翻訳も利用できます。既存の AI や DeepL も引き続き選べます。
+- **AI カレンダー**：スクリーンショット → AI → Apple Calendar の流れで予定を抽出し、追加前に確認できます。Calendar Full Access とユーザーが設定した OpenAI 互換 API が必要で、Work と Personal が既定のマッピングです
 - **自分の画像ホストへアップロード**：Tencent COS、Qiniu Kodo、Aliyun OSS を設定できます。資格情報は Mac 上にのみ保存されます。
 - **ネイティブ AppKit インターフェース**：Electron やテレメトリなしで小さく高速に動きます。
 
@@ -73,6 +74,7 @@
 - アクセシビリティ権限：`⌘` ダブルタップの検出に使用
 - 画面収録権限：ScreenCaptureKit による撮影に使用
 - Finder のオートメーション権限：選択済み画像を編集するときに使用
+- Calendar Full Access：AI カレンダーを初めて使うとき、確認済みの予定を選択した Work または Personal に追加するために使用
 
 ## Homebrew でインストール
 

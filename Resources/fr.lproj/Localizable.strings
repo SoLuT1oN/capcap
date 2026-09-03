@@ -264,6 +264,7 @@
 "tipUndo" = "Annuler";
 "tipRedo" = "Rétablir";
 "tipMoveSelection" = "Déplacer la sélection";
+"tipAICalendar" = "Ajouter au calendrier";
 "tipScrollCapture" = "Capture longue";
 "tipBeautify" = "Embellir";
 "tipOCR" = "Reconnaissance de texte";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "Hébergement";
 "settingsTabAbout" = "À propos";
 "settingsTabTranslation" = "Traduction";
+"settingsTabAICalendar" = "Calendrier IA";
 "settingsTabToolbar" = "Barre d'outils";
 "settingsQuit" = "Quitter l'application";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "Clé API non configurée";
 "translationErrBadEndpoint" = "Point de terminaison invalide";
 "translationErrBadResponse" = "Réponse inattendue";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "Calendrier IA";
+"aiCalendarSettingsSubtitle" = "Configurez le service compatible OpenAI utilisé pour créer des événements de calendrier";
+"aiCalendarEndpoint" = "Point de terminaison";
+"aiCalendarApiKey" = "Clé API";
+"aiCalendarApiKeyPlaceholder" = "Saisissez la clé API";
+"aiCalendarModel" = "Modèle";
+"aiCalendarSave" = "Enregistrer";
+"aiCalendarTestConnection" = "Tester la connexion";
+"aiCalendarTesting" = "Test en cours";
+"aiCalendarConfigSaved" = "Configuration enregistrée";
+"aiCalendarTestPassed" = "Test de connexion réussi";
+"aiCalendarTestFailed" = "Échec du test de connexion";
+"aiCalendarMissingAPIKey" = "Clé API non configurée";
+"aiCalendarInvalidEndpoint" = "Point de terminaison invalide";
+"aiCalendarInvalidRequest" = "Requête invalide";
+"aiCalendarAnalyzing" = "Analyse des événements";
+"aiCalendarImageEncodingFailed" = "Impossible de traiter la capture d’écran";
+"aiCalendarUnauthorized" = "Échec de l’authentification, vérifiez la clé API";
+"aiCalendarForbidden" = "Le service d’IA a refusé l’accès";
+"aiCalendarRateLimited" = "Trop de requêtes, réessayez plus tard";
+"aiCalendarServiceUnavailable" = "Le service d’IA est temporairement indisponible";
+"aiCalendarRequestFailed" = "Échec de la requête du calendrier IA";
+"aiCalendarRequestTimedOut" = "Délai dépassé pour la requête du calendrier IA";
+"aiCalendarNetworkError" = "Impossible de se connecter au service d’IA";
+"aiCalendarInvalidResponse" = "Le service d’IA a renvoyé une réponse invalide";
+"aiCalendarCalendarAccessDenied" = "L’accès au calendrier a été refusé";
+"aiCalendarCalendarAccessRestricted" = "L’accès au calendrier est limité sur ce Mac";
+"aiCalendarFullAccessRequired" = "L’accès complet au calendrier est requis";
+"aiCalendarCalendarAccessUnavailable" = "L’accès au calendrier est indisponible";
+"aiCalendarCalendarAccessRequestFailed" = "Impossible de demander l’accès au calendrier";
+"aiCalendarAccessNotGranted" = "L’accès au calendrier n’a pas été accordé";
+"aiCalendarCalendarNotFound" = "Le calendrier sélectionné n’est plus disponible";
+"aiCalendarSaveFailed" = "Impossible d’ajouter l’événement au calendrier";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "Ajouter au calendrier";
+"aiCalendarRecognizedCount" = "%d événements reconnus";
+"aiCalendarNoEvents" = "Aucun événement clair trouvé dans la capture";
+"aiCalendarCancel" = "Annuler";
+"aiCalendarAdd" = "Ajouter au calendrier";
+"aiCalendarEventNumber" = "Événement %d";
+"aiCalendarWork" = "Travail";
+"aiCalendarPersonal" = "Personnel";
+"aiCalendarUnknown" = "Inconnu";
+"aiCalendarTitle" = "Titre";
+"aiCalendarStart" = "Début";
+"aiCalendarEnd" = "Fin";
+"aiCalendarDateTimePlaceholder" = "AAAA-MM-JJ HH:MM";
+"aiCalendarLocation" = "Lieu";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "Notes";
+"aiCalendarChooseCalendar" = "Calendrier";
+"aiCalendarChooseCalendarPlaceholder" = "Choisir un calendrier";
+"aiCalendarAttendees" = "Participants";
+"aiCalendarNoAttendees" = "Aucun participant";
+"aiCalendarRequiresConfirmation" = "⚠ L’IA n’a pas pu déterminer l’heure exacte, veuillez confirmer";
+"aiCalendarReviewSuggestion" = "⚠ Vérifiez les informations que l’IA n’a pas pu déterminer";
+"aiCalendarMissingTitle" = "Saisissez un titre";
+"aiCalendarMissingStart" = "Saisissez une date et une heure de début valides";
+"aiCalendarMissingEnd" = "Saisissez une date et une heure de fin valides";
+"aiCalendarInvalidRange" = "L’heure de fin doit être après l’heure de début";
+"aiCalendarMissingCalendar" = "Choisissez un calendrier modifiable";
+"aiCalendarCalendarNotWritable" = "Le calendrier choisi ne peut pas être modifié";
+"aiCalendarNoWritableCalendar" = "Aucun calendrier modifiable disponible";
+"aiCalendarSaveResult" = "%d événements ajoutés, %d échecs";
+"aiCalendarEventFailed" = "Échec de l’événement";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "Fusionner des images";

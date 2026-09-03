@@ -264,6 +264,7 @@
 "tipUndo" = "Отменить";
 "tipRedo" = "Повторить";
 "tipMoveSelection" = "Переместить выделение";
+"tipAICalendar" = "Добавить в календарь";
 "tipScrollCapture" = "Длинный снимок";
 "tipBeautify" = "Оформление";
 "tipOCR" = "Распознавание текста";
@@ -333,6 +334,7 @@
 "settingsTabUpload" = "Хостинг";
 "settingsTabAbout" = "О программе";
 "settingsTabTranslation" = "Перевод";
+"settingsTabAICalendar" = "ИИ-календарь";
 "settingsTabToolbar" = "Панель инструментов";
 "settingsQuit" = "Завершить приложение";
 
@@ -568,6 +570,74 @@
 "translationErrMissingAPIKey" = "Ключ API не настроен";
 "translationErrBadEndpoint" = "Неверный эндпоинт";
 "translationErrBadResponse" = "Неожиданный ответ";
+
+/* AI Calendar — settings tab */
+"aiCalendarSettingsTitle" = "ИИ-календарь";
+"aiCalendarSettingsSubtitle" = "Настройте OpenAI-совместимый сервис для создания событий календаря";
+"aiCalendarEndpoint" = "Эндпоинт";
+"aiCalendarApiKey" = "Ключ API";
+"aiCalendarApiKeyPlaceholder" = "Введите ключ API";
+"aiCalendarModel" = "Модель";
+"aiCalendarSave" = "Сохранить";
+"aiCalendarTestConnection" = "Проверить соединение";
+"aiCalendarTesting" = "Проверка";
+"aiCalendarConfigSaved" = "Конфигурация сохранена";
+"aiCalendarTestPassed" = "Проверка соединения пройдена";
+"aiCalendarTestFailed" = "Проверка соединения не пройдена";
+"aiCalendarMissingAPIKey" = "Ключ API не настроен";
+"aiCalendarInvalidEndpoint" = "Неверный эндпоинт";
+"aiCalendarInvalidRequest" = "Неверный запрос";
+"aiCalendarAnalyzing" = "Распознавание событий";
+"aiCalendarImageEncodingFailed" = "Не удалось обработать снимок экрана";
+"aiCalendarUnauthorized" = "Ошибка аутентификации, проверьте API Key";
+"aiCalendarForbidden" = "Сервис ИИ запретил доступ";
+"aiCalendarRateLimited" = "Слишком много запросов, повторите попытку позже";
+"aiCalendarServiceUnavailable" = "Сервис ИИ временно недоступен";
+"aiCalendarRequestFailed" = "Не удалось выполнить запрос ИИ-календаря";
+"aiCalendarRequestTimedOut" = "Истекло время ожидания запроса ИИ-календаря";
+"aiCalendarNetworkError" = "Не удалось подключиться к сервису ИИ";
+"aiCalendarInvalidResponse" = "Сервис ИИ вернул недопустимый ответ";
+"aiCalendarCalendarAccessDenied" = "Доступ к календарю запрещён";
+"aiCalendarCalendarAccessRestricted" = "Доступ к календарю ограничен на этом Mac";
+"aiCalendarFullAccessRequired" = "Требуется полный доступ к календарю";
+"aiCalendarCalendarAccessUnavailable" = "Доступ к календарю недоступен";
+"aiCalendarCalendarAccessRequestFailed" = "Не удалось запросить доступ к календарю";
+"aiCalendarAccessNotGranted" = "Доступ к календарю не предоставлен";
+"aiCalendarCalendarNotFound" = "Выбранный календарь больше недоступен";
+"aiCalendarSaveFailed" = "Не удалось добавить событие в календарь";
+
+/* AI Calendar — confirmation */
+"aiCalendarConfirmTitle" = "Добавить в календарь";
+"aiCalendarRecognizedCount" = "Распознано событий: %d";
+"aiCalendarNoEvents" = "На снимке не найдено явных событий календаря";
+"aiCalendarCancel" = "Отменить";
+"aiCalendarAdd" = "Добавить в календарь";
+"aiCalendarEventNumber" = "Событие %d";
+"aiCalendarWork" = "Работа";
+"aiCalendarPersonal" = "Личное";
+"aiCalendarUnknown" = "Неизвестно";
+"aiCalendarTitle" = "Название";
+"aiCalendarStart" = "Начало";
+"aiCalendarEnd" = "Окончание";
+"aiCalendarDateTimePlaceholder" = "ГГГГ-ММ-ДД ЧЧ:ММ";
+"aiCalendarLocation" = "Место";
+"aiCalendarURL" = "URL";
+"aiCalendarNotes" = "Заметки";
+"aiCalendarChooseCalendar" = "Календарь";
+"aiCalendarChooseCalendarPlaceholder" = "Выберите календарь";
+"aiCalendarAttendees" = "Участники";
+"aiCalendarNoAttendees" = "Нет участников";
+"aiCalendarRequiresConfirmation" = "⚠ Точное время не определено, проверьте его";
+"aiCalendarReviewSuggestion" = "⚠ Проверьте сведения, которые ИИ не смог определить";
+"aiCalendarMissingTitle" = "Введите название";
+"aiCalendarMissingStart" = "Введите корректные дату и время начала";
+"aiCalendarMissingEnd" = "Введите корректные дату и время окончания";
+"aiCalendarInvalidRange" = "Время окончания должно быть позже времени начала";
+"aiCalendarMissingCalendar" = "Выберите доступный для записи календарь";
+"aiCalendarCalendarNotWritable" = "Выбранный календарь нельзя изменить";
+"aiCalendarNoWritableCalendar" = "Нет доступных для записи календарей";
+"aiCalendarSaveResult" = "Добавлено: %d, ошибок: %d";
+"aiCalendarEventFailed" = "Не удалось добавить событие";
 
 /* Image Merge */
 "imageMergeShortcutHeader" = "Объединить изображения";

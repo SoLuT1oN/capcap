@@ -267,22 +267,20 @@ enum TranslationService {
     ) throws -> URLRequest {
         let apiKey = config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !apiKey.isEmpty else { throw TranslationError.missingAPIKey }
-        guard let url = URL(string: config.resolvedEndpoint(for: kind)),
-              url.scheme != nil else {
-            throw TranslationError.badEndpoint
-        }
-
-        var request = URLRequest(url: url, timeoutInterval: 60)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
         let model = config.resolvedModel(for: kind)
-        let body: [String: Any]
 
         if kind.isClaude {
+            guard let url = URL(string: config.resolvedEndpoint(for: kind)),
+                  url.scheme != nil else {
+                throw TranslationError.badEndpoint
+            }
+
+            var request = URLRequest(url: url, timeoutInterval: 60)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            body = [
+            let body: [String: Any] = [
                 "model": model,
                 "max_tokens": 4096,
                 "temperature": 0.3,
@@ -290,8 +288,9 @@ enum TranslationService {
                 "system": system,
                 "messages": [["role": "user", "content": text]],
             ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
         } else {
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             var chatBody: [String: Any] = [
                 "model": model,
                 "temperature": 0.3,
@@ -304,11 +303,21 @@ enum TranslationService {
             if kind == .deepseek {
                 chatBody["thinking"] = ["type": "disabled"]
             }
-            body = chatBody
+            do {
+                return try OpenAICompatibleChatTransport.makeRequest(
+                    endpoint: config.resolvedEndpoint(for: kind),
+                    apiKey: apiKey,
+                    body: chatBody,
+                    timeout: 60
+                )
+            } catch OpenAICompatibleChatTransportError.missingAPIKey {
+                throw TranslationError.missingAPIKey
+            } catch OpenAICompatibleChatTransportError.invalidEndpoint {
+                throw TranslationError.badEndpoint
+            } catch {
+                throw TranslationError.badResponse
+            }
         }
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        return request
     }
 
     private static func parseDictionaryEntry(_ raw: String, fallbackWord: String) -> DictionaryEntry {

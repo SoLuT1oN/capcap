@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add AI Calendar to extract events from a screenshot and add them to Apple Calendar after confirmation
+- Add a host-scoped ATS exception for the explicitly configured HTTP AI gateway without enabling arbitrary HTTP loads
+
 ## [1.7.11] - 2026-08-30
 
 ### Added

@@ -49,6 +49,7 @@
 - **Chỉnh ảnh từ Finder**: chọn một ảnh trong Finder và mở thẳng vào trình chỉnh sửa mà không sửa tệp gốc.
 - **Bảng lịch sử**: sao chép lại nhanh ảnh chụp, màu và liên kết, đồng thời thêm mục yêu thích bằng biểu tượng ngôi sao khi di chuột.
 - **OCR và dịch trên thiết bị**: Apple Vision nhận dạng văn bản trong ảnh ngay trên máy; từ macOS 15, Apple Translation có thể dịch trên thiết bị, đồng thời vẫn hỗ trợ nhà cung cấp AI hoặc DeepL của bạn.
+- **Lịch AI**: ảnh chụp màn hình → AI → Apple Calendar, luôn cho phép kiểm tra trước khi thêm. Cần quyền Calendar Full Access và API tương thích OpenAI do bạn tự cấu hình; mặc định ánh xạ Work và Personal
 - **Tải lên dịch vụ ảnh riêng**: hỗ trợ Tencent COS, Qiniu Kodo và Aliyun OSS. Thông tin xác thực chỉ lưu trên Mac của bạn.
 - **Giao diện AppKit gốc**: không Electron và không đo lường từ xa.
 
@@ -73,6 +74,7 @@
 - Quyền Trợ năng cho thao tác nhấn đúp `⌘`
 - Quyền Ghi màn hình cho ScreenCaptureKit
 - Quyền Tự động hóa Finder khi chỉnh ảnh đã chọn
+- Quyền Calendar Full Access, được yêu cầu lần đầu dùng Lịch AI để thêm các sự kiện đã xác nhận vào lịch Work hoặc Personal đã chọn
 
 ## Cài đặt bằng Homebrew
 
