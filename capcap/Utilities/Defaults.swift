@@ -872,6 +872,8 @@ enum L10n {
     static var aiCalendarTitle: String { s("aiCalendarTitle") }
     static var aiCalendarStart: String { s("aiCalendarStart") }
     static var aiCalendarEnd: String { s("aiCalendarEnd") }
+    static var aiCalendarReminder: String { s("aiCalendarReminder") }
+    static var aiCalendarReminderAtStart: String { s("aiCalendarReminderAtStart") }
     static var aiCalendarDateTimePlaceholder: String { s("aiCalendarDateTimePlaceholder") }
     static var aiCalendarLocation: String { s("aiCalendarLocation") }
     static var aiCalendarURL: String { s("aiCalendarURL") }

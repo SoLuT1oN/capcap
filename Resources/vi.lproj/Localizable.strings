@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "Tiêu đề";
 "aiCalendarStart" = "Bắt đầu";
 "aiCalendarEnd" = "Kết thúc";
+"aiCalendarReminder" = "Nhắc nhở";
+"aiCalendarReminderAtStart" = "Khi sự kiện bắt đầu";
 "aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
 "aiCalendarLocation" = "Địa điểm";
 "aiCalendarURL" = "URL";

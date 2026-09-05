@@ -44,9 +44,8 @@ struct CalendarDescriptor: Equatable, Hashable, Identifiable {
     }
 }
 
-/// A value object passed to the EventKit adapter. The unsupported EventKit
-/// properties are represented explicitly so they cannot be added by accident
-/// when this feature evolves.
+/// A value object passed to the EventKit adapter. Alarms are optional and
+/// always fire at the event start; all-day and recurrence remain unsupported.
 struct CalendarEventRecord: Equatable {
     let title: String
     let startDate: Date
@@ -122,10 +121,12 @@ enum CalendarResolution: Equatable {
 struct CalendarEventSubmission: Equatable {
     let event: AICalendarEventDraft
     let calendar: CalendarDescriptor
+    let reminderEnabled: Bool
 
-    init(event: AICalendarEventDraft, calendar: CalendarDescriptor) {
+    init(event: AICalendarEventDraft, calendar: CalendarDescriptor, reminderEnabled: Bool = false) {
         self.event = event
         self.calendar = calendar
+        self.reminderEnabled = reminderEnabled
     }
 }
 
@@ -399,7 +400,7 @@ final class CalendarEventService {
                 url: submission.event.url,
                 calendarIdentifier: currentCalendar.identifier,
                 allDay: false,
-                hasAlarms: false,
+                hasAlarms: submission.reminderEnabled,
                 hasRecurrenceRules: false
             )
 
@@ -580,6 +581,17 @@ final class EventKitCalendarEventStore: CalendarEventStoreProtocol {
             throw CalendarEventStoreError.calendarNotWritable
         }
 
+        let event = makeEvent(from: record, calendar: eventCalendar)
+        do {
+            try eventStore.save(event, span: .thisEvent)
+        } catch {
+            // Provider errors can contain private account or calendar details.
+            throw CalendarEventStoreError.saveFailed
+        }
+    }
+
+    /// Builds the event without persisting it or requesting calendar access.
+    func makeEvent(from record: CalendarEventRecord, calendar eventCalendar: EKCalendar) -> EKEvent {
         let event = EKEvent(eventStore: eventStore)
         event.calendar = eventCalendar
         event.title = record.title
@@ -589,20 +601,12 @@ final class EventKitCalendarEventStore: CalendarEventStoreProtocol {
         event.notes = record.notes.isEmpty ? nil : record.notes
         event.url = record.url
 
-        // Explicitly keep unsupported first-version features off. EventKit's
-        // attendee list is read-only, so record.notes already contains the
-        // attendee fallback described above.
+        // EventKit's attendee list is read-only, so participants stay in notes.
+        // A relative alarm follows any later edit to the event's start time.
         event.isAllDay = false
-        event.alarms = nil
+        event.alarms = record.hasAlarms ? [EKAlarm(relativeOffset: 0)] : nil
         event.recurrenceRules = nil
 
-        do {
-            try eventStore.save(event, span: .thisEvent)
-        } catch {
-            // Do not pass provider-specific NSError text to the UI. It can
-            // contain account or calendar details and is not stable to
-            // localize; callers receive a generic save failure instead.
-            throw CalendarEventStoreError.saveFailed
-        }
+        return event
     }
 }

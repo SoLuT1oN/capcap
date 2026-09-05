@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "タイトル";
 "aiCalendarStart" = "開始";
 "aiCalendarEnd" = "終了";
+"aiCalendarReminder" = "通知";
+"aiCalendarReminderAtStart" = "予定の開始時";
 "aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
 "aiCalendarLocation" = "場所";
 "aiCalendarURL" = "URL";
