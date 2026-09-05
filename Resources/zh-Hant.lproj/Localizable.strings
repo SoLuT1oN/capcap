@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "標題";
 "aiCalendarStart" = "開始";
 "aiCalendarEnd" = "結束";
+"aiCalendarReminder" = "提醒";
+"aiCalendarReminderAtStart" = "事件開始時";
 "aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
 "aiCalendarLocation" = "地點";
 "aiCalendarURL" = "URL";

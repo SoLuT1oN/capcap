@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import capcap
 
@@ -28,6 +29,102 @@ final class AICalendarConfirmationTests: XCTestCase {
         XCTAssertTrue(model.isValid)
         XCTAssertEqual(model.validationErrors, [])
         XCTAssertEqual(model.submission?.calendar, writableCalendar)
+        XCTAssertEqual(model.submission?.reminderEnabled, false)
+    }
+
+    @MainActor
+    func testReminderSwitchesAreIndependentAndReachSavedEvents() throws {
+        _ = NSApplication.shared
+        let suite = "AICalendarReminderTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = ReminderConfirmationStore(calendar: writableCalendar)
+        let controller = AICalendarConfirmationController(
+            events: [validDraft, validDraft],
+            calendarService: CalendarEventService(store: store, defaults: defaults)
+        )
+        defer { controller.close() }
+        let views = descendants(of: try XCTUnwrap(controller.window?.contentView))
+        let switches = views.compactMap { $0 as? NSSwitch }
+        XCTAssertEqual(switches.count, 2)
+        let first = try XCTUnwrap(switches.first)
+        XCTAssertTrue(switches.allSatisfy { $0.state == .off })
+        first.state = .on
+        first.sendAction(first.action, to: first.target)
+
+        let add = try XCTUnwrap(views.compactMap { $0 as? NSButton }.first { $0.title == L10n.aiCalendarAdd })
+        add.performClick(nil)
+        XCTAssertEqual(store.records.map(\.hasAlarms), [true, false])
+    }
+
+    @MainActor
+    func testReminderChoiceSurvivesEditsAndPartialFailureWithoutDuplicateSaves() throws {
+        _ = NSApplication.shared
+        let suite = "AICalendarReminderTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = ReminderConfirmationStore(calendar: writableCalendar)
+        store.failOnAttempt = 2
+        let controller = AICalendarConfirmationController(
+            events: [validDraft, validDraft],
+            calendarService: CalendarEventService(store: store, defaults: defaults)
+        )
+        defer { controller.close() }
+        let views = descendants(of: try XCTUnwrap(controller.window?.contentView))
+        let switches = views.compactMap { $0 as? NSSwitch }
+        XCTAssertEqual(switches.count, 2)
+        guard switches.count == 2 else { return }
+        // Turning a reminder back off must not leave an alarm behind.
+        switches[0].state = .on
+        switches[0].sendAction(switches[0].action, to: switches[0].target)
+        switches[0].state = .off
+        switches[0].sendAction(switches[0].action, to: switches[0].target)
+        switches[1].state = .on
+        switches[1].sendAction(switches[1].action, to: switches[1].target)
+
+        let dateFields = views.compactMap { $0 as? NSTextField }.filter {
+            $0.placeholderString == L10n.aiCalendarDateTimePlaceholder
+        }
+        XCTAssertEqual(dateFields.count, 4)
+        guard dateFields.count == 4 else { return }
+        dateFields[2].stringValue = "2030-01-02 10:00"
+        dateFields[3].stringValue = "2030-01-02 11:00"
+        controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: dateFields[2]))
+        let calendarPickers = views.compactMap { $0 as? NSPopUpButton }.filter {
+            $0.selectedItem?.representedObject as? String == writableCalendar.identifier
+        }
+        let secondCalendar = try XCTUnwrap(calendarPickers.last)
+        let otherCalendar = CalendarDescriptor(
+            identifier: "calendar-2", title: "Personal", allowsContentModifications: true
+        )
+        store.additionalCalendars = [otherCalendar]
+        let typePicker = try XCTUnwrap(views.compactMap { $0 as? NSPopUpButton }.last {
+            $0.selectedItem?.representedObject as? String == AICalendarType.work.rawValue
+        })
+        typePicker.selectItem(at: typePicker.indexOfItem(withRepresentedObject: AICalendarType.personal.rawValue))
+        typePicker.sendAction(typePicker.action, to: typePicker.target)
+        secondCalendar.selectItem(at: secondCalendar.indexOfItem(withRepresentedObject: otherCalendar.identifier))
+        secondCalendar.sendAction(secondCalendar.action, to: secondCalendar.target)
+        XCTAssertEqual(switches[1].state, .on)
+
+        let add = try XCTUnwrap(views.compactMap { $0 as? NSButton }.first { $0.title == L10n.aiCalendarAdd })
+        add.performClick(nil)
+        XCTAssertEqual(store.records.map(\.hasAlarms), [false])
+        XCTAssertFalse(switches[0].isEnabled)
+        XCTAssertTrue(switches[1].isEnabled)
+        XCTAssertEqual(switches[1].state, .on)
+
+        add.performClick(nil)
+        XCTAssertEqual(store.records.map(\.hasAlarms), [false, true])
+        XCTAssertEqual(store.attempts, 3)
+        let expectedStart = Calendar.current.date(from: DateComponents(year: 2030, month: 1, day: 2, hour: 10))
+        XCTAssertEqual(store.records.last?.startDate, expectedStart)
+        XCTAssertEqual(store.records.last?.calendarIdentifier, otherCalendar.identifier)
+    }
+
+    @MainActor
+    private func descendants(of view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap { descendants(of: $0) }
     }
 
     func testUnknownTypeWithoutCalendarRequiresSelection() {
@@ -131,5 +228,23 @@ final class AICalendarConfirmationTests: XCTestCase {
         XCTAssertEqual(result.contentHeight, 500, accuracy: 0.001)
         XCTAssertEqual(result.scrollHeight, 356, accuracy: 0.001)
         XCTAssertTrue(result.isScrollable)
+    }
+}
+
+private final class ReminderConfirmationStore: CalendarEventStoreProtocol {
+    let authorizationStatus: CalendarAuthorizationStatus = .authorized
+    let calendar: CalendarDescriptor
+    var records: [CalendarEventRecord] = []
+    var additionalCalendars: [CalendarDescriptor] = []
+    var attempts = 0
+    var failOnAttempt: Int?
+
+    init(calendar: CalendarDescriptor) { self.calendar = calendar }
+    func requestFullAccessToEvents() async throws -> Bool { true }
+    func eventCalendars() -> [CalendarDescriptor] { [calendar] + additionalCalendars }
+    func save(_ record: CalendarEventRecord, to calendar: CalendarDescriptor) throws {
+        attempts += 1
+        if attempts == failOnAttempt { throw CalendarEventStoreError.saveFailed }
+        records.append(record)
     }
 }

@@ -60,6 +60,7 @@ struct AICalendarConfirmationEventModel: Equatable {
     var draft: AICalendarEventDraft
     var included: Bool
     var calendar: CalendarDescriptor?
+    var reminderEnabled = false
 
     init(
         draft: AICalendarEventDraft,
@@ -100,7 +101,7 @@ struct AICalendarConfirmationEventModel: Equatable {
 
     var submission: CalendarEventSubmission? {
         guard isValid, let calendar else { return nil }
-        return CalendarEventSubmission(event: draft, calendar: calendar)
+        return CalendarEventSubmission(event: draft, calendar: calendar, reminderEnabled: reminderEnabled)
     }
 
     private func appendCalendarError(to errors: inout [AICalendarConfirmationValidationError]) {
@@ -127,6 +128,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         let title: NSTextField
         let start: NSTextField
         let end: NSTextField
+        let reminder: NSSwitch
         let location: NSTextField
         let url: NSTextField
         let notes: NSTextField
@@ -140,6 +142,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
             title: NSTextField,
             start: NSTextField,
             end: NSTextField,
+            reminder: NSSwitch,
             location: NSTextField,
             url: NSTextField,
             notes: NSTextField,
@@ -152,6 +155,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
             self.title = title
             self.start = start
             self.end = end
+            self.reminder = reminder
             self.location = location
             self.url = url
             self.notes = notes
@@ -274,6 +278,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
             models[modelIndex].included = false
             controls[modelIndex].include.state = .off
             controls[modelIndex].include.isEnabled = false
+            controls[modelIndex].reminder.isEnabled = false
         }
 
         if result.failures.isEmpty {
@@ -541,6 +546,18 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         let title = editableField(placeholder: L10n.aiCalendarTitle)
         let start = editableField(placeholder: L10n.aiCalendarDateTimePlaceholder)
         let end = editableField(placeholder: L10n.aiCalendarDateTimePlaceholder)
+        let reminder = NSSwitch()
+        reminder.tag = index
+        reminder.target = self
+        reminder.action = #selector(reminderChanged(_:))
+        reminder.setAccessibilityLabel(L10n.aiCalendarReminder)
+        reminder.toolTip = L10n.aiCalendarReminderAtStart
+        let reminderRow = NSStackView(views: [
+            reminder, NSTextField(labelWithString: L10n.aiCalendarReminderAtStart)
+        ])
+        reminderRow.orientation = .horizontal
+        reminderRow.alignment = .centerY
+        reminderRow.spacing = 8
         let location = editableField(placeholder: L10n.aiCalendarLocation)
         let url = editableField(placeholder: L10n.aiCalendarURL)
         let notes = editableField(placeholder: L10n.aiCalendarNotes)
@@ -570,6 +587,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         form.addArrangedSubview(row(label: L10n.aiCalendarTitle, view: title))
         form.addArrangedSubview(row(label: L10n.aiCalendarStart, view: start))
         form.addArrangedSubview(row(label: L10n.aiCalendarEnd, view: end))
+        form.addArrangedSubview(row(label: L10n.aiCalendarReminder, view: reminderRow))
         form.addArrangedSubview(row(label: L10n.aiCalendarChooseCalendar, view: calendar))
         form.addArrangedSubview(row(label: L10n.aiCalendarLocation, view: location))
         form.addArrangedSubview(row(label: L10n.aiCalendarURL, view: url))
@@ -593,6 +611,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
                 title: title,
                 start: start,
                 end: end,
+                reminder: reminder,
                 location: location,
                 url: url,
                 notes: notes,
@@ -610,6 +629,12 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         syncModel(at: index)
         models[index].included = sender.state == .on
         updateValidationState()
+    }
+
+    @objc private func reminderChanged(_ sender: NSSwitch) {
+        let index = sender.tag
+        guard models.indices.contains(index), !savedEventIndices.contains(index) else { return }
+        models[index].reminderEnabled = sender.state == .on
     }
 
     private func editableField(placeholder: String) -> NSTextField {
@@ -645,6 +670,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         let model = models[index]
         let control = controls[index]
         control.include.state = model.included ? .on : .off
+        control.reminder.state = model.reminderEnabled ? .on : .off
         control.include.isEnabled = !savedEventIndices.contains(index)
         control.type.selectItem(withTag: typeTag(model.draft.calendarType))
         control.title.stringValue = model.draft.title
@@ -665,6 +691,7 @@ final class AICalendarConfirmationController: NSWindowController, NSWindowDelega
         guard models.indices.contains(index), controls.indices.contains(index) else { return }
         let control = controls[index]
         var draft = models[index].draft
+        models[index].reminderEnabled = control.reminder.state == .on
         draft.title = control.title.stringValue
         draft.start = parseDate(control.start.stringValue)
         draft.end = parseDate(control.end.stringValue)

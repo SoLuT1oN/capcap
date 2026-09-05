@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "제목";
 "aiCalendarStart" = "시작";
 "aiCalendarEnd" = "종료";
+"aiCalendarReminder" = "알림";
+"aiCalendarReminderAtStart" = "일정 시작 시";
 "aiCalendarDateTimePlaceholder" = "YYYY-MM-DD HH:MM";
 "aiCalendarLocation" = "위치";
 "aiCalendarURL" = "URL";

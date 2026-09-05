@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "Название";
 "aiCalendarStart" = "Начало";
 "aiCalendarEnd" = "Окончание";
+"aiCalendarReminder" = "Напоминание";
+"aiCalendarReminderAtStart" = "В момент начала события";
 "aiCalendarDateTimePlaceholder" = "ГГГГ-ММ-ДД ЧЧ:ММ";
 "aiCalendarLocation" = "Место";
 "aiCalendarURL" = "URL";

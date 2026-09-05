@@ -619,6 +619,8 @@
 "aiCalendarTitle" = "Titre";
 "aiCalendarStart" = "Début";
 "aiCalendarEnd" = "Fin";
+"aiCalendarReminder" = "Rappel";
+"aiCalendarReminderAtStart" = "Au début de l’événement";
 "aiCalendarDateTimePlaceholder" = "AAAA-MM-JJ HH:MM";
 "aiCalendarLocation" = "Lieu";
 "aiCalendarURL" = "URL";

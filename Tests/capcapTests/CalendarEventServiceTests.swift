@@ -1,8 +1,47 @@
+import EventKit
 import Foundation
 import XCTest
 @testable import capcap
 
 final class CalendarEventServiceTests: XCTestCase {
+    func testEventKitReminderUsesZeroOffsetAndFollowsStartDate() throws {
+        let store = EKEventStore()
+        let adapter = EventKitCalendarEventStore(eventStore: store)
+        let calendar = EKCalendar(for: .event, eventStore: store)
+        let start = Date(timeIntervalSince1970: 1_000)
+        let record = CalendarEventRecord(
+            title: "Planning", startDate: start, endDate: start.addingTimeInterval(3_600),
+            location: "", notes: "", url: nil, calendarIdentifier: "test",
+            allDay: false, hasAlarms: true, hasRecurrenceRules: false
+        )
+
+        let event = adapter.makeEvent(from: record, calendar: calendar)
+
+        XCTAssertEqual(event.alarms?.count, 1)
+        let alarm = try XCTUnwrap(event.alarms?.first)
+        XCTAssertEqual(alarm.relativeOffset, 0)
+        XCTAssertNil(alarm.absoluteDate)
+        event.startDate = start.addingTimeInterval(600)
+        XCTAssertEqual(event.alarms?.first?.relativeOffset, 0)
+        XCTAssertNil(event.alarms?.first?.absoluteDate)
+        XCTAssertFalse(event.isAllDay)
+        XCTAssertTrue(event.recurrenceRules?.isEmpty ?? true)
+    }
+
+    func testEventKitReminderOffCreatesNoAlarm() {
+        let store = EKEventStore()
+        let adapter = EventKitCalendarEventStore(eventStore: store)
+        let calendar = EKCalendar(for: .event, eventStore: store)
+        let start = Date(timeIntervalSince1970: 1_000)
+        let record = CalendarEventRecord(
+            title: "Planning", startDate: start, endDate: start.addingTimeInterval(3_600),
+            location: "", notes: "", url: nil, calendarIdentifier: "test",
+            allDay: false, hasAlarms: false, hasRecurrenceRules: false
+        )
+
+        XCTAssertTrue(adapter.makeEvent(from: record, calendar: calendar).alarms?.isEmpty ?? true)
+    }
+
     func testAccessIsRequestedLazilyAndOnlyOnce() async throws {
         let store = FakeCalendarEventStore(
             authorizationStatus: .notDetermined,
