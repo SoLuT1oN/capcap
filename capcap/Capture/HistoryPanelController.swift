@@ -250,6 +250,7 @@ private final class HistoryPanelChromeView: NSView {
 private final class HistoryNotchWindowController: NSWindowController {
     private let rootView: HistoryNotchRootView
     private var hoverSampler: DispatchSourceTimer?
+    private var clickMonitors: [Any] = []
     private var expandWorkItem: DispatchWorkItem?
     private var collapseWorkItem: DispatchWorkItem?
     private var isCollapsing = false
@@ -372,9 +373,38 @@ private final class HistoryNotchWindowController: NSWindowController {
 
     private func startMouseMonitoring() {
         startHoverSampler()
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] event in
+            self?.handleNotchClick()
+            return event
+        }) {
+            clickMonitors.append(local)
+        }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
+            self?.handleNotchClick()
+        }) {
+            clickMonitors.append(global)
+        }
+    }
+
+    private func handleNotchClick() {
+        guard Defaults.historyNotchTriggerMode == .click,
+              !rootView.isExpanded,
+              collapsedHitRect().contains(NSEvent.mouseLocation) else { return }
+        // Finish dispatching the opening click before making the panel interactive
+        // so it cannot also activate an item in the newly expanded panel
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.window?.isVisible == true,
+                  Defaults.historyNotchTriggerMode == .click,
+                  !self.rootView.isExpanded else { return }
+            self.cancelExpand()
+            self.expand()
+            self.suppressCollapseUntil = Date().addingTimeInterval(self.postExpandGrace)
+        }
     }
 
     private func stopMouseMonitoring() {
+        clickMonitors.forEach(NSEvent.removeMonitor)
+        clickMonitors.removeAll()
         stopHoverSampler()
         cancelExpand()
         cancelCollapse()
@@ -419,6 +449,10 @@ private final class HistoryNotchWindowController: NSWindowController {
                 scheduleCollapse()
             }
         } else {
+            guard Defaults.historyNotchTriggerMode == .hover else {
+                cancelExpand()
+                return
+            }
             let rect = collapsedHitRect()
             if rect.contains(mouse) {
                 cancelCollapse()
@@ -449,6 +483,7 @@ private final class HistoryNotchWindowController: NSWindowController {
         let workItem = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.expandWorkItem = nil
+            guard Defaults.historyNotchTriggerMode == .hover else { return }
             self.expand()
             self.suppressCollapseUntil = Date().addingTimeInterval(self.postExpandGrace)
         }
@@ -1049,15 +1084,14 @@ enum HistoryPanelFilter: CaseIterable, Equatable {
     }
 }
 
-private final class HistoryPanelScrollView: NSScrollView {
-    override func layout() {
-        super.layout()
-        horizontalScroller?.isHidden = true
-    }
-
-    override func reflectScrolledClipView(_ cView: NSClipView) {
-        super.reflectScrolledClipView(cView)
-        horizontalScroller?.isHidden = true
+final class HistoryPanelScrollView: NSScrollView {
+    // NSCollectionView enables the horizontal scroller when its flow layout is
+    // attached. Hiding that scroller still reserves 17 points in legacy mode,
+    // making the clip view shorter than the cards. Keep it disabled at the
+    // property boundary so both scroller styles preserve the full viewport.
+    override var hasHorizontalScroller: Bool {
+        get { super.hasHorizontalScroller }
+        set { super.hasHorizontalScroller = false }
     }
 }
 
