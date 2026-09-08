@@ -4,9 +4,82 @@ import XCTest
 
 @MainActor
 final class OverlayPresentationTests: XCTestCase {
+    func testResumingSuspendedSelectionRestoresFrozenDesktopAcrossRepeatedSuspends() throws {
+        _ = NSApplication.shared
+        let provider = ControlledScreenSnapshotProvider()
+        var draft: OverlayWindowController.SuspendedEditDraft?
+        let controller = OverlayWindowController(
+            snapshotProvider: provider,
+            onSuspend: { draft = $0 },
+            onComplete: { _ in }
+        )
+        defer { controller.cancel() }
+        controller.activate()
+        let view = try XCTUnwrap(controller.activeSelectionViews.first)
+        let screen = try XCTUnwrap(view.window?.screen)
+        let displayID = try XCTUnwrap(
+            view.window?.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+        )
+        let snapshot = makeImage()
+        provider.emit(.image(displayID: displayID, image: snapshot))
+        drainMainRunLoop()
+        let rect = selectionRect(in: view)
+        controller.selectionDidComplete(rect: rect, inView: view, isWindowSelection: false, windowID: nil)
+        controller.selectionMaskDidDoubleClick(inView: view)
+
+        for _ in 0..<2 {
+            let saved = try XCTUnwrap(draft)
+            XCTAssertTrue(saved.preSnapshot === snapshot)
+            let resumed = OverlayWindowController(
+                suspendedDraft: saved,
+                onSuspend: { draft = $0 },
+                onComplete: { _ in }
+            )
+            defer { resumed.cancel() }
+            resumed.activate()
+            let restoredView = try XCTUnwrap(resumed.activeSelectionViews.first {
+                $0.window?.screen == screen
+            })
+            XCTAssertTrue(resumed.hasActiveEditor)
+            let background = try XCTUnwrap(restoredView.backgroundSnapshot)
+            XCTAssertTrue(background.cgImage(forProposedRect: nil, context: nil, hints: nil) === snapshot)
+            resumed.selectionMaskDidDoubleClick(inView: restoredView)
+        }
+    }
+
     override func tearDown() {
         ToastWindow.dismiss()
         super.tearDown()
+    }
+
+    func testScrollCaptureExcludesSelectionOverlayAndHintThroughoutFinalization() {
+        _ = NSApplication.shared
+        let selectionWindow = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: .borderless, backing: .buffered, defer: false
+        )
+        let hintWindow = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 30),
+            styleMask: .borderless, backing: .buffered, defer: false
+        )
+        let selection = SelectionView(frame: selectionWindow.contentView!.bounds)
+        selectionWindow.contentView = selection
+        selection.scrollCaptureActive = true
+
+        let excluded = EditWindowController.scrollCaptureExcludedWindowNumbers(
+            selectionWindow: selection.window, hintWindow: hintWindow
+        )
+        XCTAssertGreaterThan(selectionWindow.windowNumber, 0)
+        XCTAssertGreaterThan(hintWindow.windowNumber, 0)
+        XCTAssertEqual(Set(excluded), Set([
+            CGWindowID(selectionWindow.windowNumber), CGWindowID(hintWindow.windowNumber)
+        ]))
+
+        // stopAndStitch captures once more after ordinary overlay drawing resumes.
+        selection.scrollCaptureActive = false
+        XCTAssertEqual(excluded, EditWindowController.scrollCaptureExcludedWindowNumbers(
+            selectionWindow: selection.window, hintWindow: hintWindow
+        ))
     }
 
     func testReenablingSelectionInteractionInvalidatesHandleDisplay() {
@@ -726,6 +799,60 @@ final class OverlayPresentationTests: XCTestCase {
         XCTAssertTrue(controller.hasActiveEditor)
         XCTAssertEqual(controller.appliedSnapshotCount, 1)
         controller.cancel()
+    }
+
+    func testMissingSnapshotCallbackTimesOutAndRejectsLateImage() throws {
+        _ = NSApplication.shared
+        let provider = ControlledScreenSnapshotProvider()
+        let controller = OverlayWindowController(
+            snapshotProvider: provider, snapshotTimeout: 0.02, onComplete: { _ in }
+        )
+        controller.activate()
+        let view = try XCTUnwrap(controller.activeSelectionViews.first)
+        let displayID = try XCTUnwrap(provider.targets.first?.displayID)
+        controller.selectionDidComplete(
+            rect: selectionRect(in: view), inView: view,
+            isWindowSelection: false, windowID: nil
+        )
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        XCTAssertTrue(controller.isCaptureSessionEnded)
+        XCTAssertFalse(controller.isWaitingForSnapshot)
+        provider.emit(.image(displayID: displayID, image: makeImage()))
+        drainMainRunLoop()
+        XCTAssertFalse(controller.hasActiveEditor)
+    }
+
+    func testSlowWindowCaptureFallsBackToFrozenSnapshot() throws {
+        _ = NSApplication.shared
+        let provider = ControlledScreenSnapshotProvider()
+        let controller = OverlayWindowController(
+            snapshotProvider: provider,
+            windowSnapshotLoader: { _ in .success([]) },
+            windowImageLoader: { _, _ in
+                await withCheckedContinuation { continuation in
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 0.3) {
+                        continuation.resume(returning: nil)
+                    }
+                }
+            },
+            windowCaptureTimeout: 0.02,
+            onComplete: { _ in }
+        )
+        controller.activate()
+        defer { controller.cancel() }
+        let view = try XCTUnwrap(controller.activeSelectionViews.first)
+        let displayID = try XCTUnwrap(provider.targets.first?.displayID)
+        provider.emit(.image(displayID: displayID, image: makeImage()))
+        drainMainRunLoop()
+        controller.selectionDidComplete(
+            rect: selectionRect(in: view), inView: view,
+            isWindowSelection: true, windowID: 42
+        )
+        RunLoop.main.run(until: Date().addingTimeInterval(0.15))
+        XCTAssertFalse(controller.isWaitingForWindowCapture)
+        XCTAssertTrue(controller.hasActiveEditor)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertTrue(controller.hasActiveEditor)
     }
 
     func testSelectedDisplayFailureEndsSessionWithoutSynchronousFallback() throws {

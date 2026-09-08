@@ -1624,7 +1624,15 @@ class EditWindowController {
         let capturer = ScrollCapturer(
             rect: captureRect,
             screen: screen,
-            excludingWindowNumbers: [CGWindowID(max(0, hintWindow.windowNumber))]
+            // Exclude the entire selection overlay, not just the hint. Its
+            // dimming cutout can leave antialiased pixels at capture edges,
+            // which become horizontal bands when frame bottoms are stitched.
+            // This also protects the final asynchronous capture after the
+            // selection view has returned to its ordinary drawing state.
+            excludingWindowNumbers: Self.scrollCaptureExcludedWindowNumbers(
+                selectionWindow: hostSelectionView?.window,
+                hintWindow: hintWindow
+            )
         )
         capturer.onPreviewUpdated = { [weak self] image in
             self?.updateScrollPreview(image)
@@ -1643,6 +1651,16 @@ class EditWindowController {
             startAutoScroll(capturer: capturer)
         case .manual:
             startManualScrollCapture(capturer: capturer)
+        }
+    }
+
+    static func scrollCaptureExcludedWindowNumbers(
+        selectionWindow: NSWindow?,
+        hintWindow: NSWindow
+    ) -> [CGWindowID] {
+        [selectionWindow, hintWindow].compactMap { window in
+            guard let window, window.windowNumber > 0 else { return nil }
+            return CGWindowID(window.windowNumber)
         }
     }
 
@@ -2953,7 +2971,25 @@ private final class ClosureMenuItem: NSMenuItem {
     }
 }
 
-private final class EditorScrollView: NSScrollView {
+final class EditorScrollView: NSScrollView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        horizontalScrollElasticity = .none
+        verticalScrollElasticity = .none
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func scrollWheel(with event: NSEvent) {
+        // Screen-backed annotations must stay aligned with the frozen desktop.
+        // Only a taller, self-contained image (such as a scroll capture) pans.
+        guard let canvas = editorCanvasView,
+              canvas.hasPreviewImage || canvas.overrideBaseImage != nil,
+              let documentView,
+              documentView.frame.height > contentView.bounds.height + 0.5 else { return }
+        super.scrollWheel(with: event)
+    }
+
     weak var editorCanvasView: EditCanvasView?
     /// When `true`, every viewport click is captured (drawing tools, long
     /// screenshot preview, beautify chrome). When `false` the scroll view
