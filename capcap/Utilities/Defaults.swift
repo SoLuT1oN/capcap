@@ -1740,6 +1740,9 @@ struct Defaults {
     static let editorLineWidthMin: Double = 1
     static let editorLineWidthMax: Double = 16
     static let markerLineWidthMax: Double = 10
+    static let numberSizeMin: Double = 1
+    static let numberSizeDefault: Double = 5
+    static let numberSizeMax: Double = 25
 
     static var lastEditorColorHex: String? {
         get {
@@ -1763,6 +1766,18 @@ struct Defaults {
         }
         set {
             defaults.set(clampedEditorLineWidth(newValue), forKey: "lastEditorLineWidth")
+        }
+    }
+
+    static var lastNumberSize: Double {
+        get {
+            guard defaults.object(forKey: "lastNumberSize") != nil else {
+                return numberSizeDefault
+            }
+            return clampedNumberSize(defaults.double(forKey: "lastNumberSize"))
+        }
+        set {
+            defaults.set(clampedNumberSize(newValue), forKey: "lastNumberSize")
         }
     }
 
@@ -1931,6 +1946,10 @@ struct Defaults {
 
     private static func clampedEditorLineWidth(_ width: Double) -> Double {
         min(max(width, editorLineWidthMin), editorLineWidthMax)
+    }
+
+    private static func clampedNumberSize(_ size: Double) -> Double {
+        min(max(size, numberSizeMin), numberSizeMax)
     }
 
     private static func clampedMarkerLineWidth(_ width: Double) -> Double {

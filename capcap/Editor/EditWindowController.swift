@@ -266,6 +266,7 @@ class EditWindowController {
     // Drawing properties
     private var currentColor: NSColor = EditorStyleDefaults.primaryColor
     private var currentLineWidth: CGFloat = EditorStyleDefaults.standardLineWidth
+    private var currentNumberSize: CGFloat = EditorStyleDefaults.numberSize
     private var currentArrowStyle: ArrowStyle = Defaults.lastArrowStyle
     private var currentMosaicBlockSize: CGFloat = CGFloat(Defaults.mosaicBlockSize)
     private var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize)
@@ -683,6 +684,7 @@ class EditWindowController {
     private func pushCurrentStyleToCanvas() {
         canvasView?.currentColor = currentColor
         canvasView?.currentLineWidth = currentLineWidth
+        canvasView?.currentNumberSize = currentNumberSize
         canvasView?.currentArrowStyle = currentArrowStyle
         canvasView?.currentMosaicBlockSize = currentMosaicBlockSize
         canvasView?.currentFontSize = currentFontSize
@@ -757,6 +759,7 @@ class EditWindowController {
             currentLineWidth = l.lineWidth
         case let n as NumberAnnotation:
             currentColor = n.color
+            currentNumberSize = n.size
         case is EmojiAnnotation:
             currentEmoji = nil
             canvasView?.currentEmoji = nil
@@ -859,10 +862,14 @@ class EditWindowController {
             showEmojiSubToolbar()
         case .numbered:
             showColorSizeSubToolbar(
-                sizes: [],
+                sizes: [CGFloat(Defaults.numberSizeDefault)],
                 dynamicColor: pickedColorSwatch,
-                currentSize: 0,
-                width: pickedColorSwatch == nil ? 200 : 225
+                currentSize: currentNumberSize,
+                sizeMinValue: CGFloat(Defaults.numberSizeMin),
+                sizeMaxValue: CGFloat(Defaults.numberSizeMax),
+                onSize: { [weak self] size in
+                    self?.setCurrentNumberSize(size)
+                }
             )
         case .mosaic:
             showMosaicSubToolbar()
@@ -2248,6 +2255,13 @@ class EditWindowController {
         currentLineWidth = size
         canvasView?.currentLineWidth = size
         Defaults.lastEditorLineWidth = Double(size)
+    }
+
+    private func setCurrentNumberSize(_ size: CGFloat) {
+        let clamped = min(max(size, CGFloat(Defaults.numberSizeMin)), CGFloat(Defaults.numberSizeMax))
+        currentNumberSize = clamped
+        canvasView?.currentNumberSize = clamped
+        Defaults.lastNumberSize = Double(clamped)
     }
 
     private func setCurrentMarkerColor(_ color: NSColor) {
