@@ -27,65 +27,14 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
 
-      - name: Fetch and merge upstream locally
+      - name: Test release synchronization
+        run: python3 -B scripts/test_sync_upstream_release.py
+
+      - name: Check and merge official release
         id: upstream
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if git remote get-url upstream >/dev/null 2>&1; then
-            git remote set-url upstream https://github.com/realskyrin/capcap.git
-          else
-            git remote add upstream https://github.com/realskyrin/capcap.git
-          fi
-
-          git fetch upstream main --tags
-
-          if git merge-base --is-ancestor upstream/main HEAD; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No upstream changes."
-            {
-              echo "## Upstream sync"
-              echo
-              echo "No upstream changes."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          set +e
-          git merge --no-edit upstream/main
-          merge_status=$?
-          set -e
-
-          if [ "$merge_status" -ne 0 ]; then
-            conflicts="$(git diff --name-only --diff-filter=U)"
-            {
-              echo "## Upstream synchronization requires manual conflict resolution"
-              echo
-              echo "Upstream commit: \`$(git rev-parse --short upstream/main)\`"
-              echo
-              echo "Conflicting files:"
-              echo '```text'
-              if [ -n "$conflicts" ]; then
-                printf '%s\n' "$conflicts"
-              else
-                echo "Git did not report an unmerged path"
-              fi
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "Upstream synchronization requires manual conflict resolution."
-            git merge --abort || true
-            exit 1
-          fi
-
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Upstream merge prepared"
-            echo
-            echo "Merged upstream commit \`$(git rev-parse --short upstream/main)\` locally"
-            echo "Remote main has not been changed yet"
-          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/sync_upstream_release.py
 
       - name: Build
         if: steps.upstream.outputs.changed == 'true'
