@@ -3042,11 +3042,12 @@ class ToolbarView: NSView {
 
     /// Button run geometry. `preferredSize` derives the capsule size from
     /// these so the dark background always wraps the buttons exactly.
-    static let buttonSize: CGFloat = 32
+    static let buttonSize: CGFloat = 40
+    static let symbolPointSize: CGFloat = 18
     static let buttonSpacing: CGFloat = 6
     /// Inset along the main axis at both ends of the run.
     static let endPadding: CGFloat = 15
-    /// Inset on the cross axis — keeps a 44pt-thick capsule around 32pt buttons.
+    /// Inset on the cross axis — keeps a 52pt-thick capsule around 40pt buttons.
     static let crossPadding: CGFloat = 6
 
     let orientation: Orientation
@@ -3163,7 +3164,8 @@ class ToolbarView: NSView {
             frame: frame,
             symbolName: id.symbolName,
             normalColor: id.normalColor,
-            selectedColor: id.selectedColor
+            selectedColor: id.selectedColor,
+            symbolPointSize: Self.symbolPointSize
         )
         btn.hoverTip = id.tooltip
         btn.setAccessibilityLabel(id.tooltip)
@@ -3208,7 +3210,7 @@ class ToolButton: NSButton {
     private let selectedColor: NSColor
     private var hoverTrackingArea: NSTrackingArea?
 
-    init(frame: NSRect, symbolName: String, normalColor: NSColor, selectedColor: NSColor) {
+    init(frame: NSRect, symbolName: String, normalColor: NSColor, selectedColor: NSColor, symbolPointSize: CGFloat = 14) {
         self.normalColor = normalColor
         self.selectedColor = selectedColor
         super.init(frame: frame)
@@ -3218,7 +3220,7 @@ class ToolButton: NSButton {
         setButtonType(.momentaryPushIn)
 
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+            let config = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .medium)
             // Keep the text tool's Aa glyph independent of the system language.
             let localizedImage = symbolName == "textformat" ? img.withLocale(Locale(identifier: "en")) : img
             image = localizedImage.withSymbolConfiguration(config)
@@ -3386,7 +3388,7 @@ final class MoveSelectionDragHandle: NSView {
         }
 
         let symbolName = "arrow.up.and.down.and.arrow.left.and.right"
-        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        let config = NSImage.SymbolConfiguration(pointSize: ToolbarView.symbolPointSize, weight: .medium)
         guard let img = NSImage(
             systemSymbolName: symbolName,
             accessibilityDescription: "Move selection"

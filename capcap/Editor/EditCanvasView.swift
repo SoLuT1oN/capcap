@@ -47,6 +47,9 @@ class EditCanvasView: NSView {
             if activeTool != .emoji {
                 emojiPreviewPoint = nil
             }
+            if activeTool != .marker {
+                updateMarkerPreview(at: nil)
+            }
             if activeTool != .rectangle && activeTool != .ellipse {
                 shapeRoughSeed = nil
             }
@@ -101,7 +104,15 @@ class EditCanvasView: NSView {
     var currentNumberSize: CGFloat = EditorStyleDefaults.numberSize
     var currentArrowStyle: ArrowStyle = Defaults.lastArrowStyle
     /// Base width for the marker brush. Drawn at `× MarkerAnnotation.brushScale`.
-    var currentMarkerLineWidth: CGFloat = EditorStyleDefaults.markerLineWidth
+    /// The hover indicator mirrors the resulting brush height, so a width
+    /// change from the sub-toolbar has to redraw it immediately.
+    var currentMarkerLineWidth: CGFloat = EditorStyleDefaults.markerLineWidth {
+        didSet {
+            guard currentMarkerLineWidth != oldValue else { return }
+            invalidateMarkerPreview(at: markerPreviewPoint, forLineWidth: oldValue)
+            invalidateMarkerPreview(at: markerPreviewPoint, forLineWidth: currentMarkerLineWidth)
+        }
+    }
     /// Marker uses a separate color slot so switching tools keeps the
     /// highlighter's yellow without overriding the pen's red, and vice-versa.
     var currentMarkerColor: NSColor = EditorStyleDefaults.markerColor
@@ -159,6 +170,10 @@ class EditCanvasView: NSView {
     /// one.
     private var pendingTextCreate: PendingTextCreate?
     private var emojiPreviewPoint: NSPoint?
+    /// Hover position of the highlighter footprint indicator. Screen-only: it
+    /// is painted in `draw(_:)` and never by `drawCommittedAnnotations`, so it
+    /// cannot leak into an exported or copied image.
+    private var markerPreviewPoint: NSPoint?
     private var hoveredAnnotationIndex: Int?
     /// Active eraser drag rectangle. Matching annotations are removed as
     /// soon as they intersect the rectangle.
@@ -1046,6 +1061,7 @@ class EditCanvasView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        defer { updateMarkerPreview(at: point) }
         setHoveredAnnotationIndex(nil)
         let isShiftSelecting = event.modifierFlags
             .intersection(.deviceIndependentFlagsMask)
@@ -1180,6 +1196,7 @@ class EditCanvasView: NSView {
 
         case .marker:
             currentMarkerPoints = [point]
+            updateMarkerPreview(at: point)
 
         case .rectangle, .ellipse:
             shapeStart = point
@@ -1210,6 +1227,8 @@ class EditCanvasView: NSView {
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         setHoveredAnnotationIndex(nil)
+        // Keep the footprint under the brush tip while painting.
+        updateMarkerPreview(at: point)
 
         if let state = handleDragState {
             // First mutation of the handle drag — commit the pre-drag snapshot
@@ -1764,6 +1783,8 @@ class EditCanvasView: NSView {
             context.restoreGState()
         }
 
+        drawMarkerPreview()
+
         if didClip {
             context.restoreGState()
         }
@@ -2035,6 +2056,7 @@ class EditCanvasView: NSView {
         pendingNumberCreate = nil
         pendingTextCreate = nil
         emojiPreviewPoint = nil
+        markerPreviewPoint = nil
         hoveredAnnotationIndex = nil
         if eraserSelection?.didDelete != true {
             discardPendingUndo()
@@ -3616,6 +3638,7 @@ class EditCanvasView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         updateHoverHighlight(at: point)
         updateEmojiPreview(at: point)
+        updateMarkerPreview(at: point)
         updateCursor(at: point)
     }
 
@@ -3623,6 +3646,7 @@ class EditCanvasView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         updateHoverHighlight(at: point)
         updateEmojiPreview(at: point)
+        updateMarkerPreview(at: point)
         updateCursor(at: point)
     }
 
@@ -3632,6 +3656,7 @@ class EditCanvasView: NSView {
             emojiPreviewPoint = nil
             needsDisplay = true
         }
+        updateMarkerPreview(at: nil)
         let point = convert(event.locationInWindow, from: nil)
         if hostSelectionView?.setResizeCursorIfNeeded(at: point, from: self) != true {
             // Let whatever's underneath manage its own cursor.
@@ -3654,11 +3679,97 @@ class EditCanvasView: NSView {
         }
     }
 
+    // MARK: - Marker footprint indicator
+
+    /// Indicator line weight. Drawn on the canvas, not as an `NSCursor`, so it
+    /// is immune to the system "pointer size" setting
+    /// (`com.apple.universalaccess mouseDriverCursorSize`) that scales cursor
+    /// images and would otherwise break the footprint's 1:1 match.
+    private static let markerIndicatorStrokeWidth: CGFloat = 1
+    /// Maximum indicator width. A thinner brush caps the width at its own
+    /// height so the capsule never claims more reach than the brush has.
+    private static let markerIndicatorMaxWidth: CGFloat = 8
+
+    /// Outer footprint of the indicator for a given brush width: exactly the
+    /// band the next stroke would paint, vertically.
+    private func markerIndicatorRect(centeredAt point: NSPoint, lineWidth: CGFloat) -> NSRect {
+        let brushHeight = lineWidth * MarkerAnnotation.brushScale
+        let width = min(EditCanvasView.markerIndicatorMaxWidth, brushHeight)
+        return NSRect(
+            x: point.x - width / 2,
+            y: point.y - brushHeight / 2,
+            width: width,
+            height: brushHeight
+        )
+    }
+
+    /// Invalidate just the indicator's footprint plus room for the glow, so a
+    /// mouse move never repaints the whole canvas.
+    private func invalidateMarkerPreview(at point: NSPoint?, forLineWidth lineWidth: CGFloat) {
+        guard let point else { return }
+        let outset = EditCanvasView.markerIndicatorStrokeWidth + 1
+        setNeedsDisplay(markerIndicatorRect(centeredAt: point, lineWidth: lineWidth)
+            .insetBy(dx: -outset, dy: -outset))
+    }
+
+    /// Move (or clear, with `nil`) the indicator, repainting only the union of
+    /// the old and new footprints.
+    private func updateMarkerPreview(at point: NSPoint?) {
+        var next = point
+        if activeTool != .marker { next = nil }
+        if let p = next, !bounds.contains(p) { next = nil }
+        if dragState != nil || handleDragState != nil || activeTextField != nil {
+            next = nil
+        }
+        // An ongoing stroke can cross existing marks. Before drawing starts,
+        // those same marks and their controls take priority over the brush.
+        if let p = next, currentMarkerPoints == nil,
+           hitTestSelectionAction(at: p) != nil
+            || hitTestSelectionHandle(at: p) != nil
+            || hitTestAnnotation(at: p) != nil {
+            next = nil
+        }
+        guard next != markerPreviewPoint else { return }
+        let previous = markerPreviewPoint
+        markerPreviewPoint = next
+        invalidateMarkerPreview(at: previous, forLineWidth: currentMarkerLineWidth)
+        invalidateMarkerPreview(at: next, forLineWidth: currentMarkerLineWidth)
+    }
+
+    /// Screen-only hover affordance: a hollow capsule whose height equals the
+    /// brush height, so the user can line the brush up with a row of text.
+    /// Interior stays transparent; the content underneath must stay readable.
+    private func drawMarkerPreview() {
+        guard activeTool == .marker, let markerPreviewPoint else { return }
+        let stroke = EditCanvasView.markerIndicatorStrokeWidth
+        let outer = markerIndicatorRect(centeredAt: markerPreviewPoint, lineWidth: currentMarkerLineWidth)
+        // Strokes are centred on the path, so inset by half the stroke width:
+        // the outline's OUTER edge then coincides with the brush footprint.
+        let rect = outer.insetBy(dx: stroke / 2, dy: stroke / 2)
+        guard rect.width > 0, rect.height > 0 else { return }
+        let radius = min(rect.width / 2, rect.height / 2)
+        let capsule = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        // Faint white glow keeps the hairline legible over dark content
+        // without thickening the line itself. No fill: see-through interior.
+        NSColor.white.withAlphaComponent(0.55).setStroke()
+        capsule.lineWidth = stroke * 2
+        capsule.stroke()
+        NSColor(white: 0.30, alpha: 0.6).setStroke()
+        capsule.lineWidth = stroke
+        capsule.stroke()
+    }
+
     private func updateCursor(at point: NSPoint) {
         // The outer screenshot frame stays resizable while an annotation tool
         // owns canvas tracking events. Preserve its eight directional cursors
         // before considering annotation-specific hover affordances.
         if hostSelectionView?.setResizeCursorIfNeeded(at: point, from: self) == true {
+            if currentMarkerPoints == nil {
+                updateMarkerPreview(at: nil)
+            }
             return
         }
         // Don't fight the text field's I-beam while editing.
@@ -3715,10 +3826,14 @@ class EditCanvasView: NSView {
     /// cursor. Used after operations that change what's draggable (undo,
     /// commit, tool change) so the cursor doesn't lie until the next move.
     private func refreshCursorAtCurrentLocation() {
-        guard let window else { return }
+        guard let window else {
+            updateMarkerPreview(at: nil)
+            return
+        }
         let mouseInScreen = NSEvent.mouseLocation
         let mouseInWindow = window.convertPoint(fromScreen: mouseInScreen)
         let local = convert(mouseInWindow, from: nil)
+        updateMarkerPreview(at: local)
         guard bounds.contains(local) else {
             setHoveredAnnotationIndex(nil)
             return
