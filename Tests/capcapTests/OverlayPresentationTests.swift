@@ -47,6 +47,30 @@ final class OverlayPresentationTests: XCTestCase {
         }
     }
 
+    func testDoubleClickRequestsPasteButKeyboardConfirmationOnlyCopies() throws {
+        _ = NSApplication.shared
+        for doubleClick in [true, false] {
+            var completedImage: NSImage?
+            let controller = OverlayWindowController(
+                presetImage: NSImage(cgImage: makeImage(), size: NSSize(width: 320, height: 240)),
+                presetSource: .fullScreen,
+                onComplete: { completedImage = $0 }
+            )
+            controller.activate()
+            drainMainRunLoop()
+            defer { controller.cancel() }
+            let view = try XCTUnwrap(controller.activeSelectionViews.first)
+            XCTAssertTrue(controller.hasActiveEditor)
+            if doubleClick {
+                controller.selectionDidDoubleClickInsideSelection(inView: view)
+            } else {
+                controller.confirmFromKeyboard()
+            }
+            XCTAssertNotNil(completedImage)
+            XCTAssertEqual(controller.requestsPasteOnCompletion, doubleClick)
+        }
+    }
+
     override func tearDown() {
         ToastWindow.dismiss()
         super.tearDown()

@@ -56,6 +56,13 @@ jobs:
           grep -q 'settingsTabAICalendar' capcap/Utilities/Defaults.swift
           swift test --filter 'AICalendar|CalendarEventService|ToolbarLayoutTests'
 
+      - name: Guard double-click paste integration
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          test -f Tests/capcapTests/SourceAppFocusRestorerTests.swift
+          swift test --filter 'SourceAppFocusRestorerTests|EditCanvasDoubleClickTests|OverlayPresentationTests'
+
       - name: Build universal release binary
         if: steps.upstream.outputs.changed == 'true'
         run: swift build -c release --arch arm64 --arch x86_64
