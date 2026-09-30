@@ -20,6 +20,10 @@ enum SettingsTab: CaseIterable {
 
     var title: String {
         switch self {
+        case .aiCalendar: return L10n.settingsTabAICalendar
+
+        // Official tab metadata stays together below the private tab
+
         case .general: return L10n.settingsTabGeneral
         case .shortcuts: return L10n.settingsTabShortcuts
         case .capture: return L10n.settingsGeneralCapture
@@ -29,7 +33,6 @@ enum SettingsTab: CaseIterable {
         case .toolbar: return L10n.settingsTabToolbar
         case .upload: return L10n.settingsTabUpload
         case .translation: return L10n.settingsTabTranslation
-        case .aiCalendar: return L10n.settingsTabAICalendar
         case .permissions: return L10n.settingsTabPermissions
         case .about: return L10n.settingsTabAbout
         }
@@ -37,6 +40,10 @@ enum SettingsTab: CaseIterable {
 
     var iconName: String {
         switch self {
+        case .aiCalendar: return "calendar.badge.plus"
+
+        // Official tab metadata stays together below the private tab
+
         case .general: return "gearshape.fill"
         case .shortcuts: return "keyboard"
         case .capture: return "crop"
@@ -45,8 +52,7 @@ enum SettingsTab: CaseIterable {
         case .files: return "doc"
         case .toolbar: return "slider.horizontal.3"
         case .upload: return "icloud.and.arrow.up.fill"
-        case .translation: return "character.bubble.fill"
-        case .aiCalendar: return "calendar.badge.plus"
+        case .translation: return "translate"
         case .permissions: return "lock.shield.fill"
         case .about: return "info.circle.fill"
         }
@@ -54,6 +60,10 @@ enum SettingsTab: CaseIterable {
 
     var iconTint: NSColor {
         switch self {
+        case .aiCalendar: return NSColor(calibratedRed: 0.98, green: 0.56, blue: 0.34, alpha: 1.0)
+
+        // Official tab metadata stays together below the private tab
+
         case .general: return NSColor(calibratedRed: 0.62, green: 0.66, blue: 0.72, alpha: 1.0)
         case .shortcuts, .capture:
             return NSColor(calibratedRed: 0.36, green: 0.66, blue: 0.98, alpha: 1.0)
@@ -65,7 +75,6 @@ enum SettingsTab: CaseIterable {
         case .permissions: return NSColor(calibratedRed: 0.36, green: 0.78, blue: 0.50, alpha: 1.0)
         case .about, .history:
             return NSColor(calibratedRed: 0.70, green: 0.56, blue: 0.96, alpha: 1.0)
-        case .aiCalendar: return NSColor(calibratedRed: 0.98, green: 0.56, blue: 0.34, alpha: 1.0)
         }
     }
 }
@@ -126,6 +135,11 @@ class SettingsView: NSView {
     private var beautifyShadowSwitch: NSSwitch!
     private var beautifyShadowTitleLabel: NSTextField!
     private var beautifyPresetSwatches: [BeautifySettingsSwatchView] = []
+
+    // Text annotation defaults card
+    private var textFontTitleLabel: NSTextField!
+    private var textFontHintLabel: NSTextField!
+    private var textFontPopup: NSPopUpButton!
 
     // Screenshot shortcut card
     private var shortcutTitleLabel: NSTextField!
@@ -805,6 +819,7 @@ class SettingsView: NSView {
         buildWindowShadowCard(into: capture)
         buildBeautifyDefaultsCard(into: capture)
         updateBeautifyControlsEnabled()
+        buildTextFontCard(into: capture)
         let pinCard = CardView()
         let pinInner = verticalInnerStack()
         pinCard.addSubview(pinInner)
@@ -1038,6 +1053,100 @@ class SettingsView: NSView {
 
         stack.addArrangedSubview(card)
         card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+    }
+
+    /// Default font family for the editor's text tool. Lives beside the
+    /// beautify defaults because both are "what a freshly created editor
+    /// starts with" preferences rather than toolbar layout.
+    private func buildTextFontCard(into stack: NSStackView) {
+        let card = CardView()
+        let inner = verticalInnerStack()
+        card.addSubview(inner)
+        pin(inner, to: card, insets: NSEdgeInsets(top: 6, left: 14, bottom: 6, right: 14))
+
+        let row = NSView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        let textStack = NSStackView()
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+
+        textFontTitleLabel = primaryLabel(L10n.textFontDefaultLabel)
+        textFontTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        textFontHintLabel = secondaryLabel(L10n.textFontDefaultHint, wrapping: true)
+        textStack.addArrangedSubview(textFontTitleLabel)
+        textStack.addArrangedSubview(textFontHintLabel)
+
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.controlSize = .small
+        popup.font = NSFont.systemFont(ofSize: 12)
+        popup.target = self
+        popup.action = #selector(textFontChanged(_:))
+        popup.translatesAutoresizingMaskIntoConstraints = false
+        popup.widthAnchor.constraint(greaterThanOrEqualToConstant: 160).isActive = true
+        popup.setAccessibilityLabel(L10n.textFontDefaultLabel)
+        textFontPopup = popup
+        rebuildTextFontPopupItems()
+
+        row.addSubview(textStack)
+        row.addSubview(popup)
+        NSLayoutConstraint.activate([
+            textStack.leadingAnchor.constraint(equalTo: row.leadingAnchor),
+            textStack.topAnchor.constraint(equalTo: row.topAnchor, constant: 10),
+            textStack.bottomAnchor.constraint(equalTo: row.bottomAnchor, constant: -10),
+            textStack.trailingAnchor.constraint(lessThanOrEqualTo: popup.leadingAnchor, constant: -12),
+
+            popup.trailingAnchor.constraint(equalTo: row.trailingAnchor),
+            popup.centerYAnchor.constraint(equalTo: textStack.centerYAnchor),
+        ])
+
+        inner.addArrangedSubview(row)
+        row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
+
+        stack.addArrangedSubview(card)
+        card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+    }
+
+    /// Item 0 is the system default, item 1 a separator, the rest are the
+    /// shared `FontCatalog` families.
+    ///
+    /// Plain titles on purpose: the pop-up button renders its selected item, so
+    /// an attributed title would break the 12pt system font every other popup
+    /// in this window uses. The font previews live in the editor's HUD menu.
+    private func rebuildTextFontPopupItems() {
+        guard let popup = textFontPopup, let menu = popup.menu else { return }
+        popup.removeAllItems()
+        // Built as menu items rather than `addItem(withTitle:)`, which drops an
+        // existing item when two families share a localized display name.
+        menu.addItem(NSMenuItem(title: L10n.textFontSystemDefault, action: nil, keyEquivalent: ""))
+        menu.addItem(.separator())
+        for family in FontCatalog.families {
+            let item = NSMenuItem(
+                title: FontCatalog.displayName(for: family),
+                action: nil,
+                keyEquivalent: ""
+            )
+            item.representedObject = family
+            menu.addItem(item)
+        }
+        selectStoredTextFont()
+    }
+
+    private func selectStoredTextFont() {
+        guard let popup = textFontPopup else { return }
+        guard let family = Defaults.textFontName,
+              let index = FontCatalog.families.firstIndex(of: family) else {
+            popup.selectItem(at: 0)
+            return
+        }
+        // +2 skips the system-default item and the separator.
+        popup.selectItem(at: index + 2)
+    }
+
+    @objc private func textFontChanged(_ sender: NSPopUpButton) {
+        Defaults.textFontName = sender.selectedItem?.representedObject as? String
     }
 
     private func updateBeautifyControlsEnabled() {
@@ -2703,7 +2812,11 @@ class SettingsView: NSView {
                 NSWorkspace.shared.open(url)
             }
         default:
-            UpdateChecker.shared.check(manual: true)
+            UpdateChecker.shared.check(manual: true) { state in
+                guard UpdateChecker.isDebugBuild,
+                      case .available(let version) = state else { return }
+                StatusBarController.presentUpdateAvailableAlert(version: version)
+            }
         }
     }
 
@@ -3449,15 +3562,10 @@ class SettingsView: NSView {
     }
 
     @objc private func openAccessibilitySettings(_ sender: NSButton) {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
         startPermissionFlow(.accessibility, from: sender)
     }
 
     @objc private func openScreenRecordingSettings(_ sender: NSButton) {
-        if #available(macOS 15.0, *) {
-            CGRequestScreenCaptureAccess()
-        }
         startPermissionFlow(.screenRecording, from: sender)
     }
 
@@ -5426,6 +5534,10 @@ class SettingsView: NSView {
         beautifyPresetTitleLabel?.stringValue = L10n.beautifyDefaultPresetLabel
         beautifyPaddingTitleLabel?.stringValue = L10n.beautifyDefaultPaddingLabel
         beautifyShadowTitleLabel?.stringValue = L10n.beautifyShadowEffect
+        textFontTitleLabel?.stringValue = L10n.textFontDefaultLabel
+        textFontHintLabel?.stringValue = L10n.textFontDefaultHint
+        textFontPopup?.setAccessibilityLabel(L10n.textFontDefaultLabel)
+        rebuildTextFontPopupItems()
         beautifyAutoSwitch?.state = Defaults.beautifyAutoEnabled ? .on : .off
         updateBeautifyControlsEnabled()
         beautifyPaddingSlider?.doubleValue = Defaults.lastBeautifyPadding

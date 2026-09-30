@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -98,6 +99,35 @@ class ReleaseSyncTests(unittest.TestCase):
         self.assertEqual(before, git(self.fork, 'rev-parse', 'HEAD'))
         self.assertEqual(state, self.state.read_text())
         self.assertEqual(git(self.fork, 'status', '--porcelain'), '')
+
+    def test_future_settings_icon_update_preserves_private_integration(self):
+        # Real settings sources, merged through the production release sync path
+        project = SCRIPT.parent.parent
+        tracked = json.loads((project / '.github/upstream-release.json').read_text())
+        path = 'capcap/Settings/SettingsView.swift'
+        official = git(project, 'show', tracked['commit'] + ':' + path) + '\n'
+        private = (project / path).read_text()
+        for root in [self.up, self.fork]:
+            (root / 'capcap/Settings').mkdir(parents=True)
+        base = self.commit(self.up, path, official)
+        git(self.up, 'tag', 'release-v1.0.1')
+        git(self.fork, 'fetch', str(self.up), base)
+        git(self.fork, 'merge', '--no-edit', base)
+        state = {'tag': 'release-v1.0.1', 'commit': base, 'history_commit': base}
+        self.commit(self.fork, '.github/upstream-release.json', json.dumps(state))
+        self.commit(self.fork, path, private)
+        icon = re.search(r'case \.translation: return "([^"\n]+)"', official)
+        self.assertIsNotNone(icon, 'Official translation icon declaration changed')
+        future_line = f'case .translation: return "{icon.group(1)}.test"'
+        changed = official.replace(icon.group(0), future_line, 1)
+        self.commit(self.up, path, changed)
+        git(self.up, 'tag', 'release-v1.0.2')
+        self.assertTrue(self.sync('release-v1.0.2'))
+        merged = (self.fork / path).read_text()
+        self.assertIn(future_line, merged)
+        self.assertIn('case .aiCalendar: return "calendar.badge.plus"', merged)
+        self.assertIn('paneViews[.aiCalendar] = buildAICalendarPane()', merged)
+        self.assertIn('aiCalendarPane?.cancelConnectionTest()', merged)
 
     def test_explicit_reconciled_history_accepts_future_release(self):
         git(self.up, 'checkout', '--orphan', 'rewritten')

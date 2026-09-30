@@ -270,6 +270,8 @@ class EditWindowController {
     private var currentArrowStyle: ArrowStyle = Defaults.lastArrowStyle
     private var currentMosaicBlockSize: CGFloat = CGFloat(Defaults.mosaicBlockSize)
     private var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize)
+    /// Font family for new text annotations. nil = the system bold default.
+    private var currentFontName: String? = Defaults.textFontName
     /// Whether new text annotations get a contrast outline.
     private var currentTextStroke: Bool = Defaults.lastTextStroke
     /// Whether new text annotations render as callout bubbles with an arrow handle.
@@ -688,6 +690,7 @@ class EditWindowController {
         canvasView?.currentArrowStyle = currentArrowStyle
         canvasView?.currentMosaicBlockSize = currentMosaicBlockSize
         canvasView?.currentFontSize = currentFontSize
+        canvasView?.currentFontName = currentFontName
         canvasView?.currentTextStroke = currentTextStroke
         canvasView?.currentTextCallout = currentTextCallout
         canvasView?.currentShapeFillMode = currentShapeFillMode
@@ -723,6 +726,7 @@ class EditWindowController {
         case let t as TextAnnotation:
             currentColor = t.color
             currentFontSize = t.fontSize
+            currentFontName = t.fontName
             currentTextStroke = t.hasStroke
             currentTextCallout = t.hasCallout
         case let p as PenAnnotation:
@@ -975,6 +979,7 @@ class EditWindowController {
             frame: subRect,
             currentColor: currentColor,
             currentFontSize: currentFontSize,
+            currentFontName: currentFontName,
             dynamicColor: pickedColorSwatch,
             strokeEnabled: currentTextStroke,
             calloutEnabled: currentTextCallout
@@ -1012,6 +1017,17 @@ class EditWindowController {
         }
         view.onFontSizeEnded = { [weak self] in
             self?.canvasView?.commitSelectionAdjustment()
+        }
+        view.onFontNameChanged = { [weak self] fontName in
+            self?.currentFontName = fontName
+            self?.canvasView?.currentFontName = fontName
+            Defaults.textFontName = fontName
+            self?.canvasView?.mutateSelectedAnnotationAtomic { annotation in
+                (annotation as? TextAnnotation)?.withFontName(fontName) ?? annotation
+            }
+        }
+        view.onFontMenuClosed = { [weak self] in
+            self?.bringEditorToFront()
         }
         styleFloatingHUD(view)
         hostSelectionView.addSubview(view)
@@ -1595,7 +1611,6 @@ class EditWindowController {
             // Automatic scroll posts synthetic events; without Accessibility
             // access capcap cannot move the target page.
             guard AutoScroller.isPermitted else {
-                AutoScroller.requestPermission()
                 ToastWindow.show(message: L10n.autoScrollPermissionNeeded, on: screen)
                 return
             }
@@ -3165,7 +3180,8 @@ class ToolbarView: NSView {
             symbolName: id.symbolName,
             normalColor: id.normalColor,
             selectedColor: id.selectedColor,
-            symbolPointSize: Self.symbolPointSize
+            symbolPointSize: Self.symbolPointSize,
+            iconImage: id.iconImage(pointSize: Self.symbolPointSize)
         )
         btn.hoverTip = id.tooltip
         btn.setAccessibilityLabel(id.tooltip)
@@ -3210,7 +3226,7 @@ class ToolButton: NSButton {
     private let selectedColor: NSColor
     private var hoverTrackingArea: NSTrackingArea?
 
-    init(frame: NSRect, symbolName: String, normalColor: NSColor, selectedColor: NSColor, symbolPointSize: CGFloat = 14) {
+    init(frame: NSRect, symbolName: String, normalColor: NSColor, selectedColor: NSColor, symbolPointSize: CGFloat = 14, iconImage: NSImage? = nil) {
         self.normalColor = normalColor
         self.selectedColor = selectedColor
         super.init(frame: frame)
@@ -3219,7 +3235,9 @@ class ToolButton: NSButton {
         isBordered = false
         setButtonType(.momentaryPushIn)
 
-        if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
+        if let iconImage {
+            image = iconImage
+        } else if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .medium)
             // Keep the text tool's Aa glyph independent of the system language.
             let localizedImage = symbolName == "textformat" ? img.withLocale(Locale(identifier: "en")) : img
@@ -3283,7 +3301,27 @@ class ToolButton: NSButton {
         } else {
             contentTintColor = normalColor
         }
-        super.draw(dirtyRect)
+        // NSButtonCell lays out SF Symbols using their text alignment rect,
+        // which excludes some ascenders/descenders. Its rendering can clip
+        // those parts on a different backing scale. Draw the full symbol in
+        // points and let NSImage rasterize for the current graphics context.
+        guard let image else { return }
+        let color = isSelected ? selectedColor : normalColor
+        let tinted = NSImage(size: image.size, flipped: false) { rect in
+            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+            color.setFill()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
+        let imageRect = NSRect(
+            x: bounds.midX - image.size.width / 2,
+            y: bounds.midY - image.size.height / 2,
+            width: image.size.width,
+            height: image.size.height
+        )
+        tinted.draw(in: imageRect, from: .zero, operation: .sourceOver,
+                    fraction: !isEnabled ? 0.5 : (isHighlighted ? 0.65 : 1),
+                    respectFlipped: true, hints: nil)
     }
 }
 
@@ -4492,6 +4530,7 @@ private class MosaicSubToolbar: NSView {
 private class TextSubToolbar: NSView {
     var currentColor: NSColor = .red
     var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize)
+    var currentFontName: String? = Defaults.textFontName
     var strokeEnabled: Bool = false
     var calloutEnabled: Bool = false
     var onColorChanged: ((NSColor) -> Void)?
@@ -4505,8 +4544,13 @@ private class TextSubToolbar: NSView {
     var onStrokeChanged: ((Bool) -> Void)?
     /// Fired when the callout checkbox is toggled.
     var onCalloutChanged: ((Bool) -> Void)?
+    /// Fired when a font family is picked. nil = the system default.
+    var onFontNameChanged: ((String?) -> Void)?
+    /// Fired after the font menu is dismissed so the editor can take focus back.
+    var onFontMenuClosed: (() -> Void)?
 
     private var colorButtons: [NSView] = []
+    private var fontButton: HUDPopupButton!
     private var slider: HUDSlider!
     private var strokeCheckbox: HUDCheckboxButton!
     private var calloutCheckbox: HUDCheckboxButton!
@@ -4521,6 +4565,13 @@ private class TextSubToolbar: NSView {
     // Layout metrics, shared between `setup()` and `preferredWidth` so the
     // view is always wide enough for everything it lays out.
     private static let leadingPad: CGFloat = 12
+    private static let fontButtonWidth: CGFloat = 116
+    private static let fontButtonHeight: CGFloat = 22
+    /// Gap between a control and the separator that follows it, mirroring the
+    /// `slider -> separator` spacing already used further down the row.
+    private static let sectionGap: CGFloat = 8
+    /// Gap between a separator and the control that follows it.
+    private static let postSeparatorGap: CGFloat = 9
     private static let sliderWidth: CGFloat = 150
     private static let swatchSize: CGFloat = 18
     private static let swatchGap: CGFloat = 5
@@ -4529,10 +4580,15 @@ private class TextSubToolbar: NSView {
     private static let trailingPad: CGFloat = 12
     private static var baseColorCount: CGFloat { CGFloat(EditorStyleDefaults.paletteColors.count) }
 
+    /// Left edge of the font-size slider — the font picker sits before it.
+    private static var sliderStartX: CGFloat {
+        leadingPad + fontButtonWidth + sectionGap + 1 + postSeparatorGap
+    }
+
     /// Right edge of the last color swatch — the swatch row's extent.
     private static func swatchRowEnd(hasDynamicColor: Bool) -> CGFloat {
         let colorCount = baseColorCount + (hasDynamicColor ? 1.0 : 0.0)
-        return leadingPad + sliderWidth + 8 + 1 + 9
+        return sliderStartX + sliderWidth + 8 + 1 + 9
             + colorCount * swatchSize + max(colorCount - 1, 0) * swatchGap
     }
 
@@ -4561,12 +4617,14 @@ private class TextSubToolbar: NSView {
         frame: NSRect,
         currentColor: NSColor,
         currentFontSize: CGFloat,
+        currentFontName: String?,
         dynamicColor: NSColor? = nil,
         strokeEnabled: Bool,
         calloutEnabled: Bool
     ) {
         self.currentColor = currentColor
         self.currentFontSize = currentFontSize
+        self.currentFontName = currentFontName
         self.dynamicColor = dynamicColor
         self.strokeEnabled = strokeEnabled
         self.calloutEnabled = calloutEnabled
@@ -4581,8 +4639,31 @@ private class TextSubToolbar: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     private func setup() {
-        var x: CGFloat = 12
+        var x: CGFloat = TextSubToolbar.leadingPad
         let midY = bounds.midY
+
+        // Font family picker. Fixed width with a truncating title so a long
+        // family name can never push the rest of the row out of the HUD.
+        let fontPicker = HUDPopupButton(
+            frame: NSRect(
+                x: x,
+                y: midY - TextSubToolbar.fontButtonHeight / 2,
+                width: TextSubToolbar.fontButtonWidth,
+                height: TextSubToolbar.fontButtonHeight
+            ),
+            target: self,
+            action: #selector(fontButtonClicked(_:))
+        )
+        fontPicker.titleText = FontCatalog.title(for: currentFontName)
+        fontPicker.setAccessibilityLabel(L10n.textFontLabel)
+        addSubview(fontPicker)
+        fontButton = fontPicker
+        x += TextSubToolbar.fontButtonWidth + TextSubToolbar.sectionGap
+
+        // Vertical separator between the font picker and the size slider.
+        let fontSep = AdaptiveSeparatorView(frame: NSRect(x: x, y: 6, width: 1, height: bounds.height - 12))
+        addSubview(fontSep)
+        x += 1 + TextSubToolbar.postSeparatorGap
 
         // Font-size slider.
         let s = HUDSlider(
@@ -4673,6 +4754,36 @@ private class TextSubToolbar: NSView {
         addSubview(calloutCheckbox)
         self.calloutCheckbox = calloutCheckbox
 
+    }
+
+    @objc private func fontButtonClicked(_ sender: HUDPopupButton) {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+
+        let systemItem = ClosureMenuItem(title: L10n.textFontSystemDefault) { [weak self] in
+            self?.selectFontName(nil)
+        }
+        systemItem.state = currentFontName == nil ? .on : .off
+        menu.addItem(systemItem)
+        menu.addItem(.separator())
+
+        for family in FontCatalog.families {
+            let item = ClosureMenuItem(title: FontCatalog.displayName(for: family)) { [weak self] in
+                self?.selectFontName(family)
+            }
+            item.attributedTitle = FontCatalog.previewTitle(for: family)
+            item.state = family == currentFontName ? .on : .off
+            menu.addItem(item)
+        }
+
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -4), in: sender)
+        onFontMenuClosed?()
+    }
+
+    private func selectFontName(_ fontName: String?) {
+        currentFontName = fontName
+        fontButton?.titleText = FontCatalog.title(for: fontName)
+        onFontNameChanged?(fontName)
     }
 
     @objc private func strokeCheckboxChanged(_ sender: HUDCheckboxButton) {
@@ -5550,6 +5661,153 @@ private final class ShapeStrokeStyleButtonView: NSView {
 }
 
 // MARK: - HUD Checkbox
+
+/// HUD-styled pop-up button used inside the floating sub-toolbars.
+///
+/// Visual language matches `HUDCheckboxButton`: 12pt medium label in
+/// `labelColor`, `AdaptiveChrome.subtleFill` background with an
+/// `AdaptiveChrome.border` outline, so it adapts to light and dark exactly like
+/// the checkboxes and separators sitting next to it. The title truncates and a
+/// trailing chevron marks it as a menu.
+private final class HUDPopupButton: NSButton {
+    private let labelFont = NSFont.systemFont(ofSize: 12, weight: .medium)
+    private let horizontalPad: CGFloat = 8
+    private let chevronSize: CGFloat = 9
+    private let chevronGap: CGFloat = 6
+
+    var hoverTip: String?
+
+    var titleText: String = "" {
+        didSet {
+            hoverTip = titleText
+            setAccessibilityValue(titleText)
+            needsDisplay = true
+        }
+    }
+
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isHovering = false {
+        didSet { needsDisplay = true }
+    }
+
+    init(frame frameRect: NSRect, target: AnyObject?, action: Selector?) {
+        super.init(frame: frameRect)
+        self.title = ""
+        self.target = target
+        self.action = action
+        setButtonType(.momentaryChange)
+        bezelStyle = .regularSquare
+        isBordered = false
+        wantsLayer = true
+        (cell as? NSButtonCell)?.highlightsBy = []
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area = hoverTrackingArea {
+            removeTrackingArea(area)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        isHovering = true
+        guard let tip = hoverTip, !tip.isEmpty, let window else { return }
+        let frameOnScreen = window.convertToScreen(convert(bounds, to: nil))
+        ToolTipWindow.show(text: tip, anchor: frameOnScreen)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        isHovering = false
+        ToolTipWindow.hide()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        ToolTipWindow.hide()
+        super.mouseDown(with: event)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { ToolTipWindow.hide() }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let emphasized = isHovering || isHighlighted
+        let box = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 5, yRadius: 5)
+
+        // The adaptive chrome colors already carry their own alpha (subtleFill
+        // is 8-10% ink, border 16%). `withAlphaComponent` REPLACES that alpha
+        // rather than scaling it, so re-applying it here painted a near-opaque
+        // black slab in light mode and a near-opaque white one in dark mode.
+        // Use them unmodified, exactly like MoreOptionsButton and ToolButton.
+        (emphasized ? AdaptiveChrome.selectedFill : AdaptiveChrome.subtleFill).setFill()
+        box.fill()
+        AdaptiveChrome.border.setStroke()
+        box.lineWidth = 1
+        box.stroke()
+
+        let foreground = isEnabled
+            ? NSColor.labelColor
+            : NSColor.labelColor.withAlphaComponent(0.35)
+
+        // Hand-drawn chevron rather than a tinted SF Symbol image: an
+        // NSImage drawing handler runs outside the view's drawing appearance,
+        // so `labelColor` inside it resolved against the wrong appearance.
+        let chevronCenterX = bounds.maxX - horizontalPad - chevronSize / 2
+        let halfChevron = chevronSize / 2
+        // NSButton draws flipped, so "down" is +y there and -y in a plain view.
+        let chevronDrop = halfChevron * 0.45 * (isFlipped ? 1 : -1)
+        let chevron = NSBezierPath()
+        chevron.move(to: NSPoint(x: chevronCenterX - halfChevron, y: bounds.midY - chevronDrop))
+        chevron.line(to: NSPoint(x: chevronCenterX, y: bounds.midY + chevronDrop))
+        chevron.line(to: NSPoint(x: chevronCenterX + halfChevron, y: bounds.midY - chevronDrop))
+        chevron.lineWidth = 1.6
+        chevron.lineCapStyle = .round
+        chevron.lineJoinStyle = .round
+        foreground.setStroke()
+        chevron.stroke()
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        let attributed = NSAttributedString(
+            string: titleText,
+            attributes: [
+                .font: labelFont,
+                .foregroundColor: foreground,
+                .paragraphStyle: paragraph,
+            ]
+        )
+        let textHeight = ceil(attributed.size().height)
+        let textRect = NSRect(
+            x: horizontalPad,
+            y: floor(bounds.midY - textHeight / 2),
+            width: max(0, chevronCenterX - halfChevron - chevronGap - horizontalPad),
+            height: textHeight
+        )
+        attributed.draw(in: textRect)
+    }
+}
 
 private final class HUDCheckboxButton: NSButton {
     private let label: String
