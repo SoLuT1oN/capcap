@@ -411,7 +411,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage)
+                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
             }
         ) else {
             ToastWindow.show(message: L10n.openImageNoImage)
@@ -488,7 +488,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 focusRestorer.restore()
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage)
+                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
             }
         )
         overlayController?.activate()
@@ -500,7 +500,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func launchSelectedImageEdit() -> OverlayWindowController? {
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         let onComplete: (NSImage?) -> Void = { [weak self] finalImage in
-            self?.handleEditCompletion(finalImage)
+            self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
         }
 
         if let url = FinderSelection.currentImageFileURL(),
@@ -525,7 +525,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func launchClipboardImageEdit() -> OverlayWindowController? {
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         let onComplete: (NSImage?) -> Void = { [weak self] finalImage in
-            self?.handleEditCompletion(finalImage)
+            self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
         }
 
         if let image = ClipboardImageSource.currentImage(),
@@ -759,7 +759,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.handleEditSuspension(draft)
                 },
                 onComplete: { [weak self] finalImage in
-                    self?.handleEditCompletion(finalImage)
+                    self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
                 }
               )
         else {
@@ -797,14 +797,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage)
+                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
             }
         )
         overlayController?.activate()
         applyHotkeyState()
     }
 
-    private func handleEditCompletion(_ finalImage: NSImage?) {
+    private func handleEditCompletion(_ finalImage: NSImage?, focusRestorer: SourceAppFocusRestorer? = nil) {
+        // Capture the intent before releasing the overlay; image encoding is asynchronous.
+        let pasteTarget = overlayController?.requestsPasteOnCompletion == true ? focusRestorer : nil
         if let finalImage = finalImage {
             let quality = Defaults.screenshotClipboardQuality
             if quality.usesLossyCompression {
@@ -820,6 +822,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     ToastWindow.show(message: L10n.screenshotCompressionFailed, duration: 3.0)
                 case .success(let output):
                     ClipboardManager.copyToClipboard(imageOutput: output)
+                    pasteTarget?.pasteCopiedImage()
                     HistoryManager.shared.add(image: finalImage)
                     ToastWindow.show()
                 }
@@ -855,7 +858,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage)
+                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
             }
         )
         suspendedEditDraft = nil
@@ -888,7 +891,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage)
+                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
             }
         ) else {
             ToastWindow.show(message: L10n.imageMergeFailed)

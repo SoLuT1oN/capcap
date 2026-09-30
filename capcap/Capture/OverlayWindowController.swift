@@ -106,6 +106,7 @@ class OverlayWindowController {
     private var pendingWindowCapture: PendingWindowCapture?
     private var snapshotCaptureFinished = false
     private var pendingSelection: PendingSelection?
+    private(set) var requestsPasteOnCompletion = false
     private let onComplete: (NSImage?) -> Void
     private let onRequestFocusReturn: (() -> Void)?
     private let onRecordingSelection: ((NSRect, NSScreen) -> Void)?
@@ -777,7 +778,7 @@ class OverlayWindowController {
             guard self?.editController?.handleCanvasConfirmDoubleClick(event) == true else {
                 return event
             }
-            self?.editController?.confirmFromKeyboard()
+            self?.confirmFromDoubleClick()
             return nil
         }
         escGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -1430,7 +1431,13 @@ extension OverlayWindowController: SelectionViewDelegate {
     }
 
     func selectionDidDoubleClickInsideSelection(inView view: NSView) {
-        confirmFromKeyboard()
+        confirmFromDoubleClick()
+    }
+
+    private func confirmFromDoubleClick() {
+        guard let editController, !editController.blocksHistoryNavigation else { return }
+        requestsPasteOnCompletion = true
+        editController.confirmFromKeyboard()
     }
 
     func selectionDidComplete(rect: NSRect, inView view: NSView, isWindowSelection: Bool, windowID: CGWindowID?) {

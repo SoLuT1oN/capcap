@@ -127,6 +127,13 @@ jobs:
           grep -q 'settingsTabAICalendar' capcap/Utilities/Defaults.swift
           swift test -c release --filter 'AICalendar|CalendarEventService|ToolbarLayoutTests'
 
+      - name: Guard double-click paste integration
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          test -f Tests/capcapTests/SourceAppFocusRestorerTests.swift
+          swift test -c release --filter 'SourceAppFocusRestorerTests|EditCanvasDoubleClickTests|OverlayPresentationTests'
+
       - name: Prepare signing identity
         if: steps.version.outputs.skip != 'true'
         id: signing

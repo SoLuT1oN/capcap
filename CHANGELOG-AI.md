@@ -4,6 +4,16 @@ Private fork changes are recorded here. Keep CHANGELOG.md identical to upstream 
 
 ## [Unreleased]
 
+### Added
+- Double-click a screenshot selection to copy the final image and paste it into the application that was active before capture; the image stays on the clipboard
+- Wait for asynchronous image encoding and source-app focus before pasting once; keep copy-only behavior when Accessibility access is missing, focus changes, or the clipboard changes
+- Guard double-click paste behavior in both upstream synchronization and private release workflows
+
+### Usage
+- Put the caret in an input that accepts images, start a screenshot, and double-click the selected area
+- capcap needs Accessibility permission to send the paste shortcut; ordinary copy buttons and keyboard shortcuts keep their existing behavior
+- CI verifies gesture routing and paste scheduling; actual image acceptance and caret placement require local UI verification in the destination app
+
 ## [1.7.11-ai.2] - 2026-09-05
 
 ### Added
