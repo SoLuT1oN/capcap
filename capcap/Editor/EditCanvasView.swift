@@ -64,6 +64,7 @@ class EditCanvasView: NSView {
     /// radius. Used by the beautify flow so the canvas content shows with
     /// rounded corners matching the container's frame.
     var beautifyCornerRadius: CGFloat?
+    private let beautifyCornerMask = BeautifyRenderer.CornerMask()
 
     /// Fallback base image used during live drawing when `previewImage` is
     /// nil. The beautify flow sets this to a snapshot of the current screen
@@ -1598,14 +1599,7 @@ class EditCanvasView: NSView {
         let didClip: Bool
         if let radius = beautifyCornerRadius {
             context.saveGState()
-            let clipPath = CGPath(
-                roundedRect: bounds,
-                cornerWidth: radius,
-                cornerHeight: radius,
-                transform: nil
-            )
-            context.addPath(clipPath)
-            context.clip()
+            beautifyCornerMask.clip(context, to: bounds, radius: radius)
             didClip = true
         } else {
             didClip = false
