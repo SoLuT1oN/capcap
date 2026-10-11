@@ -271,6 +271,9 @@
 "tipRedo" = "恢复撤销";
 "tipMoveSelection" = "移动选区";
 "tipScrollCapture" = "长截图";
+"tipRotate" = "旋转";
+"tipRotateLeft" = "向左旋转 90°";
+"tipRotateRight" = "向右旋转 90°";
 "tipBeautify" = "美化";
 "tipOCR" = "文字识别";
 "tipScreenshotTranslate" = "截图翻译";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "半透明填充";
 "shapeStyleStandard" = "默认样式";
 "shapeStyleRounded" = "圆角矩形";
-"shapeStyleHandDrawn" = "手绘圆角";
+"shapeStyleHandDrawn" = "手绘";
+"arrowStyleTapered" = "实心箭头";
+"arrowStyleDoubleEnded" = "双向箭头";
+"arrowStyleLine" = "线条箭头";
+"arrowStyleDotTail" = "圆点箭头";
 "insertImageFromClipboard" = "从剪贴板插入";
 "insertImageFromFile" = "从本地文件插入";
 "insertImageChooseFile" = "选择图片";

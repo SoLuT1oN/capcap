@@ -271,6 +271,9 @@
 "tipRedo" = "Làm lại";
 "tipMoveSelection" = "Di chuyển vùng chọn";
 "tipScrollCapture" = "Chụp cuộn";
+"tipRotate" = "Xoay";
+"tipRotateLeft" = "Xoay trái 90°";
+"tipRotateRight" = "Xoay phải 90°";
 "tipBeautify" = "Làm đẹp";
 "tipOCR" = "Nhận dạng văn bản";
 "tipScreenshotTranslate" = "Dịch ảnh chụp màn hình";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "Tô bán trong suốt";
 "shapeStyleStandard" = "Kiểu mặc định";
 "shapeStyleRounded" = "Kiểu chữ nhật bo góc";
-"shapeStyleHandDrawn" = "Kiểu vẽ tay bo góc";
+"shapeStyleHandDrawn" = "Kiểu vẽ tay";
+"arrowStyleTapered" = "Mũi tên thuôn nhọn";
+"arrowStyleDoubleEnded" = "Mũi tên hai đầu";
+"arrowStyleLine" = "Mũi tên nét";
+"arrowStyleDotTail" = "Mũi tên đuôi chấm";
 "insertImageFromClipboard" = "Từ clipboard";
 "insertImageFromFile" = "Từ tệp";
 "insertImageChooseFile" = "Chọn ảnh";

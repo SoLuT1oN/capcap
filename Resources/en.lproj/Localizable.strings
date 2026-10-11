@@ -271,6 +271,9 @@
 "tipRedo" = "Redo";
 "tipMoveSelection" = "Move Selection";
 "tipScrollCapture" = "Scroll Capture";
+"tipRotate" = "Rotate";
+"tipRotateLeft" = "Rotate left 90°";
+"tipRotateRight" = "Rotate right 90°";
 "tipBeautify" = "Beautify";
 "tipOCR" = "Text Recognition";
 "tipScreenshotTranslate" = "Screenshot Translation";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "Translucent fill";
 "shapeStyleStandard" = "Default style";
 "shapeStyleRounded" = "Rounded rectangle style";
-"shapeStyleHandDrawn" = "Hand-drawn rounded style";
+"shapeStyleHandDrawn" = "Hand-drawn style";
+"arrowStyleTapered" = "Tapered arrow";
+"arrowStyleDoubleEnded" = "Double-headed arrow";
+"arrowStyleLine" = "Line arrow";
+"arrowStyleDotTail" = "Dot-tail arrow";
 "insertImageFromClipboard" = "From Clipboard";
 "insertImageFromFile" = "From File";
 "insertImageChooseFile" = "Choose Image";

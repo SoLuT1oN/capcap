@@ -271,6 +271,9 @@
 "tipRedo" = "やり直す";
 "tipMoveSelection" = "選択範囲を移動";
 "tipScrollCapture" = "長いスクリーンショット";
+"tipRotate" = "回転";
+"tipRotateLeft" = "左に90°回転";
+"tipRotateRight" = "右に90°回転";
 "tipBeautify" = "装飾";
 "tipOCR" = "文字認識";
 "tipScreenshotTranslate" = "スクリーンショット翻訳";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "半透明の塗り";
 "shapeStyleStandard" = "標準スタイル";
 "shapeStyleRounded" = "角丸四角形スタイル";
-"shapeStyleHandDrawn" = "手描き角丸スタイル";
+"shapeStyleHandDrawn" = "手描きスタイル";
+"arrowStyleTapered" = "先細り矢印";
+"arrowStyleDoubleEnded" = "両矢印";
+"arrowStyleLine" = "線の矢印";
+"arrowStyleDotTail" = "丸付き矢印";
 "insertImageFromClipboard" = "クリップボードから";
 "insertImageFromFile" = "ファイルから";
 "insertImageChooseFile" = "画像を選択";

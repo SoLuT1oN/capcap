@@ -185,7 +185,7 @@ class EditWindowController {
     /// Image-edit mode: when set, this image replaces the screen-capture
     /// pipeline as the editor's base image (no live capture, no preSnapshot
     /// crop). Also disables scroll capture, which is a screen-only concept.
-    private let overrideBaseImage: NSImage?
+    private var overrideBaseImage: NSImage?
     private var overrideBaseImageCropRect: NSRect?
     private var croppedOverrideBaseImage: NSImage?
 
@@ -253,6 +253,11 @@ class EditWindowController {
         let canvasState: EditCanvasView.RestorableState
         let beautifyState: BeautifyState
         let overrideBaseImageCropRect: NSRect?
+        let overrideBaseImage: NSImage?
+        let selectionRect: NSRect
+        let selectionViewRect: NSRect
+        let captureRect: CGRect
+        let selectionAdjustmentBounds: NSRect?
     }
 
     struct BeautifyState {
@@ -372,6 +377,9 @@ class EditWindowController {
         canvas.onHistoryStateChanged = { [weak self] canUndo, canRedo in
             self?.updateHistoryButtons(canUndo: canUndo, canRedo: canRedo)
         }
+        canvas.onImageRotationChanged = { [weak self] in
+            self?.layoutRotatedImage()
+        }
         canvas.onEmojiStamped = { [weak self] in
             self?.handleEmojiStamped()
         }
@@ -478,6 +486,8 @@ class EditWindowController {
             toggleScrollCapture()
         case .beautify:
             toggleBeautify()
+        case .rotate:
+            showRotationSubToolbar()
         case .qrCode:
             performQRCodeRecognition()
         case .ocr:
@@ -544,13 +554,17 @@ class EditWindowController {
 
         if let overrideBaseImage,
            let currentCropRect = overrideBaseImageCropRect {
-            let imageBounds = NSRect(origin: .zero, size: overrideBaseImage.size)
-            let adjustedCropRect = FixedImageCropGeometry.adjustedSourceRect(
-                currentCropRect,
+            let rotation = canvasView?.imageRotation ?? .none
+            let transform = rotation.transform(for: overrideBaseImage.size)
+            let imageBounds = NSRect(origin: .zero, size: rotation.orientedSize(overrideBaseImage.size))
+            let orientedCropRect = FixedImageCropGeometry.adjustedSourceRect(
+                currentCropRect.applying(transform),
                 from: previousSelectionViewRect,
                 to: selectionViewRect,
                 imageBounds: imageBounds
             )
+            let adjustedCropRect = orientedCropRect.applying(transform.inverted())
+            canvasView?.preserveAnnotationImagePositions(from: currentCropRect, to: adjustedCropRect)
             overrideBaseImageCropRect = adjustedCropRect
             croppedOverrideBaseImage = FixedImageCropRenderer.crop(
                 overrideBaseImage,
@@ -558,7 +572,7 @@ class EditWindowController {
             ) ?? croppedOverrideBaseImage
             canvasView?.overrideBaseImage = effectiveOverrideBaseImage
             hostSelectionView?.selectionSizeLabelOverride = Self.cropSizeLabelText(
-                adjustedCropRect.size
+                rotation.orientedSize(adjustedCropRect.size)
             )
         }
 
@@ -567,10 +581,12 @@ class EditWindowController {
         }
 
         let canvasSize = canvasContentSize(for: selectionViewRect.size)
-        canvasView?.preserveAnnotationScreenPositions(
-            from: previousSelectionViewRect,
-            to: selectionViewRect
-        )
+        if overrideBaseImage == nil {
+            canvasView?.preserveAnnotationScreenPositions(
+                from: previousSelectionViewRect,
+                to: selectionViewRect
+            )
+        }
         canvasView?.updateViewportSize(canvasSize)
         beautifyContainerView?.canvasSizeDidChange()
         canvasView?.captureRect = captureRect
@@ -618,9 +634,11 @@ class EditWindowController {
             return viewportSize
         }
 
-        let scale = viewportSize.width / image.size.width
+        let rotation = canvasView?.imageRotation ?? .none
+        let presentationScale = canvasView?.presentationScale ?? 1
+        let scale = viewportSize.width / rotation.orientedSize(image.size).width / presentationScale
         return NSSize(
-            width: viewportSize.width,
+            width: image.size.width * scale,
             height: max(1, floor(image.size.height * scale))
         )
     }
@@ -777,6 +795,7 @@ class EditWindowController {
         dismissBeautifyPresetPopover()
         subToolbarView?.removeFromSuperview()
         subToolbarView = nil
+        toolbars.forEach { $0.setActive(false, for: .rotate) }
 
         switch tool {
         case .pen, .line:
@@ -1256,6 +1275,95 @@ class EditWindowController {
     private func handleMoveSelectionEnd() {
         hostSelectionView?.finalizeExternalDrag()
         moveSelectionStartRect = .zero
+    }
+
+    // MARK: - Image Rotation
+
+    private func showRotationSubToolbar() {
+        guard !isScrollCaptureBusy, !isCropping,
+              let hostSelectionView, let toolbarFrame = subToolbarAnchorFrame else { return }
+        if subToolbarView is RotationSubToolbar {
+            showSubToolbar(for: activeTool)
+            return
+        }
+        selectTool(.none)
+        let view = RotationSubToolbar(frame: subToolbarRect(
+            width: 100, height: 36, toolbarFrame: toolbarFrame,
+            in: hostSelectionView.bounds, offset: isBeautifyActive ? 40 : 0
+        ))
+        view.onRotate = { [weak self] clockwise in self?.rotateImage(clockwise: clockwise) }
+        styleFloatingHUD(view)
+        subToolbarView = view
+        hostSelectionView.addSubview(view)
+        toolbars.forEach { $0.setActive(true, for: .rotate) }
+    }
+
+    private func rotateImage(clockwise: Bool) {
+        guard !isScrollCaptureBusy, !isCropping, let canvasView else { return }
+        canvasView.commitActiveTextEditing()
+        dismissQRCodeOverlay()
+        // A screen selection becomes a fixed image at the first rotation.
+        // Never recapture the desktop underneath the rotated document.
+        if overrideBaseImage == nil, !canvasView.hasPreviewImage {
+            guard let image = canvasView.resolveBaseImageForEditing() else { return }
+            overrideBaseImage = image
+            overrideBaseImageCropRect = NSRect(origin: .zero, size: image.size)
+            croppedOverrideBaseImage = image
+            canvasView.overrideBaseImage = image
+        }
+        canvasView.rotateImage(clockwise: clockwise)
+    }
+
+    private func layoutRotatedImage() {
+        guard let canvasView, let hostSelectionView, let hostWindow = hostSelectionView.window else { return }
+        dismissQRCodeOverlay()
+        let orientedSize = canvasView.imageRotation.orientedSize(canvasView.bounds.size)
+        guard orientedSize.width > 0, orientedSize.height > 0 else { return }
+        let visibleRect = NSRect(
+            x: screen.visibleFrame.minX - screen.frame.minX,
+            y: screen.visibleFrame.minY - screen.frame.minY,
+            width: screen.visibleFrame.width, height: screen.visibleFrame.height
+        )
+        let scale = min(1, floor(visibleRect.width * 0.70) / orientedSize.width)
+        canvasView.setPresentationScale(scale)
+        let displaySize = canvasView.orientedDisplaySize
+        let viewportSize = NSSize(
+            width: displaySize.width,
+            height: min(displaySize.height, max(1, visibleRect.height - 120))
+        )
+        let origin = NSPoint(
+            x: max(visibleRect.minX, min(selectionViewRect.midX - viewportSize.width / 2, visibleRect.maxX - viewportSize.width)),
+            y: max(visibleRect.minY, min(selectionViewRect.midY - viewportSize.height / 2, visibleRect.maxY - viewportSize.height))
+        )
+        selectionViewRect = NSRect(origin: origin, size: viewportSize)
+        selectionRect = hostWindow.convertToScreen(hostSelectionView.convert(selectionViewRect, to: nil))
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        captureRect = CGRect(x: selectionRect.minX, y: primaryHeight - selectionRect.maxY,
+                             width: selectionRect.width, height: selectionRect.height)
+        hostSelectionView.updateSelectionRect(selectionViewRect)
+        hostSelectionView.selectionLocked = true
+        if let source = overrideBaseImage, let crop = overrideBaseImageCropRect {
+            let rotation = canvasView.imageRotation
+            let orientedCrop = crop.applying(rotation.transform(for: source.size))
+            let fullSize = rotation.orientedSize(source.size)
+            let sourceScale = displaySize.width / orientedCrop.width
+            hostSelectionView.selectionAdjustmentBounds = NSRect(
+                x: origin.x - orientedCrop.minX * sourceScale,
+                y: origin.y - orientedCrop.minY * sourceScale,
+                width: fullSize.width * sourceScale,
+                height: fullSize.height * sourceScale
+            ).intersection(visibleRect)
+        }
+        if let image = canvasView.resolveBaseImageForEditing() {
+            hostSelectionView.selectionSizeLabelOverride = Self.sizeLabelText(
+                for: canvasView.imageRotation.orientedSize(image.size)
+            )
+        }
+        beautifyContainerView?.canvasSizeDidChange()
+        updateCanvasFrameForBeautify()
+        updateEditorInteractionState()
+        updateCaptureActionAvailability()
+        repositionFloatingChrome()
     }
 
     // MARK: - Beautify
@@ -2022,7 +2130,7 @@ class EditWindowController {
     /// annotations) so recognition is not polluted by drawn marks.
     private func performOCR() {
         canvasView?.commitActiveTextEditing()
-        let baseImage = canvasView?.resolveBaseImageForEditing() ?? currentCompositeImage()
+        let baseImage = orientedBaseImageForOutput() ?? currentCompositeImage()
         let anchorRect = selectionRect
         let targetScreen = screen
         tearDown()
@@ -2153,7 +2261,7 @@ class EditWindowController {
     /// translated result to the user.
     private func performScreenshotTranslation() {
         canvasView?.commitActiveTextEditing()
-        let baseImage = canvasView?.resolveBaseImageForEditing() ?? currentCompositeImage()
+        let baseImage = orientedBaseImageForOutput() ?? currentCompositeImage()
         let anchorRect = selectionRect
         let targetScreen = screen
         tearDown()
@@ -2668,11 +2776,25 @@ class EditWindowController {
                 padding: currentBeautifyPadding,
                 shadowEnabled: currentBeautifyShadowEnabled
             ),
-            overrideBaseImageCropRect: overrideBaseImageCropRect
+            overrideBaseImageCropRect: overrideBaseImageCropRect,
+            overrideBaseImage: overrideBaseImage,
+            selectionRect: selectionRect,
+            selectionViewRect: selectionViewRect,
+            captureRect: captureRect,
+            selectionAdjustmentBounds: hostSelectionView?.selectionAdjustmentBounds
         )
     }
 
     func restoreState(_ state: RestorableState) {
+        overrideBaseImage = state.overrideBaseImage
+        overrideBaseImageCropRect = state.overrideBaseImageCropRect
+        croppedOverrideBaseImage = state.overrideBaseImage
+        canvasView?.overrideBaseImage = state.overrideBaseImage
+        selectionRect = state.selectionRect
+        selectionViewRect = state.selectionViewRect
+        captureRect = state.captureRect
+        hostSelectionView?.updateSelectionRect(selectionViewRect)
+        hostSelectionView?.selectionAdjustmentBounds = state.selectionAdjustmentBounds
         if let overrideBaseImage,
            let cropRect = state.overrideBaseImageCropRect {
             overrideBaseImageCropRect = cropRect
@@ -2691,11 +2813,13 @@ class EditWindowController {
             deactivateBeautify()
         }
         canvasView?.restoreState(state.canvasState)
-        beautifyContainerView?.canvasSizeDidChange()
-        if state.beautifyState.isActive {
-            updateCanvasFrameForBeautify()
-            repositionFloatingChrome()
+        canvasView?.captureRect = captureRect
+        if let image = canvasView?.resolveBaseImageForEditing(), let rotation = canvasView?.imageRotation {
+            hostSelectionView?.selectionSizeLabelOverride = Self.sizeLabelText(for: rotation.orientedSize(image.size))
         }
+        beautifyContainerView?.canvasSizeDidChange()
+        updateCanvasFrameForBeautify()
+        repositionFloatingChrome()
         updateCanvasScrollAvailability()
         updateEditorInteractionState()
         updateHistoryButtons(canUndo: canvasView?.canUndo == true, canRedo: canvasView?.canRedo == true)
@@ -2782,6 +2906,11 @@ class EditWindowController {
         let rounded = windowBaseImage == nil ? WindowEffects.roundedCorners(composite) : composite
         guard Defaults.windowShadowEnabled else { return rounded }
         return WindowEffects.withShadow(rounded, size: CGFloat(Defaults.windowShadowSize))
+    }
+
+    private func orientedBaseImageForOutput() -> NSImage? {
+        guard let canvasView, let image = canvasView.resolveBaseImageForEditing() else { return nil }
+        return canvasView.imageRotation.render(image)
     }
 
     private func windowShapedBaseImage(from image: NSImage?) -> NSImage? {
@@ -3530,6 +3659,31 @@ private final class ScrollCaptureControlView: NSView {
     }
 }
 
+private final class RotationSubToolbar: NSView {
+    var onRotate: ((Bool) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        for clockwise in [false, true] {
+            let button = ToolButton(
+                frame: NSRect(x: clockwise ? 54 : 10, y: 4, width: 28, height: 28),
+                symbolName: clockwise ? "rotate.right" : "rotate.left",
+                normalColor: .labelColor, selectedColor: accentGreen
+            )
+            button.hoverTip = clockwise ? L10n.tipRotateRight : L10n.tipRotateLeft
+            button.setAccessibilityLabel(button.hoverTip)
+            button.target = self
+            button.action = clockwise ? #selector(rotateRight) : #selector(rotateLeft)
+            addSubview(button)
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    @objc private func rotateLeft() { onRotate?(false) }
+    @objc private func rotateRight() { onRotate?(true) }
+}
+
 // MARK: - Crop Mode Control Window
 
 /// Floating confirm button shown during crop mode. Stays on screen
@@ -4120,6 +4274,18 @@ private class ColorSizeSubToolbar: NSView {
         shapeStrokePreviewShape: ShapeStrokePreviewShape = .rectangle
     ) -> CGFloat {
         var x = leadingPad
+        if showsArrowStyles {
+            let styleCount = CGFloat(ArrowStyle.allCases.count)
+            x += styleCount * arrowStyleButtonWidth + max(styleCount - 1, 0) * arrowStyleButtonGap
+            x += separatorGap + 1 + arrowStyleGap
+        }
+
+        if showsShapeStrokeStyles {
+            let styleCount = CGFloat(shapeStrokeStyles(for: shapeStrokePreviewShape).count)
+            x += styleCount * shapeButtonWidth + max(styleCount - 1, 0) * arrowStyleButtonGap
+            x += separatorGap + 1 + arrowStyleGap
+        }
+
         if !sizes.isEmpty {
             x += sizeSliderWidth
             x += 8 + 1 + 9
@@ -4128,21 +4294,9 @@ private class ColorSizeSubToolbar: NSView {
         let colorCount = baseColorCount + (dynamicColor == nil ? 0.0 : 1.0)
         x += colorCount * swatchSize + max(colorCount - 1, 0) * swatchGap
 
-        if showsArrowStyles {
-            let styleCount = CGFloat(ArrowStyle.allCases.count)
-            x += separatorGap + 1 + arrowStyleGap
-            x += styleCount * arrowStyleButtonWidth + max(styleCount - 1, 0) * arrowStyleButtonGap
-        }
-
         if showsShapeFillModes {
             x += separatorGap + 1 + arrowStyleGap
             x += ShapeFillModeSegmentedControl.preferredWidth()
-        }
-
-        if showsShapeStrokeStyles {
-            let styleCount = CGFloat(shapeStrokeStyles(for: shapeStrokePreviewShape).count)
-            x += separatorGap + 1 + arrowStyleGap
-            x += styleCount * shapeButtonWidth + max(styleCount - 1, 0) * arrowStyleButtonGap
         }
 
         return ceil(x + trailingPad)
@@ -4193,8 +4347,62 @@ private class ColorSizeSubToolbar: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     private func setup() {
-        var x: CGFloat = 12
+        var x = Self.leadingPad
         let midY = bounds.midY
+
+        func addStyleSeparator() {
+            x += Self.separatorGap
+            addSubview(AdaptiveSeparatorView(frame: NSRect(
+                x: x, y: 6, width: 1, height: bounds.height - 12
+            )))
+            x += 1 + Self.arrowStyleGap
+        }
+
+        // Match the mosaic toolbar: choose the style before its size slider.
+        if currentArrowStyle != nil {
+            for style in ArrowStyle.allCases {
+                let button = ArrowStyleButtonView(
+                    frame: NSRect(
+                        x: x,
+                        y: midY - Self.arrowStyleButtonHeight / 2,
+                        width: Self.arrowStyleButtonWidth,
+                        height: Self.arrowStyleButtonHeight
+                    ),
+                    style: style,
+                    isSelected: currentArrowStyle == style
+                )
+                let click = NSClickGestureRecognizer(target: self, action: #selector(arrowStyleTapped(_:)))
+                button.addGestureRecognizer(click)
+                addSubview(button)
+                arrowStyleButtons.append(button)
+                x += Self.arrowStyleButtonWidth + Self.arrowStyleButtonGap
+            }
+            x -= Self.arrowStyleButtonGap
+            addStyleSeparator()
+        }
+
+        if showsShapeStrokeStyles {
+            for style in Self.shapeStrokeStyles(for: shapeStrokePreviewShape) {
+                let button = ShapeStrokeStyleButtonView(
+                    frame: NSRect(
+                        x: x,
+                        y: midY - Self.shapeButtonHeight / 2,
+                        width: Self.shapeButtonWidth,
+                        height: Self.shapeButtonHeight
+                    ),
+                    style: style,
+                    previewShape: shapeStrokePreviewShape,
+                    isSelected: currentShapeStrokeStyle == style
+                )
+                let click = NSClickGestureRecognizer(target: self, action: #selector(shapeStrokeStyleTapped(_:)))
+                button.addGestureRecognizer(click)
+                addSubview(button)
+                shapeStrokeStyleButtons.append(button)
+                x += Self.shapeButtonWidth + Self.arrowStyleButtonGap
+            }
+            x -= Self.arrowStyleButtonGap
+            addStyleSeparator()
+        }
 
         if !sizes.isEmpty {
             let slider = HUDSlider(
@@ -4223,7 +4431,7 @@ private class ColorSizeSubToolbar: NSView {
             x += 8
             let sep = AdaptiveSeparatorView(frame: NSRect(x: x, y: 6, width: 1, height: bounds.height - 12))
             addSubview(sep)
-            x += 9
+            x += 1 + 9
         }
 
         // Color swatches. The dynamic picked color uses an ink-bottle glyph
@@ -4250,33 +4458,7 @@ private class ColorSizeSubToolbar: NSView {
             x += swatchSize + ColorSizeSubToolbar.swatchGap
         }
 
-        var lastSectionRightEdge = x - ColorSizeSubToolbar.swatchGap
-
-        if currentArrowStyle != nil {
-            let styleSepX = lastSectionRightEdge + ColorSizeSubToolbar.separatorGap
-            let styleSep = AdaptiveSeparatorView(frame: NSRect(x: styleSepX, y: 6, width: 1, height: bounds.height - 12))
-            addSubview(styleSep)
-
-            x = styleSepX + 1 + ColorSizeSubToolbar.arrowStyleGap
-            for style in ArrowStyle.allCases {
-                let button = ArrowStyleButtonView(
-                    frame: NSRect(
-                        x: x,
-                        y: midY - ColorSizeSubToolbar.arrowStyleButtonHeight / 2,
-                        width: ColorSizeSubToolbar.arrowStyleButtonWidth,
-                        height: ColorSizeSubToolbar.arrowStyleButtonHeight
-                    ),
-                    style: style,
-                    isSelected: currentArrowStyle == style
-                )
-                let click = NSClickGestureRecognizer(target: self, action: #selector(arrowStyleTapped(_:)))
-                button.addGestureRecognizer(click)
-                addSubview(button)
-                arrowStyleButtons.append(button)
-                x += ColorSizeSubToolbar.arrowStyleButtonWidth + ColorSizeSubToolbar.arrowStyleButtonGap
-            }
-            lastSectionRightEdge = x - ColorSizeSubToolbar.arrowStyleButtonGap
-        }
+        let lastSectionRightEdge = x - ColorSizeSubToolbar.swatchGap
 
         if showsShapeFillModes {
             let fillSepX = lastSectionRightEdge + ColorSizeSubToolbar.separatorGap
@@ -4300,33 +4482,6 @@ private class ColorSizeSubToolbar: NSView {
             }
             addSubview(control)
             shapeFillModeControl = control
-            lastSectionRightEdge = control.frame.maxX
-        }
-
-        if showsShapeStrokeStyles {
-            let styleSepX = lastSectionRightEdge + ColorSizeSubToolbar.separatorGap
-            let styleSep = AdaptiveSeparatorView(frame: NSRect(x: styleSepX, y: 6, width: 1, height: bounds.height - 12))
-            addSubview(styleSep)
-
-            x = styleSepX + 1 + ColorSizeSubToolbar.arrowStyleGap
-            for style in Self.shapeStrokeStyles(for: shapeStrokePreviewShape) {
-                let button = ShapeStrokeStyleButtonView(
-                    frame: NSRect(
-                        x: x,
-                        y: midY - ColorSizeSubToolbar.shapeButtonHeight / 2,
-                        width: ColorSizeSubToolbar.shapeButtonWidth,
-                        height: ColorSizeSubToolbar.shapeButtonHeight
-                    ),
-                    style: style,
-                    previewShape: shapeStrokePreviewShape,
-                    isSelected: currentShapeStrokeStyle == style
-                )
-                let click = NSClickGestureRecognizer(target: self, action: #selector(shapeStrokeStyleTapped(_:)))
-                button.addGestureRecognizer(click)
-                addSubview(button)
-                shapeStrokeStyleButtons.append(button)
-                x += ColorSizeSubToolbar.shapeButtonWidth + ColorSizeSubToolbar.arrowStyleButtonGap
-            }
         }
     }
 
@@ -4346,6 +4501,7 @@ private class ColorSizeSubToolbar: NSView {
     }
 
     @objc private func arrowStyleTapped(_ gesture: NSGestureRecognizer) {
+        ToolTipWindow.hide()
         guard let view = gesture.view as? ArrowStyleButtonView else { return }
         currentArrowStyle = view.style
         onArrowStyleChanged?(view.style)
@@ -4353,6 +4509,7 @@ private class ColorSizeSubToolbar: NSView {
     }
 
     @objc private func shapeStrokeStyleTapped(_ gesture: NSGestureRecognizer) {
+        ToolTipWindow.hide()
         guard let view = gesture.view as? ShapeStrokeStyleButtonView else { return }
         currentShapeStrokeStyle = view.style
         onShapeStrokeStyleChanged?(view.style)
@@ -4834,7 +4991,57 @@ private class TextSubToolbar: NSView {
     }
 }
 
-private final class ArrowStyleButtonView: NSView {
+/// Shared hover behaviour for the custom-drawn style choices.
+private class StyleOptionView: NSView {
+    var hoverTip: String? {
+        didSet { setAccessibilityLabel(hoverTip) }
+    }
+    private var hoverTrackingArea: NSTrackingArea?
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area = hoverTrackingArea { removeTrackingArea(area) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        guard let hoverTip, let window else { return }
+        let frameOnScreen = window.convertToScreen(convert(bounds, to: nil))
+        ToolTipWindow.show(text: hoverTip, anchor: frameOnScreen)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        ToolTipWindow.hide()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        ToolTipWindow.hide()
+        super.mouseDown(with: event)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { ToolTipWindow.hide() }
+    }
+}
+
+private final class ArrowStyleButtonView: StyleOptionView {
     let style: ArrowStyle
     var isSelected: Bool {
         didSet { needsDisplay = true }
@@ -4844,6 +5051,12 @@ private final class ArrowStyleButtonView: NSView {
         self.style = style
         self.isSelected = isSelected
         super.init(frame: frame)
+        switch style {
+        case .tapered: hoverTip = L10n.arrowStyleTapered
+        case .doubleEnded: hoverTip = L10n.arrowStyleDoubleEnded
+        case .line: hoverTip = L10n.arrowStyleLine
+        case .dotTail: hoverTip = L10n.arrowStyleDotTail
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -5530,7 +5743,7 @@ private final class ShapeFillModeSegmentedControl: NSView {
     }
 }
 
-private final class ShapeStrokeStyleButtonView: NSView {
+private final class ShapeStrokeStyleButtonView: StyleOptionView {
     let style: ShapeStrokeStyle
     let previewShape: ShapeStrokePreviewShape
     var isSelected: Bool {
@@ -5544,11 +5757,11 @@ private final class ShapeStrokeStyleButtonView: NSView {
         super.init(frame: frame)
         switch style {
         case .standard:
-            toolTip = L10n.shapeStyleStandard
+            hoverTip = previewShape == .rectangle ? L10n.tipRectangle : L10n.tipEllipse
         case .rounded:
-            toolTip = L10n.shapeStyleRounded
+            hoverTip = L10n.shapeStyleRounded
         case .handDrawn:
-            toolTip = L10n.shapeStyleHandDrawn
+            hoverTip = L10n.shapeStyleHandDrawn
         }
     }
 

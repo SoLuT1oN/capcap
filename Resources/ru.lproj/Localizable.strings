@@ -271,6 +271,9 @@
 "tipRedo" = "Повторить";
 "tipMoveSelection" = "Переместить выделение";
 "tipScrollCapture" = "Длинный снимок";
+"tipRotate" = "Поворот";
+"tipRotateLeft" = "Повернуть на 90° влево";
+"tipRotateRight" = "Повернуть на 90° вправо";
 "tipBeautify" = "Оформление";
 "tipOCR" = "Распознавание текста";
 "tipScreenshotTranslate" = "Перевод снимка";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "Полупрозрачная заливка";
 "shapeStyleStandard" = "Обычный стиль";
 "shapeStyleRounded" = "Скруглённый прямоугольник";
-"shapeStyleHandDrawn" = "Рисованный скруглённый стиль";
+"shapeStyleHandDrawn" = "Рисованный стиль";
+"arrowStyleTapered" = "Сужающаяся стрелка";
+"arrowStyleDoubleEnded" = "Двусторонняя стрелка";
+"arrowStyleLine" = "Линейная стрелка";
+"arrowStyleDotTail" = "Стрелка с точкой у основания";
 "insertImageFromClipboard" = "Из буфера обмена";
 "insertImageFromFile" = "Из файла";
 "insertImageChooseFile" = "Выбрать изображение";

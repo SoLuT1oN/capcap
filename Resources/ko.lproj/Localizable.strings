@@ -271,6 +271,9 @@
 "tipRedo" = "다시 실행";
 "tipMoveSelection" = "선택 영역 이동";
 "tipScrollCapture" = "긴 스크린샷";
+"tipRotate" = "회전";
+"tipRotateLeft" = "왼쪽으로 90° 회전";
+"tipRotateRight" = "오른쪽으로 90° 회전";
 "tipBeautify" = "꾸미기";
 "tipOCR" = "문자 인식";
 "tipScreenshotTranslate" = "스크린샷 번역";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "반투명 채우기";
 "shapeStyleStandard" = "기본 스타일";
 "shapeStyleRounded" = "둥근 사각형 스타일";
-"shapeStyleHandDrawn" = "손그림 둥근 스타일";
+"shapeStyleHandDrawn" = "손그림 스타일";
+"arrowStyleTapered" = "테이퍼 화살표";
+"arrowStyleDoubleEnded" = "양방향 화살표";
+"arrowStyleLine" = "선 화살표";
+"arrowStyleDotTail" = "원형 꼬리 화살표";
 "insertImageFromClipboard" = "클립보드에서";
 "insertImageFromFile" = "파일에서";
 "insertImageChooseFile" = "이미지 선택";

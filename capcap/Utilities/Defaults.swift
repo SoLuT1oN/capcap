@@ -455,6 +455,9 @@ enum L10n {
     static var tipMoveSelection: String { s("tipMoveSelection") }
     static var tipScrollCapture: String { s("tipScrollCapture") }
     static var tipBeautify: String { s("tipBeautify") }
+    static var tipRotate: String { s("tipRotate") }
+    static var tipRotateLeft: String { s("tipRotateLeft") }
+    static var tipRotateRight: String { s("tipRotateRight") }
     static var tipOCR: String { s("tipOCR") }
     static var tipScreenshotTranslate: String { s("tipScreenshotTranslate") }
     static var tipSave: String { s("tipSave") }
@@ -513,6 +516,10 @@ enum L10n {
     static var shapeStyleStandard: String { s("shapeStyleStandard") }
     static var shapeStyleRounded: String { s("shapeStyleRounded") }
     static var shapeStyleHandDrawn: String { s("shapeStyleHandDrawn") }
+    static var arrowStyleTapered: String { s("arrowStyleTapered") }
+    static var arrowStyleDoubleEnded: String { s("arrowStyleDoubleEnded") }
+    static var arrowStyleLine: String { s("arrowStyleLine") }
+    static var arrowStyleDotTail: String { s("arrowStyleDotTail") }
 
     // Insert tools
     static var insertImageFromClipboard: String { s("insertImageFromClipboard") }

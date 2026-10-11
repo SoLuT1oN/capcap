@@ -1219,17 +1219,17 @@ class OverlayWindowController {
             ?? context.selectionViewState
         let displayID = context.screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
         return SuspendedEditDraft(
-            captureRect: context.captureRect,
+            captureRect: editorState.captureRect,
             screenDisplayID: displayID,
             screenFrame: context.screen.frame,
-            selectionRect: context.selectionRect,
-            selectionViewRect: context.selectionViewRect,
+            selectionRect: editorState.selectionRect,
+            selectionViewRect: editorState.selectionViewRect,
             selectionSizeLabelOverride: selectionViewState.selectionSizeLabelOverride,
             selectionLocked: selectionViewState.selectionLocked,
             selectionInteractionEnabled: selectionViewState.selectionInteractionEnabled,
             selectionAdjustmentBounds: selectionViewState.selectionAdjustmentBounds,
             preSnapshot: context.preSnapshot,
-            overrideBaseImage: context.overrideBaseImage,
+            overrideBaseImage: editorState.overrideBaseImage,
             windowBaseImage: context.windowBaseImage,
             isWindowCapture: editController.isWindowCapture,
             editorState: editorState,

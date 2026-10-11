@@ -271,6 +271,9 @@
 "tipRedo" = "重做";
 "tipMoveSelection" = "移動選取範圍";
 "tipScrollCapture" = "長截圖";
+"tipRotate" = "旋轉";
+"tipRotateLeft" = "向左旋轉 90°";
+"tipRotateRight" = "向右旋轉 90°";
 "tipBeautify" = "美化";
 "tipOCR" = "文字辨識";
 "tipScreenshotTranslate" = "截圖翻譯";
@@ -325,7 +328,11 @@
 "shapeFillTranslucent" = "半透明填充";
 "shapeStyleStandard" = "預設樣式";
 "shapeStyleRounded" = "圓角矩形";
-"shapeStyleHandDrawn" = "手繪圓角";
+"shapeStyleHandDrawn" = "手繪";
+"arrowStyleTapered" = "實心箭頭";
+"arrowStyleDoubleEnded" = "雙向箭頭";
+"arrowStyleLine" = "線條箭頭";
+"arrowStyleDotTail" = "圓點箭頭";
 "insertImageFromClipboard" = "從剪貼簿插入";
 "insertImageFromFile" = "從本機檔案插入";
 "insertImageChooseFile" = "選擇圖片";
