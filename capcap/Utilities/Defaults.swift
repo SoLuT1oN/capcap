@@ -463,6 +463,7 @@ enum L10n {
     static var tipSave: String { s("tipSave") }
     static var tipPin: String { s("tipPin") }
     static var tipRecord: String { s("tipRecord") }
+    static var windowCapturePreparing: String { s("windowCapturePreparing") }
     static var tipCancel: String { s("tipCancel") }
     static var tipConfirm: String { s("tipConfirm") }
     static var tipScrollCropConfirm: String { s("tipScrollCropConfirm") }

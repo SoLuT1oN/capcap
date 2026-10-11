@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "Files & Output";
 
 "historyPreviewTextSaveFailed" = "Unable to save text, please try again";
+
+"windowCapturePreparing" = "Preparing screenshot";

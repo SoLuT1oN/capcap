@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "파일 및 출력";
 
 "historyPreviewTextSaveFailed" = "텍스트를 저장하지 못했습니다, 다시 시도해 주세요";
+
+"windowCapturePreparing" = "스크린샷 준비 중";

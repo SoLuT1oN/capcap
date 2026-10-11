@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "Tệp và đầu ra";
 
 "historyPreviewTextSaveFailed" = "Không thể lưu văn bản, vui lòng thử lại";
+
+"windowCapturePreparing" = "Đang chuẩn bị ảnh chụp màn hình";

@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "文件与输出";
 
 "historyPreviewTextSaveFailed" = "文本保存失败，请重试";
+
+"windowCapturePreparing" = "正在准备截图";

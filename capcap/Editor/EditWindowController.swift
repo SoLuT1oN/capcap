@@ -192,7 +192,17 @@ class EditWindowController {
     /// Single-window capture with the WindowServer's real alpha silhouette.
     /// Used as the base image and annotation clip mask for clicked-window
     /// captures so the final corners match the system window exactly.
-    private let windowBaseImage: NSImage?
+    private var windowBaseImage: NSImage?
+    private var windowCapturePreparation: WindowCapturePreparation?
+    private var windowCaptureObserver: UUID?
+    private var pendingWindowCaptureAction: ToolbarItemID?
+    private var windowCaptureWaitAlert: NSAlert?
+
+    private var isPreparingWindowCapture: Bool {
+        windowCapturePreparation?.isComplete == false
+    }
+
+    var isWaitingForWindowCaptureOutput: Bool { windowCaptureWaitAlert != nil }
     private let keepsHostWindowAcrossSpaces: Bool
 
     // Scroll capture state
@@ -218,7 +228,7 @@ class EditWindowController {
     private var scrollCropControlWindow: ScrollCropControlWindow?
 
     var blocksHistoryNavigation: Bool {
-        isScrollCaptureBusy || isCropping
+        isWaitingForWindowCaptureOutput || isScrollCaptureBusy || isCropping
     }
 
     private var isScrollCaptureBusy: Bool {
@@ -258,6 +268,7 @@ class EditWindowController {
         let selectionViewRect: NSRect
         let captureRect: CGRect
         let selectionAdjustmentBounds: NSRect?
+        var windowCapturePreparation: WindowCapturePreparation? = nil
     }
 
     struct BeautifyState {
@@ -341,6 +352,51 @@ class EditWindowController {
         self.pickedColorSwatch = Self.color(fromHex: Defaults.lastPickedColorHex)
     }
 
+    func attachWindowCapturePreparation(_ preparation: WindowCapturePreparation?) {
+        detachWindowCapturePreparation()
+        guard let preparation else { return }
+        windowCapturePreparation = preparation
+        windowCaptureObserver = preparation.observe { [weak self, weak preparation] image in
+            guard let self, let preparation,
+                  self.windowCapturePreparation === preparation else { return }
+            self.applyPreparedWindowImage(image)
+        }
+    }
+
+    private func detachWindowCapturePreparation() {
+        if let windowCaptureObserver {
+            windowCapturePreparation?.removeObserver(windowCaptureObserver)
+        }
+        windowCaptureObserver = nil
+        windowCapturePreparation = nil
+    }
+
+    private func applyPreparedWindowImage(_ image: NSImage) {
+        guard let canvasView else { return }
+        // Rotation turns the frozen capture into a fixed-image document. Keep
+        // its source coordinates and crop, replacing only that source's alpha.
+        if overrideBaseImage != nil {
+            overrideBaseImage = image
+            croppedOverrideBaseImage = overrideBaseImageCropRect.flatMap {
+                FixedImageCropRenderer.crop(image, to: $0)
+            } ?? image
+            canvasView.overrideBaseImage = effectiveOverrideBaseImage
+        }
+        if isWindowCapture {
+            windowBaseImage = image
+            canvasView.windowBaseImage = image
+        }
+        if isBeautifyActive, canvasView.previewImage == nil {
+            canvasView.externalBaseImage = effectiveOverrideBaseImage ?? image
+        }
+        canvasView.needsDisplay = true
+        // No show(), restoreState(), focus change, or undo mutation here: an
+        // annotation gesture may be in progress while the worker completes.
+        if let alert = windowCaptureWaitAlert {
+            alert.window.sheetParent?.endSheet(alert.window, returnCode: .OK)
+        }
+    }
+
     func show() {
         guard let hostSelectionView else {
             onComplete(nil)
@@ -408,12 +464,10 @@ class EditWindowController {
         self.selectionChromeOverlay = overlay
 
         showToolbar()
-        // Activate the upper-layer border and handles on the very first editor
-        // frame. Window capture temporarily disables selection interaction
-        // while its direct image loads, so relying on SelectionView's earlier
-        // backing-store contents can leave the handles absent until a later
-        // redraw.
+        // The first editor frame includes the interactive canvas, border,
+        // handles and toolbar, even while its precise silhouette is pending.
         repositionFloatingChrome()
+        updateEditorInteractionState()
         updateHistoryButtons(canUndo: canvas.canUndo, canRedo: canvas.canRedo)
         if Defaults.beautifyAutoEnabled {
             activateBeautify()
@@ -468,6 +522,10 @@ class EditWindowController {
         _ item: ToolbarItemID,
         togglesSelectedTool: Bool
     ) -> Bool {
+        if isWaitingForWindowCaptureOutput {
+            if item == .close { close() }
+            return true
+        }
         if let tool = item.editTool {
             selectTool(togglesSelectedTool && activeTool == tool ? .none : tool)
             return true
@@ -517,6 +575,54 @@ class EditWindowController {
         return true
     }
 
+    /// Output is one explicit transaction. A sheet freezes input only after an
+    /// output request, so its annotations cannot change while alpha is pending.
+    /// Subsequent hotkeys cannot overwrite the original intent; Cancel resumes
+    /// editing without canceling the document's background preparation.
+    private func deferUntilWindowCaptureReady(_ item: ToolbarItemID) -> Bool {
+        guard isPreparingWindowCapture else { return false }
+        guard pendingWindowCaptureAction == nil else { return true }
+        guard let hostWindow = hostSelectionView?.window else { return true }
+        canvasView?.commitActiveTextEditing()
+        dismissEmojiPopover()
+        dismissBeautifyPresetPopover()
+        pendingWindowCaptureAction = item
+        let alert = NSAlert()
+        alert.messageText = L10n.windowCapturePreparing
+        alert.addButton(withTitle: L10n.tipCancel)
+        let spinner = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 24, height: 24))
+        spinner.style = .spinning
+        spinner.startAnimation(nil)
+        alert.accessoryView = spinner
+        windowCaptureWaitAlert = alert
+        alert.beginSheetModal(for: hostWindow) { [weak self, weak alert] response in
+            guard let self, let alert, self.windowCaptureWaitAlert === alert else { return }
+            let action = self.pendingWindowCaptureAction
+            self.pendingWindowCaptureAction = nil
+            self.windowCaptureWaitAlert = nil
+            if response == .OK, let action {
+                _ = self.performToolbarItem(action, togglesSelectedTool: false)
+            } else {
+                self.bringEditorToFront()
+            }
+        }
+        return true
+    }
+
+    @discardableResult
+    func cancelWindowCaptureOutput() -> Bool {
+        guard let alert = windowCaptureWaitAlert else { return false }
+        pendingWindowCaptureAction = nil
+        alert.window.sheetParent?.endSheet(alert.window, returnCode: .cancel)
+        return true
+    }
+
+    func handleWindowCaptureWaitKeyDown(_ event: NSEvent) -> Bool {
+        guard isWaitingForWindowCaptureOutput else { return false }
+        if event.keyCode == 53 { cancelWindowCaptureOutput() }
+        return true
+    }
+
     /// Primary + side toolbars currently on screen.
     private var toolbars: [ToolbarView] {
         [toolbarView, sideToolbarView].compactMap { $0 }
@@ -547,6 +653,10 @@ class EditWindowController {
 
     func updateLayout(selectionRect: NSRect, selectionViewRect: NSRect, captureRect: CGRect) {
         dismissQRCodeOverlay()
+        if !isWindowCapture, overrideBaseImage == nil {
+            detachWindowCapturePreparation()
+            windowBaseImage = nil
+        }
         let previousSelectionViewRect = self.selectionViewRect
         self.selectionRect = selectionRect
         self.selectionViewRect = selectionViewRect
@@ -1258,7 +1368,7 @@ class EditWindowController {
     /// Original selection rect captured at the moment the user pressed the
     /// move-selection drag handle. Per-frame deltas are applied against
     /// this so the rect doesn't drift if a frame is missed.
-    private var moveSelectionStartRect: NSRect = .zero
+    private var moveSelectionStartRect: NSRect?
 
     private func handleMoveSelectionStart() {
         canvasView?.commitActiveTextEditing()
@@ -1266,6 +1376,7 @@ class EditWindowController {
     }
 
     private func handleMoveSelectionDrag(delta: CGSize) {
+        guard let moveSelectionStartRect else { return }
         hostSelectionView?.moveByExternalDrag(
             deltaFromOriginal: delta,
             originalRect: moveSelectionStartRect
@@ -1273,8 +1384,9 @@ class EditWindowController {
     }
 
     private func handleMoveSelectionEnd() {
+        guard moveSelectionStartRect != nil else { return }
         hostSelectionView?.finalizeExternalDrag()
-        moveSelectionStartRect = .zero
+        moveSelectionStartRect = nil
     }
 
     // MARK: - Image Rotation
@@ -1997,6 +2109,7 @@ class EditWindowController {
     }
 
     private func save() {
+        guard !deferUntilWindowCaptureReady(.save) else { return }
         canvasView?.commitActiveTextEditing()
         guard let finalImage = currentCompositeImage() else { return }
         let quality = Defaults.screenshotSaveQuality
@@ -2117,6 +2230,7 @@ class EditWindowController {
     }
 
     private func upload() {
+        guard !deferUntilWindowCaptureReady(.upload) else { return }
         canvasView?.commitActiveTextEditing()
         guard let finalImage = currentCompositeImage() else { return }
         let targetScreen = screen
@@ -2129,6 +2243,7 @@ class EditWindowController {
     /// panel anchored to the original selection. Uses the raw capture (no
     /// annotations) so recognition is not polluted by drawn marks.
     private func performOCR() {
+        guard !deferUntilWindowCaptureReady(.ocr) else { return }
         canvasView?.commitActiveTextEditing()
         let baseImage = orientedBaseImageForOutput() ?? currentCompositeImage()
         let anchorRect = selectionRect
@@ -2140,6 +2255,7 @@ class EditWindowController {
     }
 
     private func performQRCodeRecognition() {
+        guard !deferUntilWindowCaptureReady(.qrCode) else { return }
         canvasView?.commitActiveTextEditing()
         dismissQRCodeOverlay()
         clearActiveToolForQRCodeRecognition()
@@ -2260,6 +2376,7 @@ class EditWindowController {
     /// Screenshot-translation action: uses OCR internally, but only shows the
     /// translated result to the user.
     private func performScreenshotTranslation() {
+        guard !deferUntilWindowCaptureReady(.screenshotTranslate) else { return }
         canvasView?.commitActiveTextEditing()
         let baseImage = orientedBaseImageForOutput() ?? currentCompositeImage()
         let anchorRect = selectionRect
@@ -2271,6 +2388,7 @@ class EditWindowController {
     }
 
     private func pin() {
+        guard !deferUntilWindowCaptureReady(.pin) else { return }
         canvasView?.commitActiveTextEditing()
         guard let finalImage = currentCompositeImage() else { return }
 
@@ -2527,6 +2645,7 @@ class EditWindowController {
     }
 
     func confirmFromKeyboard() {
+        guard !isWaitingForWindowCaptureOutput else { return }
         // The clipboard hotkey during auto-scroll stops scrolling and moves to
         // crop mode; during crop mode it confirms the crop. It must not copy to
         // the clipboard until the user is actually in the editor.
@@ -2546,6 +2665,7 @@ class EditWindowController {
 
     @discardableResult
     func pinFromKeyboard() -> Bool {
+        guard !isWaitingForWindowCaptureOutput else { return true }
         guard !isScrollCaptureBusy, !isCropping else { return false }
         pin()
         return true
@@ -2605,6 +2725,7 @@ class EditWindowController {
     /// Save-to-file (⌘S) entry point — mirrors `confirmFromKeyboard`'s phased
     /// behavior so the hotkey works regardless of which stage the editor is in.
     func saveFromKeyboard() {
+        guard !isWaitingForWindowCaptureOutput else { return }
         if isScrollCaptureFinalizing {
             return
         }
@@ -2691,6 +2812,7 @@ class EditWindowController {
     }
 
     private func confirm() {
+        guard !deferUntilWindowCaptureReady(.confirm) else { return }
         canvasView?.commitActiveTextEditing()
         guard let finalImage = currentCompositeImage() else {
             tearDown()
@@ -2708,6 +2830,13 @@ class EditWindowController {
     }
 
     func tearDown() {
+        detachWindowCapturePreparation()
+        pendingWindowCaptureAction = nil
+        if let alert = windowCaptureWaitAlert {
+            windowCaptureWaitAlert = nil
+            alert.window.sheetParent?.endSheet(alert.window, returnCode: .cancel)
+        }
+        moveSelectionStartRect = nil
         dismissQRCodeOverlay()
         cancelActiveColorSampler()
         isScrollCapturing = false
@@ -2781,7 +2910,8 @@ class EditWindowController {
             selectionRect: selectionRect,
             selectionViewRect: selectionViewRect,
             captureRect: captureRect,
-            selectionAdjustmentBounds: hostSelectionView?.selectionAdjustmentBounds
+            selectionAdjustmentBounds: hostSelectionView?.selectionAdjustmentBounds,
+            windowCapturePreparation: windowCapturePreparation
         )
     }
 
@@ -2823,6 +2953,7 @@ class EditWindowController {
         updateCanvasScrollAvailability()
         updateEditorInteractionState()
         updateHistoryButtons(canUndo: canvasView?.canUndo == true, canRedo: canvasView?.canRedo == true)
+        attachWindowCapturePreparation(state.windowCapturePreparation)
     }
 
     private func applyBeautifyState(_ state: BeautifyState) {
@@ -3680,6 +3811,13 @@ private final class RotationSubToolbar: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 8, yRadius: 8)
+        AdaptiveChrome.toolbarBackground.setFill()
+        path.fill()
+    }
+
     @objc private func rotateLeft() { onRotate?(false) }
     @objc private func rotateRight() { onRotate?(true) }
 }

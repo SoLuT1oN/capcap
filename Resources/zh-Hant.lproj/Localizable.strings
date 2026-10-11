@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "檔案與輸出";
 
 "historyPreviewTextSaveFailed" = "文字儲存失敗，請重試";
+
+"windowCapturePreparing" = "正在準備截圖";

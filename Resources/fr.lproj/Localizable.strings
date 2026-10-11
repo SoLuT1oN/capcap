@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "Fichiers et sortie";
 
 "historyPreviewTextSaveFailed" = "Impossible d’enregistrer le texte, veuillez réessayer";
+
+"windowCapturePreparing" = "Préparation de la capture";

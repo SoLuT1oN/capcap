@@ -107,6 +107,8 @@ class OverlayWindowController {
     private var windowCaptureTimeout: TimeInterval = 2
     private var windowCaptureTask: Task<Void, Never>?
     private var pendingWindowCapture: PendingWindowCapture?
+    private var prefetchedWindow: DetectedWindow?
+    private var windowPrefetchTask: Task<NSImage?, Never>?
     private var snapshotCaptureFinished = false
     private var pendingSelection: PendingSelection?
     private let onComplete: (NSImage?) -> Void
@@ -248,12 +250,7 @@ class OverlayWindowController {
         windowSnapshotLoader: @escaping WindowSnapshotLoader = {
             WindowDetector.snapshot(primaryScreenArea: $0)
         },
-        windowImageLoader: @escaping WindowImageLoader = { windowID, pointSize in
-            try await ScreenCapturer.captureWindowAsync(
-                windowID: windowID,
-                pointSize: pointSize
-            )
-        },
+        windowImageLoader: WindowImageLoader? = nil,
         snapshotTimeout: TimeInterval = 8,
         windowCaptureTimeout: TimeInterval = 2,
         eventTrackingStateProvider: @escaping () -> Bool = {
@@ -285,7 +282,7 @@ class OverlayWindowController {
         self.triggerContext = triggerContext
         self.snapshotProvider = snapshotProvider
         self.windowSnapshotLoader = windowSnapshotLoader
-        self.windowImageLoader = windowImageLoader
+        self.windowImageLoader = windowImageLoader ?? WindowCaptureSource.makeLoader()
         self.snapshotTimeout = snapshotTimeout
         self.windowCaptureTimeout = windowCaptureTimeout
         self.eventTrackingStateProvider = eventTrackingStateProvider
@@ -723,6 +720,7 @@ class OverlayWindowController {
         }
 
         escLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if self?.editController?.handleWindowCaptureWaitKeyDown(event) == true { return nil }
             if self?.editController?.isTextEditing == true {
                 return event
             }
@@ -777,6 +775,7 @@ class OverlayWindowController {
             return event
         }
         leftMouseLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            if self?.editController?.isWaitingForWindowCaptureOutput == true { return event }
             guard self?.editController?.handleCanvasConfirmDoubleClick(event) == true else {
                 return event
             }
@@ -1190,6 +1189,7 @@ class OverlayWindowController {
     }
 
     func cancel() {
+        if editController?.cancelWindowCaptureOutput() == true { return }
         guard !sessionEnded else { return }
         triggerContext?.finish(.cancelled)
         editController?.tearDown()
@@ -1250,6 +1250,9 @@ class OverlayWindowController {
         snapshotDeadline = nil
         windowCaptureTask?.cancel()
         windowCaptureTask = nil
+        windowPrefetchTask?.cancel()
+        windowPrefetchTask = nil
+        prefetchedWindow = nil
         pendingWindowCapture = nil
         pendingSelection = nil
         ToastWindow.dismiss()
@@ -1417,6 +1420,50 @@ class OverlayWindowController {
 // MARK: - SelectionViewDelegate
 
 extension OverlayWindowController: SelectionViewDelegate {
+    func selectionDidHoverWindow(_ window: DetectedWindow?) {
+        guard editController == nil, pendingWindowCapture == nil, !sessionEnded else { return }
+        if prefetchedWindow?.windowID == window?.windowID,
+           prefetchedWindow?.frame == window?.frame { return }
+        windowPrefetchTask?.cancel()
+        windowPrefetchTask = nil
+        prefetchedWindow = nil
+        guard let window, !window.usesCompositedScreenBackdrop else { return }
+        // The common display-filling case never uses independent alpha.
+        if NSScreen.screens.contains(where: { screen in
+            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else { return false }
+            let bounds = CGDisplayBounds(displayID)
+            return bounds.contains(window.frame)
+                && !WindowEffects.shouldBorrowDirectWindowAlpha(captureRect: window.frame, displayBounds: bounds)
+        }) { return }
+        prefetchedWindow = window
+        windowPrefetchTask = WindowCapturePreparation.capture(
+            windowID: window.windowID,
+            pointSize: window.frame.size,
+            timeout: windowCaptureTimeout,
+            loader: windowImageLoader,
+            debounce: true
+        )
+    }
+
+    private func takeWindowCaptureTask(windowID: CGWindowID, request: PendingSelection) -> Task<NSImage?, Never> {
+        if prefetchedWindow?.windowID == windowID,
+           prefetchedWindow?.frame == request.captureRect,
+           let task = windowPrefetchTask {
+            windowPrefetchTask = nil
+            prefetchedWindow = nil
+            return task
+        }
+        windowPrefetchTask?.cancel()
+        windowPrefetchTask = nil
+        prefetchedWindow = nil
+        return WindowCapturePreparation.capture(
+            windowID: windowID,
+            pointSize: request.rect.size,
+            timeout: windowCaptureTimeout,
+            loader: windowImageLoader
+        )
+    }
+
     func selectionDidStart(reason: SelectionStartReason) {
         chipWindow?.dismiss()
         chipWindow = nil
@@ -1560,6 +1607,17 @@ extension OverlayWindowController: SelectionViewDelegate {
            windowDetector.usesCompositedScreenBackdrop(forWindowID: windowID) {
             return nil
         }
+        // Display-filling windows deliberately use the frozen screen pixels
+        // and synthesized corners. Their independent image cannot contribute
+        // an alpha mask, so do not wait for a capture that would be discarded.
+        if preSnapshot != nil,
+           CGDisplayBounds(request.displayID).contains(request.captureRect),
+           !WindowEffects.shouldBorrowDirectWindowAlpha(
+               captureRect: request.captureRect,
+               displayBounds: CGDisplayBounds(request.displayID)
+           ) {
+            return nil
+        }
         return windowID
     }
 
@@ -1568,40 +1626,72 @@ extension OverlayWindowController: SelectionViewDelegate {
         request: PendingSelection,
         preSnapshot: CGImage?
     ) {
+        let captureTask = takeWindowCaptureTask(windowID: windowID, request: request)
+        if postCaptureAction == .edit,
+           let snapshotImage = preSnapshotImage(
+               captureRect: request.captureRect, screen: request.screen, preSnapshot: preSnapshot
+           ) {
+            let preparation = WindowCapturePreparation(
+                snapshotImage: snapshotImage,
+                captureRect: request.captureRect,
+                displayBounds: CGDisplayBounds(request.displayID),
+                captureTask: captureTask
+            )
+            request.selectionView.selectionInteractionEnabled = true
+            showEditor(
+                captureRect: request.captureRect,
+                screen: request.screen,
+                selectionRect: request.screenRect,
+                selectionViewRect: request.rect,
+                hostSelectionView: request.selectionView,
+                preSnapshot: preSnapshot,
+                overrideBaseImage: presetImage,
+                windowBaseImage: snapshotImage,
+                isWindowCapture: true
+            )
+            editController?.attachWindowCapturePreparation(preparation)
+            return
+        }
+
+        // The snapshot cannot supply off-screen pixels. Show an honest busy
+        // state until the complete source exists, then create a usable editor.
         request.selectionView.selectionInteractionEnabled = false
+        ToastWindow.show(message: L10n.windowCapturePreparing, on: request.screen, duration: 60)
         let generation = presentationGeneration
         let captureID = UUID()
-        let pointSize = request.rect.size
-        let windowImageLoader = windowImageLoader
         pendingWindowCapture = PendingWindowCapture(
-            id: captureID,
-            generation: generation,
-            request: request,
-            preSnapshot: preSnapshot
+            id: captureID, generation: generation, request: request, preSnapshot: preSnapshot
         )
-        let timeout = windowCaptureTimeout
+        let snapshotImage = preSnapshotImage(
+            captureRect: request.captureRect, screen: request.screen, preSnapshot: preSnapshot
+        )
+        let captureRect = request.captureRect
+        let displayBounds = CGDisplayBounds(request.displayID)
         windowCaptureTask = Task.detached(priority: .userInitiated) { [weak self] in
-            let result: Result<NSImage?, Error>
-            do {
-                result = .success(try await AsyncDeadline.run(seconds: timeout) {
-                    try await windowImageLoader(windowID, pointSize)
-                })
-            } catch {
-                result = .failure(error)
+            let directImage = await withTaskCancellationHandler {
+                await captureTask.value
+            } onCancel: {
+                captureTask.cancel()
             }
             guard !Task.isCancelled else { return }
-            MainRunLoopScheduler.perform {
-                self?.finishWindowCapture(
-                    result,
-                    captureID: captureID,
-                    generation: generation
+            let usableImage = directImage.flatMap {
+                ScreenCapturer.isEffectivelyTransparent($0) ? nil : $0
+            }
+            let image = snapshotImage.map {
+                WindowEffects.compositedWindowImage(
+                    snapshotImage: $0, directWindowImage: usableImage,
+                    captureRect: captureRect, displayBounds: displayBounds
                 )
+            } ?? usableImage
+            guard !Task.isCancelled else { return }
+            MainRunLoopScheduler.perform {
+                self?.finishWindowCapture(image, captureID: captureID, generation: generation)
             }
         }
     }
 
     private func finishWindowCapture(
-        _ result: Result<NSImage?, Error>,
+        _ image: NSImage?,
         captureID: UUID,
         generation: Int
     ) {
@@ -1612,24 +1702,14 @@ extension OverlayWindowController: SelectionViewDelegate {
               pendingWindowCapture.generation == generation else { return }
         windowCaptureTask = nil
         self.pendingWindowCapture = nil
+        ToastWindow.dismiss()
         let request = pendingWindowCapture.request
-        let preSnapshot = pendingWindowCapture.preSnapshot
         request.selectionView.selectionInteractionEnabled = true
-
-        switch result {
-        case .success(let image):
-            finishInitialSelection(
-                request,
-                preSnapshot: preSnapshot,
-                directWindowImage: image
-            )
-        case .failure:
-            finishInitialSelection(
-                request,
-                preSnapshot: preSnapshot,
-                directWindowImage: nil
-            )
+        guard let image else {
+            finishSelectionCaptureFailure()
+            return
         }
+        presentInitialSelection(request, preSnapshot: pendingWindowCapture.preSnapshot, windowBaseImage: image)
     }
 
     private func finishInitialSelection(
@@ -1644,6 +1724,14 @@ extension OverlayWindowController: SelectionViewDelegate {
             preSnapshot: preSnapshot,
             directWindowImage: directWindowImage
         )
+        presentInitialSelection(request, preSnapshot: preSnapshot, windowBaseImage: windowBaseImage)
+    }
+
+    private func presentInitialSelection(
+        _ request: PendingSelection,
+        preSnapshot: CGImage?,
+        windowBaseImage: NSImage?
+    ) {
         let shouldApplyWindowEffects = request.isWindowSelection && windowBaseImage != nil
 
         switch postCaptureAction {

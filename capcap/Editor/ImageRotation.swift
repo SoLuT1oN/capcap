@@ -35,22 +35,25 @@ enum ImageRotation: Int {
     func render(_ image: NSImage) -> NSImage? {
         guard self != .none else { return image }
         guard let source = image.cgImagePreservingBacking() else { return nil }
-        let pixelSize = orientedSize(NSSize(width: source.width, height: source.height))
+        let sourcePixelSize = NSSize(width: source.width, height: source.height)
+        let pixelSize = orientedSize(sourcePixelSize)
         let outputSize = orientedSize(image.size)
-        guard let bitmap = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: Int(pixelSize.width), pixelsHigh: Int(pixelSize.height),
-            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
-            isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-        ), let graphics = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
+        guard let context = CGContext(
+            data: nil,
+            width: Int(pixelSize.width), height: Int(pixelSize.height),
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        // A bitmap context uses pixels, not NSImage's logical points. Rotate
+        // the full backing image so Retina output cannot acquire empty margins.
+        context.interpolationQuality = .none
+        context.concatenate(transform(for: sourcePixelSize))
+        context.draw(source, in: NSRect(origin: .zero, size: sourcePixelSize))
+        guard let rotatedImage = context.makeImage() else { return nil }
+        let bitmap = NSBitmapImageRep(cgImage: rotatedImage)
         bitmap.size = outputSize
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = graphics
-        graphics.imageInterpolation = .none
-        graphics.cgContext.concatenate(transform(for: image.size))
-        image.draw(in: NSRect(origin: .zero, size: image.size), from: .zero, operation: .copy, fraction: 1)
-        graphics.flushGraphics()
-        NSGraphicsContext.restoreGraphicsState()
         let result = NSImage(size: outputSize)
         result.addRepresentation(bitmap)
         return result

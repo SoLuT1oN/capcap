@@ -711,3 +711,5 @@
 "settingsGeneralFiles" = "ファイルと出力";
 
 "historyPreviewTextSaveFailed" = "テキストを保存できませんでした、再試行してください";
+
+"windowCapturePreparing" = "スクリーンショットを準備中";
