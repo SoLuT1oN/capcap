@@ -1400,7 +1400,7 @@ class EditWindowController {
         }
         selectTool(.none)
         let view = RotationSubToolbar(frame: subToolbarRect(
-            width: 100, height: 36, toolbarFrame: toolbarFrame,
+            width: 92, height: 36, toolbarFrame: toolbarFrame,
             in: hostSelectionView.bounds, offset: isBeautifyActive ? 40 : 0
         ))
         view.onRotate = { [weak self] clockwise in self?.rotateImage(clockwise: clockwise) }
