@@ -437,6 +437,8 @@ enum L10n {
     static var tipSpotlight: String { s("tipSpotlight") }
     static var tipMosaic: String { s("tipMosaic") }
     static var mosaicGranularity: String { s("mosaicGranularity") }
+    static var mosaicBlur: String { s("mosaicBlur") }
+    static var mosaicBlurAmount: String { s("mosaicBlurAmount") }
     static var tipEraser: String { s("tipEraser") }
     static var tipMagnifier: String { s("tipMagnifier") }
     static var tipNumbered: String { s("tipNumbered") }
@@ -1773,6 +1775,26 @@ struct Defaults {
 
     static let mosaicBlockSizeMin: Double = 4
     static let mosaicBlockSizeMax: Double = 48
+
+    static var mosaicStyle: MosaicStyle {
+        get { MosaicStyle(rawValue: defaults.string(forKey: "mosaicStyle") ?? "") ?? .pixelate }
+        set { defaults.set(newValue.rawValue, forKey: "mosaicStyle") }
+    }
+
+    static let mosaicBlurRadiusMin: Double = 1
+    static let mosaicBlurRadiusMax: Double = 48
+
+    static var mosaicBlurRadius: Double {
+        get {
+            guard defaults.object(forKey: "mosaicBlurRadius") != nil else { return 12 }
+            return normalizedMosaicBlurRadius(defaults.double(forKey: "mosaicBlurRadius"))
+        }
+        set { defaults.set(normalizedMosaicBlurRadius(newValue), forKey: "mosaicBlurRadius") }
+    }
+
+    static func normalizedMosaicBlurRadius(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, mosaicBlurRadiusMin), mosaicBlurRadiusMax) : 12
+    }
 
     static let textFontSizeMin: Double = 10
     static let textFontSizeMax: Double = 100

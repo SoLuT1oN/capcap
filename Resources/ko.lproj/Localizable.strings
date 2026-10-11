@@ -254,6 +254,8 @@
 "tipSpotlight" = "스포트라이트";
 "tipMosaic" = "모자이크";
 "mosaicGranularity" = "모자이크 입자 크기";
+"mosaicBlur" = "흐림";
+"mosaicBlurAmount" = "흐림 강도";
 "tipEraser" = "지우개";
 "tipMagnifier" = "돋보기";
 "tipNumbered" = "번호";

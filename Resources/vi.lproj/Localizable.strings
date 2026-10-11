@@ -254,6 +254,8 @@
 "tipSpotlight" = "Tiêu điểm";
 "tipMosaic" = "Làm mờ mosaic";
 "mosaicGranularity" = "Độ hạt mosaic";
+"mosaicBlur" = "Làm mờ";
+"mosaicBlurAmount" = "Mức độ làm mờ";
 "tipEraser" = "Tẩy";
 "tipMagnifier" = "Kính lúp";
 "tipNumbered" = "Đánh số";

@@ -254,6 +254,8 @@
 "tipSpotlight" = "Projecteur";
 "tipMosaic" = "Mosaïque";
 "mosaicGranularity" = "Granularité de la mosaïque";
+"mosaicBlur" = "Flou";
+"mosaicBlurAmount" = "Intensité du flou";
 "tipEraser" = "Gomme";
 "tipMagnifier" = "Loupe";
 "tipNumbered" = "Numéro";

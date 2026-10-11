@@ -254,6 +254,8 @@
 "tipSpotlight" = "スポットライト";
 "tipMosaic" = "モザイク";
 "mosaicGranularity" = "モザイク粒度";
+"mosaicBlur" = "ぼかし";
+"mosaicBlurAmount" = "ぼかしの強さ";
 "tipEraser" = "消しゴム";
 "tipMagnifier" = "拡大鏡";
 "tipNumbered" = "番号";

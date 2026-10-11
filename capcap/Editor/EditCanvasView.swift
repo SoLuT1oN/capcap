@@ -118,6 +118,8 @@ class EditCanvasView: NSView {
     /// highlighter's yellow without overriding the pen's red, and vice-versa.
     var currentMarkerColor: NSColor = EditorStyleDefaults.markerColor
     var currentMosaicBlockSize: CGFloat = CGFloat(Defaults.mosaicBlockSize)
+    var currentMosaicStyle: MosaicStyle = Defaults.mosaicStyle
+    var currentMosaicBlurRadius: CGFloat = CGFloat(Defaults.mosaicBlurRadius)
     var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize) {
         didSet {
             guard let field = activeTextField else { return }
@@ -306,7 +308,7 @@ class EditCanvasView: NSView {
         return annotation.translated(by: delta)
     }
 
-    /// Move a mosaic by re-pixelating the underlying image at the new frame
+    /// Move a mosaic by reapplying its effect to the image at the new frame
     /// position. The mosaic is an edited region of the screenshot, not a
     /// movable texture, so the frame itself decides what gets pixelated.
     private func translatedMosaic(_ mosaic: MosaicAnnotation, by delta: NSPoint) -> Annotation {
@@ -317,7 +319,9 @@ class EditCanvasView: NSView {
                 rect: newRect,
                 imageSize: bounds.size,
                 baseImage: baseImage,
-                blockSize: mosaic.blockSize
+                blockSize: mosaic.blockSize,
+                style: mosaic.style,
+                blurRadius: mosaic.blurRadius
             )
         else {
             return mosaic.translated(by: delta)
@@ -325,7 +329,9 @@ class EditCanvasView: NSView {
         return MosaicAnnotation(
             rect: region.rect,
             pixelatedImage: region.pixelatedImage,
-            blockSize: mosaic.blockSize
+            blockSize: mosaic.blockSize,
+            style: mosaic.style,
+            blurRadius: mosaic.blurRadius
         )
     }
 
@@ -916,17 +922,20 @@ class EditCanvasView: NSView {
         needsDisplay = true
     }
 
-    func mutateSelectedMosaicBlockSizeLive(_ blockSize: CGFloat) {
+    func mutateSelectedMosaicLive(style: MosaicStyle, blockSize: CGFloat, blurRadius: CGFloat) {
         guard let baseImage = resolveBaseImageForEditing() else { return }
         let imageSize = bounds.size
         mutateSelectedAnnotationLive { annotation in
             guard
                 let mosaic = annotation as? MosaicAnnotation,
+                mosaic.style != style || mosaic.blockSize != blockSize || mosaic.blurRadius != blurRadius,
                 let region = MosaicTool.createMosaicRegion(
                     rect: mosaic.rect,
                     imageSize: imageSize,
                     baseImage: baseImage,
-                    blockSize: blockSize
+                    blockSize: blockSize,
+                    style: style,
+                    blurRadius: blurRadius
                 )
             else {
                 return annotation
@@ -934,7 +943,9 @@ class EditCanvasView: NSView {
             return MosaicAnnotation(
                 rect: region.rect,
                 pixelatedImage: region.pixelatedImage,
-                blockSize: blockSize
+                blockSize: blockSize,
+                style: style,
+                blurRadius: blurRadius
             )
         }
     }
@@ -1050,6 +1061,7 @@ class EditCanvasView: NSView {
         }
         if let a = a as? MosaicAnnotation, let b = b as? MosaicAnnotation {
             return a.rect == b.rect && a.blockSize == b.blockSize
+                && a.style == b.style && a.blurRadius == b.blurRadius
         }
         if let a = a as? SpotlightAnnotation, let b = b as? SpotlightAnnotation {
             return a.rect == b.rect
@@ -1461,13 +1473,17 @@ class EditCanvasView: NSView {
                        rect: rect,
                        imageSize: bounds.size,
                        baseImage: baseImage,
-                       blockSize: currentMosaicBlockSize
+                       blockSize: currentMosaicBlockSize,
+                       style: currentMosaicStyle,
+                       blurRadius: currentMosaicBlurRadius
                    ) {
                     recordUndo()
                     annotations.append(MosaicAnnotation(
                         rect: region.rect,
                         pixelatedImage: region.pixelatedImage,
-                        blockSize: currentMosaicBlockSize
+                        blockSize: currentMosaicBlockSize,
+                        style: currentMosaicStyle,
+                        blurRadius: currentMosaicBlurRadius
                     ))
                 }
             }
@@ -3271,7 +3287,7 @@ class EditCanvasView: NSView {
                     constraint: shiftIsDown ? .preserveAspectRatio : .none
                 )
                 guard newRect.width >= 4, newRect.height >= 4 else { return }
-                // Re-pixelate from the untouched base image so the mosaic
+                // Reapply the effect to the untouched base image so the mosaic
                 // always covers whatever content the new rect frames (rather
                 // than stretching the old pixels).
                 guard
@@ -3280,13 +3296,17 @@ class EditCanvasView: NSView {
                         rect: newRect,
                         imageSize: bounds.size,
                         baseImage: baseImage,
-                        blockSize: mosaic.blockSize
+                        blockSize: mosaic.blockSize,
+                        style: mosaic.style,
+                        blurRadius: mosaic.blurRadius
                     )
                 else { return }
                 annotations[state.index] = MosaicAnnotation(
                     rect: region.rect,
                     pixelatedImage: region.pixelatedImage,
-                    blockSize: mosaic.blockSize
+                    blockSize: mosaic.blockSize,
+                    style: mosaic.style,
+                    blurRadius: mosaic.blurRadius
                 )
             } else if let rect = state.original as? RectAnnotation {
                 let newRect = resizedRotatedRect(

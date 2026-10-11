@@ -12,6 +12,7 @@ enum AgentSpecification {
         "text": ["at", "rect", "text", "fontSize", "stroke", "callout", "tip"] + rotation,
         "number": ["center", "number", "tip", "control", "controlPoint"],
         "mosaic": ["rect", "blockSize"],
+        "blur": ["rect", "radius", "blockSize"],
         "spotlight": ["rect"],
         "magnifier": ["center", "radius", "zoom", "source", "lineWidth"],
         "pen": ["points", "lineWidth"] + rotation,
@@ -19,7 +20,7 @@ enum AgentSpecification {
     ]
     static let aliases = ["rectangle": "rect", "box": "rect", "oval": "ellipse", "circle": "ellipse",
                           "label": "text", "numbered": "number", "badge": "number", "pixelate": "mosaic",
-                          "blur": "mosaic", "loupe": "magnifier", "path": "pen", "highlight": "marker", "highlighter": "marker"]
+                          "loupe": "magnifier", "path": "pen", "highlight": "marker", "highlighter": "marker"]
     static var schema: [String: Any] {
         ["ok": true, "command": "agent schema", "version": 1,
          "commands": ["windows", "displays", "capture", "annotate", "validate", "run", "schema"],
@@ -33,12 +34,12 @@ enum AgentSpecification {
          "imageSize": "Optional [pixelWidth, pixelHeight]; rejects specs prepared for a different image size",
          "types": fields.mapValues { common + $0 }, "aliases": aliases,
          "required": ["rect": ["rect"], "ellipse": ["rect"], "arrow": ["from", "to"], "line": ["from", "to"],
-                      "text": ["at", "text"], "number": ["center"], "mosaic": ["rect"], "spotlight": ["rect"], "magnifier": ["center"], "pen": ["points"], "marker": ["points"]],
+                      "text": ["at", "text"], "number": ["center"], "mosaic": ["rect"], "blur": ["rect"], "spotlight": ["rect"], "magnifier": ["center"], "pen": ["points"], "marker": ["points"]],
          "formats": ["point": "[x,y] or {x,y}", "rect": "[x,y,width,height] or {x,y,width,height}; positive size",
                      "color": "#RGB, #RRGGBB, #RRGGBBAA", "lineWidth": "positive tool width; marker/highlighter renders 6 times this width", "fontSize": "positive pixels",
                      "rotation": "degrees; rotationRadians takes precedence", "points": "nonempty array of points"],
          "enums": ["strokeStyle": ["standard", "rounded", "hand-drawn"], "style": ["tapered", "double-ended", "line", "dot-tail"], "fillMode": ["none", "opaque", "translucent"]],
-         "notes": ["spotlight regions share one dimming overlay applied after all other annotations", "blur is an alias for pixelated mosaic, not Gaussian blur", "rounded ellipse uses standard stroke", "run captures a new frame; use annotate for an already inspected frame", "validate checks the spec against an image without writing a PNG; inspect rendered output for visual quality"],
+         "notes": ["spotlight regions share one dimming overlay applied after all other annotations", "blur applies Gaussian blur with radius 1...48 pixels (default 12); blockSize is accepted as a fallback radius", "rounded ellipse uses standard stroke", "run captures a new frame; use annotate for an already inspected frame", "validate checks the spec against an image without writing a PNG; inspect rendered output for visual quality"],
          "example": ["version": 1, "coordinateSpace": "pixels", "origin": "top-left", "annotations": [
             ["type": "rect", "rect": [40, 60, 240, 100], "strokeStyle": "rounded", "color": "#007AFF", "lineWidth": 4],
             ["type": "text", "at": [40, 20], "text": "Review this area", "fontSize": 24, "color": "#007AFF"]

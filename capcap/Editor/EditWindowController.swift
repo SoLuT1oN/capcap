@@ -268,6 +268,8 @@ class EditWindowController {
     private var currentNumberSize: CGFloat = EditorStyleDefaults.numberSize
     private var currentArrowStyle: ArrowStyle = Defaults.lastArrowStyle
     private var currentMosaicBlockSize: CGFloat = CGFloat(Defaults.mosaicBlockSize)
+    private var currentMosaicStyle: MosaicStyle = Defaults.mosaicStyle
+    private var currentMosaicBlurRadius: CGFloat = CGFloat(Defaults.mosaicBlurRadius)
     private var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize)
     /// Font family for new text annotations. nil = the system bold default.
     private var currentFontName: String? = Defaults.textFontName
@@ -679,6 +681,8 @@ class EditWindowController {
         canvasView?.currentNumberSize = currentNumberSize
         canvasView?.currentArrowStyle = currentArrowStyle
         canvasView?.currentMosaicBlockSize = currentMosaicBlockSize
+        canvasView?.currentMosaicStyle = currentMosaicStyle
+        canvasView?.currentMosaicBlurRadius = currentMosaicBlurRadius
         canvasView?.currentFontSize = currentFontSize
         canvasView?.currentFontName = currentFontName
         canvasView?.currentTextStroke = currentTextStroke
@@ -727,7 +731,8 @@ class EditWindowController {
             currentMarkerLineWidth = m.lineWidth
         case let mosaic as MosaicAnnotation:
             currentMosaicBlockSize = mosaic.blockSize
-            canvasView?.currentMosaicBlockSize = mosaic.blockSize
+            currentMosaicStyle = mosaic.style
+            currentMosaicBlurRadius = mosaic.blurRadius
         case let magnifier as MagnifierAnnotation:
             currentColor = magnifier.color
             currentLineWidth = magnifier.lineWidth
@@ -1035,18 +1040,33 @@ class EditWindowController {
             offset: offset
         )
 
-        let view = MosaicSubToolbar(frame: subRect, currentBlockSize: currentMosaicBlockSize)
-        view.onBlockSizeBegan = { [weak self] in
+        let view = MosaicSubToolbar(
+            frame: subRect,
+            style: currentMosaicStyle,
+            blockSize: currentMosaicBlockSize,
+            blurRadius: currentMosaicBlurRadius
+        )
+        view.onAdjustmentBegan = { [weak self] in
             self?.canvasView?.beginSelectionAdjustment()
         }
-        view.onBlockSizeChanged = { [weak self] size in
-            self?.currentMosaicBlockSize = size
-            self?.canvasView?.currentMosaicBlockSize = size
-            Defaults.mosaicBlockSize = Double(size)
-            self?.canvasView?.mutateSelectedMosaicBlockSizeLive(size)
+        view.onSettingsChanged = { [weak self] style, blockSize, blurRadius in
+            guard let self else { return }
+            self.currentMosaicStyle = style
+            self.currentMosaicBlockSize = blockSize
+            self.currentMosaicBlurRadius = blurRadius
+            self.canvasView?.currentMosaicStyle = style
+            self.canvasView?.currentMosaicBlockSize = blockSize
+            self.canvasView?.currentMosaicBlurRadius = blurRadius
+            Defaults.mosaicStyle = style
+            Defaults.mosaicBlockSize = Double(blockSize)
+            Defaults.mosaicBlurRadius = Double(blurRadius)
+            self.canvasView?.mutateSelectedMosaicLive(
+                style: style, blockSize: blockSize, blurRadius: blurRadius
+            )
         }
-        view.onBlockSizeEnded = { [weak self] in
+        view.onAdjustmentEnded = { [weak self] in
             self?.canvasView?.commitSelectionAdjustment()
+            self?.bringEditorToFront()
         }
         styleFloatingHUD(view)
         hostSelectionView.addSubview(view)
@@ -4379,19 +4399,25 @@ private class ColorSizeSubToolbar: NSView {
 // MARK: - Mosaic Sub-toolbar
 
 private class MosaicSubToolbar: NSView {
-    var currentBlockSize: CGFloat
-    var onBlockSizeBegan: (() -> Void)?
-    var onBlockSizeChanged: ((CGFloat) -> Void)?
-    var onBlockSizeEnded: (() -> Void)?
+    private var currentStyle: MosaicStyle
+    private var currentBlockSize: CGFloat
+    private var currentBlurRadius: CGFloat
+    var onAdjustmentBegan: (() -> Void)?
+    var onSettingsChanged: ((MosaicStyle, CGFloat, CGFloat) -> Void)?
+    var onAdjustmentEnded: (() -> Void)?
 
     private var slider: HUDSlider!
+    private var styleButtons: [ToolButton] = []
 
-    static let preferredWidth: CGFloat = 178
+    static let preferredWidth: CGFloat = 252
     private static let leadingPad: CGFloat = 12
+    private static let buttonSize: CGFloat = 28
     private static let sliderWidth: CGFloat = 154
 
-    init(frame: NSRect, currentBlockSize: CGFloat) {
-        self.currentBlockSize = Self.clampedBlockSize(currentBlockSize)
+    init(frame: NSRect, style: MosaicStyle, blockSize: CGFloat, blurRadius: CGFloat) {
+        self.currentStyle = style
+        self.currentBlockSize = blockSize
+        self.currentBlurRadius = blurRadius
         super.init(frame: frame)
         setup()
     }
@@ -4403,8 +4429,42 @@ private class MosaicSubToolbar: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     private func setup() {
-        let x = Self.leadingPad
+        var x = Self.leadingPad
         let midY = bounds.midY
+
+        for (index, style) in [MosaicStyle.pixelate, .blur].enumerated() {
+            let tip = style == .pixelate ? L10n.tipMosaic : L10n.mosaicBlur
+            let blurIcon: NSImage? = style == .blur ? NSImage(size: NSSize(width: 20, height: 20), flipped: false) { rect in
+                NSGradient(
+                    starting: NSColor.black,
+                    ending: NSColor.black.withAlphaComponent(0)
+                )?.draw(in: NSBezierPath(ovalIn: rect), relativeCenterPosition: .zero)
+                return true
+            } : nil
+            let button = ToolButton(
+                frame: NSRect(x: x, y: midY - Self.buttonSize / 2,
+                              width: Self.buttonSize, height: Self.buttonSize),
+                symbolName: "square.grid.3x3.fill",
+                normalColor: .secondaryLabelColor,
+                selectedColor: accentGreen,
+                iconImage: blurIcon
+            )
+            button.tag = index
+            button.hoverTip = tip
+            button.setAccessibilityLabel(tip)
+            button.target = self
+            button.action = #selector(styleChanged(_:))
+            addSubview(button)
+            styleButtons.append(button)
+            x += Self.buttonSize
+        }
+
+        x += 8
+        let separator = NSView(frame: NSRect(x: x, y: midY - 9, width: 1, height: 18))
+        separator.wantsLayer = true
+        separator.layer?.backgroundColor = AdaptiveChrome.separator.cgColor
+        addSubview(separator)
+        x += 10
 
         let s = HUDSlider(
             value: Double(currentBlockSize),
@@ -4420,24 +4480,45 @@ private class MosaicSubToolbar: NSView {
             width: Self.sliderWidth,
             height: HUDSlider.preferredHeight
         )
-        s.toolTip = L10n.mosaicGranularity
-        s.onEditingBegan = { [weak self] in self?.onBlockSizeBegan?() }
-        s.onEditingEnded = { [weak self] in self?.onBlockSizeEnded?() }
+        s.onEditingBegan = { [weak self] in self?.onAdjustmentBegan?() }
+        s.onEditingEnded = { [weak self] in self?.onAdjustmentEnded?() }
         addSubview(s)
         slider = s
+        updateControls()
+    }
+
+    @objc private func styleChanged(_ sender: ToolButton) {
+        let style: MosaicStyle = sender.tag == 0 ? .pixelate : .blur
+        guard style != currentStyle else { return }
+        onAdjustmentBegan?()
+        currentStyle = style
+        updateControls()
+        onSettingsChanged?(currentStyle, currentBlockSize, currentBlurRadius)
+        onAdjustmentEnded?()
+    }
+
+    private func updateControls() {
+        let isBlur = currentStyle == .blur
+        for (index, button) in styleButtons.enumerated() {
+            button.isSelected = (index == 1) == isBlur
+            button.setAccessibilityValue(button.isSelected ? 1 : 0)
+        }
+        slider.minValue = isBlur ? Defaults.mosaicBlurRadiusMin : Defaults.mosaicBlockSizeMin
+        slider.maxValue = isBlur ? Defaults.mosaicBlurRadiusMax : Defaults.mosaicBlockSizeMax
+        slider.doubleValue = Double(isBlur ? currentBlurRadius : currentBlockSize)
+        let tip = isBlur ? L10n.mosaicBlurAmount : L10n.mosaicGranularity
+        slider.toolTip = tip
+        slider.setAccessibilityLabel(tip)
     }
 
     @objc private func sliderChanged(_ sender: HUDSlider) {
-        let clamped = Self.clampedBlockSize(CGFloat(sender.doubleValue))
-        currentBlockSize = clamped
-        onBlockSizeChanged?(clamped)
-    }
-
-    private static func clampedBlockSize(_ size: CGFloat) -> CGFloat {
-        max(
-            CGFloat(Defaults.mosaicBlockSizeMin),
-            min(CGFloat(Defaults.mosaicBlockSizeMax), size)
-        )
+        let value = CGFloat(min(max(sender.doubleValue, sender.minValue), sender.maxValue))
+        if currentStyle == .blur {
+            currentBlurRadius = value
+        } else {
+            currentBlockSize = value
+        }
+        onSettingsChanged?(currentStyle, currentBlockSize, currentBlurRadius)
     }
 
     override func draw(_ dirtyRect: NSRect) {

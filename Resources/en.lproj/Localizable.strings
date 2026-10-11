@@ -254,6 +254,8 @@
 "tipSpotlight" = "Spotlight";
 "tipMosaic" = "Mosaic";
 "mosaicGranularity" = "Mosaic Granularity";
+"mosaicBlur" = "Blur";
+"mosaicBlurAmount" = "Blur strength";
 "tipEraser" = "Eraser";
 "tipMagnifier" = "Magnifier";
 "tipNumbered" = "Numbered";

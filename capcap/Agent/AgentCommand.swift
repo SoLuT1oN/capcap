@@ -522,18 +522,26 @@ private struct AgentAnnotationSpec: Decodable {
         case "mosaic", "pixelate", "blur":
             let canvasRect = try requireRect().canvasRect(using: mapper)
             let blockSize = try positive(blockSize, fallback: 12, name: "blockSize")
+            let mosaicStyle: MosaicStyle = normalizedType == "blur" ? .blur : .pixelate
+            let blurRadius = Defaults.normalizedMosaicBlurRadius(
+                try positive(radius, fallback: blockSize, name: "radius")
+            )
             guard let region = MosaicTool.createMosaicRegion(
                 rect: canvasRect,
                 imageSize: mapper.imageSize,
                 baseImage: baseImage,
-                blockSize: blockSize
+                blockSize: blockSize,
+                style: mosaicStyle,
+                blurRadius: blurRadius
             ) else {
                 throw AgentCLIError.failure("Could not create mosaic annotation")
             }
             return MosaicAnnotation(
                 rect: region.rect,
                 pixelatedImage: region.pixelatedImage,
-                blockSize: blockSize
+                blockSize: blockSize,
+                style: mosaicStyle,
+                blurRadius: blurRadius
             )
 
         case "magnifier", "loupe":

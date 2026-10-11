@@ -254,6 +254,8 @@
 "tipSpotlight" = "Прожектор";
 "tipMosaic" = "Мозаика";
 "mosaicGranularity" = "Зернистость мозаики";
+"mosaicBlur" = "Размытие";
+"mosaicBlurAmount" = "Степень размытия";
 "tipEraser" = "Ластик";
 "tipMagnifier" = "Лупа";
 "tipNumbered" = "Нумерация";

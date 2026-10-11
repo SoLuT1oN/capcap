@@ -254,6 +254,8 @@
 "tipSpotlight" = "聚光燈";
 "tipMosaic" = "馬賽克";
 "mosaicGranularity" = "馬賽克顆粒度";
+"mosaicBlur" = "模糊";
+"mosaicBlurAmount" = "模糊程度";
 "tipEraser" = "橡皮擦";
 "tipMagnifier" = "放大鏡";
 "tipNumbered" = "編號";
