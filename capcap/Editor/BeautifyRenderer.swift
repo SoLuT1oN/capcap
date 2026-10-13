@@ -181,6 +181,65 @@ enum BeautifyRenderer {
 
     // MARK: - Drawing primitives
 
+    /// Quartz path clips have hard pixel edges. Rasterize a filled path instead
+    /// so the clip carries fractional coverage at the destination's pixel scale.
+    /// The live canvas retains this cache across annotation redraws.
+    final class CornerMask {
+        private var cachedSize: CGSize = .zero
+        private var cachedRadius: CGFloat = -1
+        private var cachedPixelWidth = 0
+        private var cachedPixelHeight = 0
+        private var cachedImage: CGImage?
+
+        func clip(_ context: CGContext, to rect: CGRect, radius: CGFloat) {
+            guard rect.width > 0, rect.height > 0 else { return }
+            let transform = context.ctm
+            let pixelWidth = max(1, Int(ceil(rect.width * hypot(transform.a, transform.b))))
+            let pixelHeight = max(1, Int(ceil(rect.height * hypot(transform.c, transform.d))))
+            let radius = max(0, min(radius, min(rect.width, rect.height) / 2))
+
+            if cachedImage == nil || cachedSize != rect.size || cachedRadius != radius
+                || cachedPixelWidth != pixelWidth || cachedPixelHeight != pixelHeight {
+                guard let maskContext = CGContext(
+                    data: nil,
+                    width: pixelWidth,
+                    height: pixelHeight,
+                    bitsPerComponent: 8,
+                    bytesPerRow: 0,
+                    space: CGColorSpaceCreateDeviceGray(),
+                    bitmapInfo: CGImageAlphaInfo.none.rawValue
+                ) else { return }
+
+                maskContext.setFillColor(gray: 0, alpha: 1)
+                maskContext.fill(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
+                maskContext.scaleBy(
+                    x: CGFloat(pixelWidth) / rect.width,
+                    y: CGFloat(pixelHeight) / rect.height
+                )
+                maskContext.setAllowsAntialiasing(true)
+                maskContext.setShouldAntialias(true)
+                maskContext.setFillColor(gray: 1, alpha: 1)
+                maskContext.addPath(CGPath(
+                    roundedRect: CGRect(origin: .zero, size: rect.size),
+                    cornerWidth: radius,
+                    cornerHeight: radius,
+                    transform: nil
+                ))
+                maskContext.fillPath()
+                guard let image = maskContext.makeImage() else { return }
+                cachedImage = image
+                cachedSize = rect.size
+                cachedRadius = radius
+                cachedPixelWidth = pixelWidth
+                cachedPixelHeight = pixelHeight
+            }
+
+            if let cachedImage {
+                context.clip(to: rect, mask: cachedImage)
+            }
+        }
+    }
+
     /// Draws a linear gradient across `outerRect` using the preset colors and angle.
     /// Wallpaper and transparent presets leave the area empty (caller draws
     /// wallpaper / checkerboard separately for preview; export clears alpha).
@@ -249,7 +308,7 @@ enum BeautifyRenderer {
 
     /// Draws a two-layer shadow (ambient + key light) cast by a rounded-rect
     /// silhouette at `innerRect`, creating a natural floating-card effect.
-    /// The fill used to cast the shadow is clipped out, so transparent pixels
+    /// The fill used to cast the shadow is moved off-canvas, so transparent pixels
     /// in the screenshot reveal the beautify background instead of a black
     /// backing rectangle.
     static func drawInnerShadow(innerRect: CGRect, cornerRadius: CGFloat, context: CGContext) {
@@ -303,19 +362,36 @@ enum BeautifyRenderer {
     ) {
         let shadowOutset = shadowOutset(blur: blur, offset: offset)
         let clipRect = innerRect.insetBy(dx: -shadowOutset, dy: -shadowOutset)
+        // Keep the opaque source entirely outside the visible clip, moving its
+        // shadow back into place. An inverse path clip lets black source pixels
+        // leak into the partially covered corner edge and produces a dark rim.
+        let displacement = clipRect.width + shadowOutset
+        var translation = CGAffineTransform(translationX: displacement, y: 0)
+        guard let shadowSource = path.copy(using: &translation) else { return }
 
         context.saveGState()
-        context.addRect(clipRect)
-        context.addPath(path)
-        context.clip(using: .evenOdd)
+        context.clip(to: clipRect)
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        context.saveGState()
         context.setShadow(
-            offset: offset,
+            offset: CGSize(width: offset.width - displacement, height: offset.height),
             blur: blur,
             color: NSColor.black.withAlphaComponent(opacity).cgColor
         )
-        context.addPath(path)
+        context.addPath(shadowSource)
         context.setFillColor(NSColor.black.cgColor)
         context.fillPath()
+
+        // Remove the interior with antialiased coverage, preserving the hollow
+        // shadow for transparent screenshots without introducing a hard clip.
+        context.setShadow(offset: .zero, blur: 0, color: nil)
+        context.setBlendMode(.destinationOut)
+        context.setAllowsAntialiasing(true)
+        context.setShouldAntialias(true)
+        context.addPath(path)
+        context.fillPath()
+        context.restoreGState()
+        context.endTransparencyLayer()
         context.restoreGState()
     }
 
@@ -423,14 +499,7 @@ enum BeautifyRenderer {
         // base image is already cut to the window's own alpha/rounded shape.
         if let innerClipRadius {
             cg.saveGState()
-            let clipPath = CGPath(
-                roundedRect: inner,
-                cornerWidth: innerClipRadius,
-                cornerHeight: innerClipRadius,
-                transform: nil
-            )
-            cg.addPath(clipPath)
-            cg.clip()
+            CornerMask().clip(cg, to: inner, radius: innerClipRadius)
             innerImage.draw(
                 in: inner,
                 from: .zero,

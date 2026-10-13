@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.19] - 2026-10-11
+
+### Fixed
+- Stabilize cancellation coverage for partially off-screen window captures (6517310)
+
+## [1.7.18] - 2026-10-11
+
+### Added
+- Add image rotation and arrow style localization (bfb802c)
+- Add configurable Gaussian blur annotations (3196652)
+- Add OCR to history previews (3ff6931)
+- Add Quick Pin shortcut and capture action (0d054c8)
+
+### Fixed
+- Fix notch hover initialization (3ff6931)
+- Improve window corner rendering and shadow accuracy (4101a77)
+- Fix antialiasing in beautify corner masks (2e5d1e6)
+- Fix OCR stalls and horizontal text layout (50d6e67)
+
+### Changed
+- Narrow the rotation sub-toolbar (a57d7f5)
+- Prepare window captures ahead of selection (1ab1ab1)
+
 ## [1.7.17] - 2026-09-28
 
 ### Added

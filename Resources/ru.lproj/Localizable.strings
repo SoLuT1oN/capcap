@@ -44,6 +44,9 @@
 "shortcutNeedsModifierTitle" = "Требуется клавиша-модификатор";
 "shortcutNeedsModifier" = "Сочетание ⌘/⌥/⇧/⌃ + другая клавиша (например ⌘⇧8) или F1–F12";
 "shortcutRestore" = "Сбросить";
+"quickPinShortcutHeader" = "Быстрое закрепление";
+"quickPinShortcutDefaultDisplay" = "Не задано";
+"quickPinShortcutClear" = "Очистить сочетание быстрого закрепления";
 "selectedImagePinShortcutHeader" = "Закрепить выбранное изображение";
 "selectedImagePinShortcutDefaultDisplay" = "Не задано";
 "selectedImagePinShortcutClear" = "Очистить сочетание закрепления выбранного изображения";
@@ -102,6 +105,7 @@
 "shortcutConflictTitle" = "Сочетание уже используется";
 "shortcutConflictScreenshot" = "Это сочетание клавиш уже назначено для снимка экрана. Выберите другое";
 "shortcutConflictCountdown" = "Это сочетание клавиш уже назначено для снимка экрана с обратным отсчётом (сочетание для снимка + ⌥). Выберите другое";
+"shortcutConflictQuickPin" = "Это сочетание клавиш уже назначено для быстрого закрепления. Выберите другое";
 "shortcutConflictSelectedImagePin" = "Это сочетание клавиш уже назначено для закрепления выбранного изображения. Выберите другое";
 "shortcutConflictClipboardImagePin" = "Это сочетание клавиш уже назначено для закрепления изображения из буфера. Выберите другое";
 "shortcutConflictClipboardTextPin" = "Это сочетание клавиш уже назначено для закрепления текста из буфера. Выберите другое";
@@ -191,6 +195,7 @@
 "historyPanelShortcutToggleGuide" = "Показать или скрыть сочетания клавиш";
 
 /* Cursor chip */
+"dragToQuickPin" = "Нажмите на окно или выделите область, чтобы сразу закрепить";
 "dragToScreenshot" = "Нажмите на окно или перетащите для снимка";
 "dragToScreenshotAspectFree" = "Нажмите на окно или перетащите для снимка · Свободное выделение (R)";
 "dragToScreenshotAspect" = "Нажмите на окно или перетащите для снимка · Выделение %@ (R)";
@@ -249,6 +254,8 @@
 "tipSpotlight" = "Прожектор";
 "tipMosaic" = "Мозаика";
 "mosaicGranularity" = "Зернистость мозаики";
+"mosaicBlur" = "Размытие";
+"mosaicBlurAmount" = "Степень размытия";
 "tipEraser" = "Ластик";
 "tipMagnifier" = "Лупа";
 "tipNumbered" = "Нумерация";
@@ -265,6 +272,9 @@
 "tipMoveSelection" = "Переместить выделение";
 "tipAICalendar" = "Добавить в календарь";
 "tipScrollCapture" = "Длинный снимок";
+"tipRotate" = "Поворот";
+"tipRotateLeft" = "Повернуть на 90° влево";
+"tipRotateRight" = "Повернуть на 90° вправо";
 "tipBeautify" = "Оформление";
 "tipOCR" = "Распознавание текста";
 "tipScreenshotTranslate" = "Перевод снимка";
@@ -319,7 +329,11 @@
 "shapeFillTranslucent" = "Полупрозрачная заливка";
 "shapeStyleStandard" = "Обычный стиль";
 "shapeStyleRounded" = "Скруглённый прямоугольник";
-"shapeStyleHandDrawn" = "Рисованный скруглённый стиль";
+"shapeStyleHandDrawn" = "Рисованный стиль";
+"arrowStyleTapered" = "Сужающаяся стрелка";
+"arrowStyleDoubleEnded" = "Двусторонняя стрелка";
+"arrowStyleLine" = "Линейная стрелка";
+"arrowStyleDotTail" = "Стрелка с точкой у основания";
 "insertImageFromClipboard" = "Из буфера обмена";
 "insertImageFromFile" = "Из файла";
 "insertImageChooseFile" = "Выбрать изображение";
@@ -769,3 +783,5 @@
 "settingsGeneralFiles" = "Файлы и вывод";
 
 "historyPreviewTextSaveFailed" = "Не удалось сохранить текст, попробуйте ещё раз";
+
+"windowCapturePreparing" = "Подготовка снимка экрана";

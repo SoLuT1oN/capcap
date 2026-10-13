@@ -170,8 +170,17 @@ struct ScreenCapturer {
         )
     }
 
-    static func captureWindowAsync(windowID: CGWindowID, pointSize: NSSize?) async throws -> NSImage? {
-        let content = try await SCShareableContent.current
+    static func captureWindowAsync(
+        windowID: CGWindowID,
+        pointSize: NSSize?,
+        preparedContent: SCShareableContent? = nil
+    ) async throws -> NSImage? {
+        let content: SCShareableContent
+        if let preparedContent {
+            content = preparedContent
+        } else {
+            content = try await SCShareableContent.current
+        }
         guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
             return nil
         }
@@ -202,6 +211,7 @@ struct ScreenCapturer {
         config.captureResolution = .best
         config.ignoreShadowsSingleWindow = true
         config.shouldBeOpaque = false
+        config.queueDepth = 1
 
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: filter,

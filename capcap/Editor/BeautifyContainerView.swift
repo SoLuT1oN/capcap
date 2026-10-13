@@ -4,9 +4,9 @@ import CoreGraphics
 /// Wraps `EditCanvasView` as a subview. When a beautify preset is set, the
 /// container grows to `innerSize + 2·padding`, repositions the canvas at
 /// `(padding, padding)`, and draws the gradient background + inner shadow +
-/// base screenshot behind the canvas. The canvas itself is never resized,
-/// so `EditCanvasView`'s tool/hit-test/draw logic stays identical to the
-/// pre-beautify behavior and mouse events route correctly in both states.
+/// base screenshot behind the canvas. Rotation and display scaling preserve
+/// the canvas's logical bounds so tools, hit tests, and editable text retain
+/// their document coordinates in every orientation.
 final class BeautifyContainerView: NSView {
     private(set) weak var canvasView: EditCanvasView?
     private(set) var beautifyPreset: BeautifyPreset?
@@ -35,7 +35,7 @@ final class BeautifyContainerView: NSView {
     var isBeautifyEnabled: Bool { beautifyPreset != nil }
 
     var innerImageSize: CGSize {
-        canvasView?.frame.size ?? .zero
+        canvasView?.orientedDisplaySize ?? .zero
     }
 
     var outerSize: CGSize { frame.size }
@@ -101,19 +101,27 @@ final class BeautifyContainerView: NSView {
 
     private func relayout() {
         guard let canvasView else { return }
-        let inner = canvasView.frame.size
+        canvasView.setPresentationScale(canvasView.presentationScale)
+        let inner = canvasView.orientedDisplaySize
+        let p: CGFloat
         if beautifyPreset != nil, inner.width > 0, inner.height > 0 {
-            let p = customPadding ?? BeautifyRenderer.padding(for: inner)
+            p = customPadding ?? BeautifyRenderer.padding(for: inner)
             let newSize = CGSize(
                 width: inner.width + 2 * p,
                 height: inner.height + 2 * p
             )
             setFrameSize(newSize)
-            canvasView.setFrameOrigin(CGPoint(x: p, y: p))
         } else {
+            p = 0
             setFrameSize(inner)
-            canvasView.setFrameOrigin(.zero)
         }
+        // frameRotation rotates around the frame origin. Locate the actual
+        // rotated bounds before translating them into the inner card rect.
+        let rotatedBounds = canvasView.convert(canvasView.bounds, to: self)
+        canvasView.setFrameOrigin(NSPoint(
+            x: canvasView.frame.origin.x + p - rotatedBounds.minX,
+            y: canvasView.frame.origin.y + p - rotatedBounds.minY
+        ))
     }
 
     // MARK: - Drawing
@@ -125,11 +133,11 @@ final class BeautifyContainerView: NSView {
             let context = NSGraphicsContext.current?.cgContext
         else { return }
 
-        let inner = canvasView.frame.size
+        let inner = canvasView.orientedDisplaySize
         guard inner.width > 0, inner.height > 0 else { return }
 
         let outerRect = CGRect(origin: .zero, size: bounds.size)
-        let innerRect = canvasView.frame
+        let innerRect = canvasView.convert(canvasView.bounds, to: self)
 
         // 1. Background — transparent uses a checkerboard so empty padding
         // and rounded corners are visible; export stays pure alpha.

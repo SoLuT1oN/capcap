@@ -44,6 +44,9 @@
 "shortcutNeedsModifierTitle" = "Shortcut Needs a Modifier";
 "shortcutNeedsModifier" = "Use ⌘/⌥/⇧/⌃ plus another key (e.g. ⌘⇧8), or F1–F12 alone";
 "shortcutRestore" = "Restore Default";
+"quickPinShortcutHeader" = "Quick Pin";
+"quickPinShortcutDefaultDisplay" = "Not set";
+"quickPinShortcutClear" = "Clear Quick Pin Shortcut";
 "selectedImagePinShortcutHeader" = "Pin Selected Image";
 "selectedImagePinShortcutDefaultDisplay" = "Not set";
 "selectedImagePinShortcutClear" = "Clear Pin Selected Image Shortcut";
@@ -102,6 +105,7 @@
 "shortcutConflictTitle" = "Shortcut Already in Use";
 "shortcutConflictScreenshot" = "This key combination is already used by the screenshot shortcut. Please choose a different one";
 "shortcutConflictCountdown" = "This key combination is already used by the countdown screenshot shortcut (screenshot shortcut + ⌥). Please choose a different one";
+"shortcutConflictQuickPin" = "This key combination is already used by the Quick Pin shortcut. Please choose a different one";
 "shortcutConflictSelectedImagePin" = "This key combination is already used by the Pin Selected Image shortcut. Please choose a different one";
 "shortcutConflictClipboardImagePin" = "This key combination is already used by the Pin Clipboard Image shortcut. Please choose a different one";
 "shortcutConflictClipboardTextPin" = "This key combination is already used by the Pin Clipboard Text shortcut. Please choose a different one";
@@ -191,6 +195,7 @@
 "historyPanelShortcutToggleGuide" = "Show or hide keyboard shortcuts";
 
 /* Cursor chip */
+"dragToQuickPin" = "Click a window or drag to pin the selection";
 "dragToScreenshot" = "Click window or drag to screenshot";
 "dragToScreenshotAspectFree" = "Click window or drag to screenshot · Drag selection free ratio (R)";
 "dragToScreenshotAspect" = "Click window or drag to screenshot · Drag selection %@ (R)";
@@ -249,6 +254,8 @@
 "tipSpotlight" = "Spotlight";
 "tipMosaic" = "Mosaic";
 "mosaicGranularity" = "Mosaic Granularity";
+"mosaicBlur" = "Blur";
+"mosaicBlurAmount" = "Blur strength";
 "tipEraser" = "Eraser";
 "tipMagnifier" = "Magnifier";
 "tipNumbered" = "Numbered";
@@ -265,6 +272,9 @@
 "tipMoveSelection" = "Move Selection";
 "tipAICalendar" = "Add to Calendar";
 "tipScrollCapture" = "Scroll Capture";
+"tipRotate" = "Rotate";
+"tipRotateLeft" = "Rotate left 90°";
+"tipRotateRight" = "Rotate right 90°";
 "tipBeautify" = "Beautify";
 "tipOCR" = "Text Recognition";
 "tipScreenshotTranslate" = "Screenshot Translation";
@@ -319,7 +329,11 @@
 "shapeFillTranslucent" = "Translucent fill";
 "shapeStyleStandard" = "Default style";
 "shapeStyleRounded" = "Rounded rectangle style";
-"shapeStyleHandDrawn" = "Hand-drawn rounded style";
+"shapeStyleHandDrawn" = "Hand-drawn style";
+"arrowStyleTapered" = "Tapered arrow";
+"arrowStyleDoubleEnded" = "Double-headed arrow";
+"arrowStyleLine" = "Line arrow";
+"arrowStyleDotTail" = "Dot-tail arrow";
 "insertImageFromClipboard" = "From Clipboard";
 "insertImageFromFile" = "From File";
 "insertImageChooseFile" = "Choose Image";
@@ -769,3 +783,5 @@
 "settingsGeneralFiles" = "Files & Output";
 
 "historyPreviewTextSaveFailed" = "Unable to save text, please try again";
+
+"windowCapturePreparing" = "Preparing screenshot";

@@ -155,6 +155,9 @@ enum L10n {
     static var shortcutRestore: String { s("shortcutRestore") }
 
     // Pin-image shortcut
+    static var quickPinShortcutHeader: String { s("quickPinShortcutHeader") }
+    static var quickPinShortcutDefaultDisplay: String { s("quickPinShortcutDefaultDisplay") }
+    static var quickPinShortcutClear: String { s("quickPinShortcutClear") }
     static var selectedImagePinShortcutHeader: String { s("selectedImagePinShortcutHeader") }
     static var selectedImagePinShortcutDefaultDisplay: String { s("selectedImagePinShortcutDefaultDisplay") }
     static var selectedImagePinShortcutClear: String { s("selectedImagePinShortcutClear") }
@@ -233,6 +236,7 @@ enum L10n {
     static var shortcutConflictTitle: String { s("shortcutConflictTitle") }
     static var shortcutConflictScreenshot: String { s("shortcutConflictScreenshot") }
     static var shortcutConflictCountdown: String { s("shortcutConflictCountdown") }
+    static var shortcutConflictQuickPin: String { s("shortcutConflictQuickPin") }
     static var shortcutConflictSelectedImagePin: String { s("shortcutConflictSelectedImagePin") }
     static var shortcutConflictClipboardImagePin: String { s("shortcutConflictClipboardImagePin") }
     static var shortcutConflictClipboardTextPin: String { s("shortcutConflictClipboardTextPin") }
@@ -334,6 +338,7 @@ enum L10n {
 
     // Cursor chip
     static var dragToScreenshot: String { s("dragToScreenshot") }
+    static var dragToQuickPin: String { s("dragToQuickPin") }
     static var dragToScreenshotAspectFree: String { s("dragToScreenshotAspectFree") }
     static func dragToScreenshotAspect(_ ratio: String) -> String {
         String(format: s("dragToScreenshotAspect"), ratio)
@@ -433,6 +438,8 @@ enum L10n {
     static var tipSpotlight: String { s("tipSpotlight") }
     static var tipMosaic: String { s("tipMosaic") }
     static var mosaicGranularity: String { s("mosaicGranularity") }
+    static var mosaicBlur: String { s("mosaicBlur") }
+    static var mosaicBlurAmount: String { s("mosaicBlurAmount") }
     static var tipEraser: String { s("tipEraser") }
     static var tipMagnifier: String { s("tipMagnifier") }
     static var tipNumbered: String { s("tipNumbered") }
@@ -450,11 +457,15 @@ enum L10n {
     static var tipAICalendar: String { s("tipAICalendar") }
     static var tipScrollCapture: String { s("tipScrollCapture") }
     static var tipBeautify: String { s("tipBeautify") }
+    static var tipRotate: String { s("tipRotate") }
+    static var tipRotateLeft: String { s("tipRotateLeft") }
+    static var tipRotateRight: String { s("tipRotateRight") }
     static var tipOCR: String { s("tipOCR") }
     static var tipScreenshotTranslate: String { s("tipScreenshotTranslate") }
     static var tipSave: String { s("tipSave") }
     static var tipPin: String { s("tipPin") }
     static var tipRecord: String { s("tipRecord") }
+    static var windowCapturePreparing: String { s("windowCapturePreparing") }
     static var tipCancel: String { s("tipCancel") }
     static var tipConfirm: String { s("tipConfirm") }
     static var tipScrollCropConfirm: String { s("tipScrollCropConfirm") }
@@ -508,6 +519,10 @@ enum L10n {
     static var shapeStyleStandard: String { s("shapeStyleStandard") }
     static var shapeStyleRounded: String { s("shapeStyleRounded") }
     static var shapeStyleHandDrawn: String { s("shapeStyleHandDrawn") }
+    static var arrowStyleTapered: String { s("arrowStyleTapered") }
+    static var arrowStyleDoubleEnded: String { s("arrowStyleDoubleEnded") }
+    static var arrowStyleLine: String { s("arrowStyleLine") }
+    static var arrowStyleDotTail: String { s("arrowStyleDotTail") }
 
     // Insert tools
     static var insertImageFromClipboard: String { s("insertImageFromClipboard") }
@@ -1014,9 +1029,27 @@ struct Defaults {
     }
 
     // Custom pin-image hotkeys. They are global Carbon hotkeys with no
-    // defaults: users opt in from Settings. The selected-image shortcut reads
-    // images selected in Finder; the clipboard-image shortcut reads only the
-    // clipboard image.
+    // defaults: users opt in from Settings. Quick Pin captures a screen
+    // selection; the other shortcuts read Finder or clipboard content.
+
+    static var quickPinHotkeyKeyCode: Int {
+        get { defaults.integer(forKey: "quickPinHotkeyKeyCode") }
+        set { defaults.set(newValue, forKey: "quickPinHotkeyKeyCode") }
+    }
+
+    static var quickPinHotkeyModifiers: Int {
+        get { defaults.integer(forKey: "quickPinHotkeyModifiers") }
+        set { defaults.set(newValue, forKey: "quickPinHotkeyModifiers") }
+    }
+
+    static var hasCustomQuickPinHotkey: Bool {
+        defaults.object(forKey: "quickPinHotkeyKeyCode") != nil
+    }
+
+    static func clearQuickPinHotkey() {
+        defaults.removeObject(forKey: "quickPinHotkeyKeyCode")
+        defaults.removeObject(forKey: "quickPinHotkeyModifiers")
+    }
 
     static var selectedImagePinHotkeyKeyCode: Int {
         get { defaults.integer(forKey: "selectedImagePinHotkeyKeyCode") }
@@ -1078,6 +1111,7 @@ struct Defaults {
     static func resetShortcutHotkeysToDefaults() {
         clearScreenshotHotkey()
         clearLegacyPinHotkey()
+        clearQuickPinHotkey()
         clearSelectedImagePinHotkey()
         clearClipboardImagePinHotkey()
         clearClipboardTextPinHotkey()
@@ -1828,6 +1862,26 @@ struct Defaults {
 
     static let mosaicBlockSizeMin: Double = 4
     static let mosaicBlockSizeMax: Double = 48
+
+    static var mosaicStyle: MosaicStyle {
+        get { MosaicStyle(rawValue: defaults.string(forKey: "mosaicStyle") ?? "") ?? .pixelate }
+        set { defaults.set(newValue.rawValue, forKey: "mosaicStyle") }
+    }
+
+    static let mosaicBlurRadiusMin: Double = 1
+    static let mosaicBlurRadiusMax: Double = 48
+
+    static var mosaicBlurRadius: Double {
+        get {
+            guard defaults.object(forKey: "mosaicBlurRadius") != nil else { return 12 }
+            return normalizedMosaicBlurRadius(defaults.double(forKey: "mosaicBlurRadius"))
+        }
+        set { defaults.set(normalizedMosaicBlurRadius(newValue), forKey: "mosaicBlurRadius") }
+    }
+
+    static func normalizedMosaicBlurRadius(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, mosaicBlurRadiusMin), mosaicBlurRadiusMax) : 12
+    }
 
     static let textFontSizeMin: Double = 10
     static let textFontSizeMax: Double = 100

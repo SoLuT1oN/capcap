@@ -861,6 +861,17 @@ struct MosaicAnnotation: Annotation {
     let rect: NSRect
     let pixelatedImage: NSImage
     let blockSize: CGFloat
+    let style: MosaicStyle
+    let blurRadius: CGFloat
+
+    init(rect: NSRect, pixelatedImage: NSImage, blockSize: CGFloat,
+         style: MosaicStyle = .pixelate, blurRadius: CGFloat = 12) {
+        self.rect = rect
+        self.pixelatedImage = pixelatedImage
+        self.blockSize = blockSize
+        self.style = style
+        self.blurRadius = CGFloat(Defaults.normalizedMosaicBlurRadius(Double(blurRadius)))
+    }
 
     var boundingRect: NSRect { rect }
 
@@ -876,7 +887,9 @@ struct MosaicAnnotation: Annotation {
         MosaicAnnotation(
             rect: rect.offsetBy(dx: delta.x, dy: delta.y),
             pixelatedImage: pixelatedImage,
-            blockSize: blockSize
+            blockSize: blockSize,
+            style: style,
+            blurRadius: blurRadius
         )
     }
 }
