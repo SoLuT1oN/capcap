@@ -59,11 +59,44 @@ class EditCanvasView: NSView {
         }
     }
     private(set) var previewImage: NSImage?
+    private(set) var imageRotation: ImageRotation = .none
+    private(set) var presentationScale: CGFloat = 1
+    var onImageRotationChanged: (() -> Void)?
+
+    var orientedDisplaySize: NSSize {
+        imageRotation.orientedSize(NSSize(
+            width: bounds.width * presentationScale,
+            height: bounds.height * presentationScale
+        ))
+    }
+
+    /// Keep logical coordinates stable as a rotated image is fitted on screen.
+    /// AppKit applies this frame transform to subviews and event conversion too.
+    func setPresentationScale(_ scale: CGFloat) {
+        let logicalSize = bounds.size
+        presentationScale = scale
+        frameRotation = 0
+        setFrameSize(NSSize(width: logicalSize.width * scale, height: logicalSize.height * scale))
+        setBoundsSize(logicalSize)
+        frameRotation = imageRotation.degrees
+    }
+
+    func rotateImage(clockwise: Bool) {
+        commitActiveTextEditing()
+        cancelInFlightInteraction()
+        discardPotentialConfirmDoubleClick()
+        recordUndo()
+        imageRotation = imageRotation.turned(clockwise: clockwise)
+        onImageRotationChanged?()
+        needsDisplay = true
+        refreshCursorAtCurrentLocation()
+    }
 
     /// When non-nil, `draw(_:)` clips its drawing to a rounded rect of this
     /// radius. Used by the beautify flow so the canvas content shows with
     /// rounded corners matching the container's frame.
     var beautifyCornerRadius: CGFloat?
+    private let beautifyCornerMask = BeautifyRenderer.CornerMask()
 
     /// Fallback base image used during live drawing when `previewImage` is
     /// nil. The beautify flow sets this to a snapshot of the current screen
@@ -117,6 +150,8 @@ class EditCanvasView: NSView {
     /// highlighter's yellow without overriding the pen's red, and vice-versa.
     var currentMarkerColor: NSColor = EditorStyleDefaults.markerColor
     var currentMosaicBlockSize: CGFloat = CGFloat(Defaults.mosaicBlockSize)
+    var currentMosaicStyle: MosaicStyle = Defaults.mosaicStyle
+    var currentMosaicBlurRadius: CGFloat = CGFloat(Defaults.mosaicBlurRadius)
     var currentFontSize: CGFloat = CGFloat(Defaults.lastTextFontSize) {
         didSet {
             guard let field = activeTextField else { return }
@@ -305,7 +340,7 @@ class EditCanvasView: NSView {
         return annotation.translated(by: delta)
     }
 
-    /// Move a mosaic by re-pixelating the underlying image at the new frame
+    /// Move a mosaic by reapplying its effect to the image at the new frame
     /// position. The mosaic is an edited region of the screenshot, not a
     /// movable texture, so the frame itself decides what gets pixelated.
     private func translatedMosaic(_ mosaic: MosaicAnnotation, by delta: NSPoint) -> Annotation {
@@ -316,7 +351,9 @@ class EditCanvasView: NSView {
                 rect: newRect,
                 imageSize: bounds.size,
                 baseImage: baseImage,
-                blockSize: mosaic.blockSize
+                blockSize: mosaic.blockSize,
+                style: mosaic.style,
+                blurRadius: mosaic.blurRadius
             )
         else {
             return mosaic.translated(by: delta)
@@ -324,7 +361,9 @@ class EditCanvasView: NSView {
         return MosaicAnnotation(
             rect: region.rect,
             pixelatedImage: region.pixelatedImage,
-            blockSize: mosaic.blockSize
+            blockSize: mosaic.blockSize,
+            style: mosaic.style,
+            blurRadius: mosaic.blurRadius
         )
     }
 
@@ -491,6 +530,9 @@ class EditCanvasView: NSView {
         fileprivate let undoStack: [EditorSnapshot]
         fileprivate let redoStack: [EditorSnapshot]
         fileprivate let previewImage: NSImage?
+        fileprivate let imageRotation: ImageRotation
+        fileprivate let canvasSize: NSSize
+        fileprivate let presentationScale: CGFloat
     }
 
     /// History snapshot. Annotations are value-typed (struct) so a plain
@@ -499,6 +541,7 @@ class EditCanvasView: NSView {
     fileprivate struct EditorSnapshot {
         let annotations: [Annotation]
         let numberCounter: Int
+        let imageRotation: ImageRotation
     }
 
     private var undoStack: [EditorSnapshot] = []
@@ -520,7 +563,7 @@ class EditCanvasView: NSView {
     private static let defaultPasteOffset = NSPoint(x: 12, y: -12)
 
     private func currentSnapshot() -> EditorSnapshot {
-        EditorSnapshot(annotations: annotations, numberCounter: numberCounter)
+        EditorSnapshot(annotations: annotations, numberCounter: numberCounter, imageRotation: imageRotation)
     }
 
     func restorableState() -> RestorableState {
@@ -532,16 +575,22 @@ class EditCanvasView: NSView {
             primarySelectedIndex: primarySelectedIndex,
             undoStack: undoStack,
             redoStack: redoStack,
-            previewImage: previewImage
+            previewImage: previewImage,
+            imageRotation: imageRotation,
+            canvasSize: bounds.size,
+            presentationScale: presentationScale
         )
     }
 
     func restoreState(_ state: RestorableState) {
         cancelInFlightInteraction()
         previewImage = state.previewImage
-        if let previewImage {
-            setFrameSize(previewImage.size)
-        }
+        frameRotation = 0
+        presentationScale = 1
+        setFrameSize(state.canvasSize)
+        setBoundsSize(state.canvasSize)
+        imageRotation = state.imageRotation
+        setPresentationScale(state.presentationScale)
         annotations = state.annotations
         numberCounter = state.numberCounter
         undoStack = state.undoStack
@@ -589,9 +638,12 @@ class EditCanvasView: NSView {
     }
 
     private func apply(_ snapshot: EditorSnapshot) {
+        let rotationChanged = imageRotation != snapshot.imageRotation
         annotations = snapshot.annotations
         numberCounter = snapshot.numberCounter
+        imageRotation = snapshot.imageRotation
         setSelectedIndexes(selectedIndexes, primary: primarySelectedIndex)
+        if rotationChanged { onImageRotationChanged?() }
     }
 
     /// Push current state onto the undo stack and clear the redo stack.
@@ -674,11 +726,12 @@ class EditCanvasView: NSView {
         let indexes = validSelectedIndexes
         guard
             activeTextField == nil,
-            let delta = EditCanvasView.selectionNudgeDelta(for: event),
+            let displayDelta = EditCanvasView.selectionNudgeDelta(for: event),
             !indexes.isEmpty
         else {
             return false
         }
+        let delta = imageRotation.documentDelta(fromDisplay: displayDelta)
         recordUndo()
         for idx in indexes {
             let annotation = annotations[idx]
@@ -915,17 +968,20 @@ class EditCanvasView: NSView {
         needsDisplay = true
     }
 
-    func mutateSelectedMosaicBlockSizeLive(_ blockSize: CGFloat) {
+    func mutateSelectedMosaicLive(style: MosaicStyle, blockSize: CGFloat, blurRadius: CGFloat) {
         guard let baseImage = resolveBaseImageForEditing() else { return }
         let imageSize = bounds.size
         mutateSelectedAnnotationLive { annotation in
             guard
                 let mosaic = annotation as? MosaicAnnotation,
+                mosaic.style != style || mosaic.blockSize != blockSize || mosaic.blurRadius != blurRadius,
                 let region = MosaicTool.createMosaicRegion(
                     rect: mosaic.rect,
                     imageSize: imageSize,
                     baseImage: baseImage,
-                    blockSize: blockSize
+                    blockSize: blockSize,
+                    style: style,
+                    blurRadius: blurRadius
                 )
             else {
                 return annotation
@@ -933,7 +989,9 @@ class EditCanvasView: NSView {
             return MosaicAnnotation(
                 rect: region.rect,
                 pixelatedImage: region.pixelatedImage,
-                blockSize: blockSize
+                blockSize: blockSize,
+                style: style,
+                blurRadius: blurRadius
             )
         }
     }
@@ -1049,6 +1107,7 @@ class EditCanvasView: NSView {
         }
         if let a = a as? MosaicAnnotation, let b = b as? MosaicAnnotation {
             return a.rect == b.rect && a.blockSize == b.blockSize
+                && a.style == b.style && a.blurRadius == b.blurRadius
         }
         if let a = a as? SpotlightAnnotation, let b = b as? SpotlightAnnotation {
             return a.rect == b.rect
@@ -1460,13 +1519,17 @@ class EditCanvasView: NSView {
                        rect: rect,
                        imageSize: bounds.size,
                        baseImage: baseImage,
-                       blockSize: currentMosaicBlockSize
+                       blockSize: currentMosaicBlockSize,
+                       style: currentMosaicStyle,
+                       blurRadius: currentMosaicBlurRadius
                    ) {
                     recordUndo()
                     annotations.append(MosaicAnnotation(
                         rect: region.rect,
                         pixelatedImage: region.pixelatedImage,
-                        blockSize: currentMosaicBlockSize
+                        blockSize: currentMosaicBlockSize,
+                        style: currentMosaicStyle,
+                        blurRadius: currentMosaicBlurRadius
                     ))
                 }
             }
@@ -1598,14 +1661,7 @@ class EditCanvasView: NSView {
         let didClip: Bool
         if let radius = beautifyCornerRadius {
             context.saveGState()
-            let clipPath = CGPath(
-                roundedRect: bounds,
-                cornerWidth: radius,
-                cornerHeight: radius,
-                transform: nil
-            )
-            context.addPath(clipPath)
-            context.clip()
+            beautifyCornerMask.clip(context, to: bounds, radius: radius)
             didClip = true
         } else {
             didClip = false
@@ -1944,10 +2000,11 @@ class EditCanvasView: NSView {
             innerImage = baseImage
         }
 
+        guard let orientedImage = imageRotation.render(innerImage) else { return nil }
         if let preset = beautifyPreset {
             let pad = beautifyPadding ?? BeautifyRenderer.paddingSliderDefault
             let rendered = BeautifyRenderer.render(
-                innerImage: innerImage,
+                innerImage: orientedImage,
                 preset: preset,
                 padding: pad,
                 wallpaperImage: wallpaperImage,
@@ -1958,7 +2015,7 @@ class EditCanvasView: NSView {
             )
             return rendered
         }
-        return innerImage
+        return orientedImage
     }
 
     private static func makeCompositeBitmapRep(matching image: NSImage) -> NSBitmapImageRep? {
@@ -1988,7 +2045,10 @@ class EditCanvasView: NSView {
 
     func updateViewportSize(_ size: NSSize) {
         guard !hasPreviewImage else { return }
-        setFrameSize(size)
+        frameRotation = 0
+        setFrameSize(NSSize(width: size.width * presentationScale, height: size.height * presentationScale))
+        setBoundsSize(size)
+        frameRotation = imageRotation.degrees
         needsDisplay = true
     }
 
@@ -2001,10 +2061,24 @@ class EditCanvasView: NSView {
         from oldViewport: NSRect,
         to newViewport: NSRect
     ) {
-        let delta = NSPoint(
+        let displayDelta = NSPoint(
             x: oldViewport.minX - newViewport.minX,
             y: oldViewport.minY - newViewport.minY
         )
+        let localDelta = imageRotation.documentDelta(fromDisplay: displayDelta)
+        let delta = NSPoint(x: localDelta.x / presentationScale, y: localDelta.y / presentationScale)
+        translateAnnotationCoordinates(by: delta)
+    }
+
+    func preserveAnnotationImagePositions(from oldCrop: NSRect, to newCrop: NSRect) {
+        guard oldCrop.width > 0, oldCrop.height > 0 else { return }
+        translateAnnotationCoordinates(by: NSPoint(
+            x: (oldCrop.minX - newCrop.minX) * bounds.width / oldCrop.width,
+            y: (oldCrop.minY - newCrop.minY) * bounds.height / oldCrop.height
+        ))
+    }
+
+    private func translateAnnotationCoordinates(by delta: NSPoint) {
         guard delta != .zero else { return }
 
         activeTextField?.commit()
@@ -2016,7 +2090,8 @@ class EditCanvasView: NSView {
         func translatedSnapshot(_ snapshot: EditorSnapshot) -> EditorSnapshot {
             EditorSnapshot(
                 annotations: translatedAnnotations(snapshot.annotations),
-                numberCounter: snapshot.numberCounter
+                numberCounter: snapshot.numberCounter,
+                imageRotation: snapshot.imageRotation
             )
         }
 
@@ -2028,7 +2103,10 @@ class EditCanvasView: NSView {
                 primarySelectedIndex: state.primarySelectedIndex,
                 undoStack: state.undoStack.map(translatedSnapshot),
                 redoStack: state.redoStack.map(translatedSnapshot),
-                previewImage: state.previewImage
+                previewImage: state.previewImage,
+                imageRotation: state.imageRotation,
+                canvasSize: state.canvasSize,
+                presentationScale: state.presentationScale
             )
         }
 
@@ -3277,7 +3355,7 @@ class EditCanvasView: NSView {
                     constraint: shiftIsDown ? .preserveAspectRatio : .none
                 )
                 guard newRect.width >= 4, newRect.height >= 4 else { return }
-                // Re-pixelate from the untouched base image so the mosaic
+                // Reapply the effect to the untouched base image so the mosaic
                 // always covers whatever content the new rect frames (rather
                 // than stretching the old pixels).
                 guard
@@ -3286,13 +3364,17 @@ class EditCanvasView: NSView {
                         rect: newRect,
                         imageSize: bounds.size,
                         baseImage: baseImage,
-                        blockSize: mosaic.blockSize
+                        blockSize: mosaic.blockSize,
+                        style: mosaic.style,
+                        blurRadius: mosaic.blurRadius
                     )
                 else { return }
                 annotations[state.index] = MosaicAnnotation(
                     rect: region.rect,
                     pixelatedImage: region.pixelatedImage,
-                    blockSize: mosaic.blockSize
+                    blockSize: mosaic.blockSize,
+                    style: mosaic.style,
+                    blurRadius: mosaic.blurRadius
                 )
             } else if let rect = state.original as? RectAnnotation {
                 let newRect = resizedRotatedRect(

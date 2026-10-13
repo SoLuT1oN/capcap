@@ -8,6 +8,7 @@ enum SelectionStartReason: Equatable {
 
 protocol SelectionViewDelegate: AnyObject {
     func selectionDidStart(reason: SelectionStartReason)
+    func selectionDidHoverWindow(_ window: DetectedWindow?)
     /// - Parameter isWindowSelection: true when the rect came from clicking a
     ///   detected window (no drag), so the editor can apply window-only
     ///   effects like rounded corners. False for free-drag / resize / preset.
@@ -20,6 +21,7 @@ protocol SelectionViewDelegate: AnyObject {
 }
 
 extension SelectionViewDelegate {
+    func selectionDidHoverWindow(_ window: DetectedWindow?) {}
     func selectionDidChange(rect: NSRect, inView view: NSView) {}
     func selectionMaskDidDoubleClick(inView view: NSView) {}
     func selectionDidDoubleClickInsideSelection(inView view: NSView) {}
@@ -565,6 +567,7 @@ class SelectionView: NSView {
                 hoverWindowRect = clamped
                 hoverWindowFullRect = viewRect
                 hoverWindowID = detected.windowID
+                delegate?.selectionDidHoverWindow(detected)
                 needsDisplay = true
             }
         } else {
@@ -577,6 +580,7 @@ class SelectionView: NSView {
             hoverWindowRect = nil
             hoverWindowFullRect = nil
             hoverWindowID = nil
+            delegate?.selectionDidHoverWindow(nil)
             needsDisplay = true
         }
     }

@@ -213,6 +213,7 @@ enum WindowEffects {
         pointSize: NSSize,
         radiusPoints: CGFloat
     ) -> CGImage? {
+        guard pointSize.width > 0, pointSize.height > 0 else { return nil }
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(
             data: nil,
@@ -226,23 +227,56 @@ enum WindowEffects {
             return nil
         }
 
-        let scaleX = CGFloat(pixelWidth) / max(pointSize.width, 1)
-        let scaleY = CGFloat(pixelHeight) / max(pointSize.height, 1)
-        let scale = max(scaleX, scaleY)
-        let radius = min(radiusPoints, min(pointSize.width, pointSize.height) / 2)
+        let scaleX = CGFloat(pixelWidth) / pointSize.width
+        let scaleY = CGFloat(pixelHeight) / pointSize.height
+        let radius = max(0, min(radiusPoints, min(pointSize.width, pointSize.height) / 2))
 
-        context.clear(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
-        context.scaleBy(x: scaleX, y: scaleY)
+        context.setFillColor(NSColor.white.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
+        guard radius > 0 else { return context.makeImage() }
 
+        // CALayer's rounded clipping can have hard coverage when rendered
+        // directly into a bitmap. Supersample only the four corner tiles and
+        // reduce their alpha to the output pixel grid. The full-size layer
+        // preserves macOS's continuous corner shape, while the screenshot
+        // itself is never resampled and large captures stay inexpensive.
+        let sampleFactor = 4
         let layer = CALayer()
         layer.frame = CGRect(origin: .zero, size: pointSize)
         layer.backgroundColor = NSColor.white.cgColor
         layer.cornerRadius = radius
         layer.cornerCurve = .continuous
-        layer.contentsScale = scale
-        layer.rasterizationScale = scale
+        layer.contentsScale = max(scaleX, scaleY) * CGFloat(sampleFactor)
+        layer.allowsEdgeAntialiasing = true
         layer.masksToBounds = true
-        layer.render(in: context)
+
+        let tileWidth = min(pixelWidth, Int(ceil(radius * 2 * scaleX)))
+        let tileHeight = min(pixelHeight, Int(ceil(radius * 2 * scaleY)))
+        context.interpolationQuality = .high
+        context.setBlendMode(.copy)
+        for y in [0, pixelHeight - tileHeight] {
+            for x in [0, pixelWidth - tileWidth] {
+                guard let tileContext = CGContext(
+                    data: nil,
+                    width: tileWidth * sampleFactor,
+                    height: tileHeight * sampleFactor,
+                    bitsPerComponent: 8,
+                    bytesPerRow: 0,
+                    space: colorSpace,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ) else { return nil }
+                tileContext.setAllowsAntialiasing(true)
+                tileContext.setShouldAntialias(true)
+                tileContext.scaleBy(
+                    x: scaleX * CGFloat(sampleFactor),
+                    y: scaleY * CGFloat(sampleFactor)
+                )
+                tileContext.translateBy(x: -CGFloat(x) / scaleX, y: -CGFloat(y) / scaleY)
+                layer.render(in: tileContext)
+                guard let tile = tileContext.makeImage() else { return nil }
+                context.draw(tile, in: CGRect(x: x, y: y, width: tileWidth, height: tileHeight))
+            }
+        }
 
         return context.makeImage()
     }
@@ -377,7 +411,7 @@ enum WindowEffects {
     /// larger values blur wider and offset further, so the window reads as
     /// floating higher above the background. `size <= 0` is a no-op.
     static func withShadow(_ image: NSImage, size: CGFloat) -> NSImage {
-        guard size > 0 else { return image }
+        guard size > 0, let shadowSource = image.cgImagePreservingBacking() else { return image }
 
         let pxScale = scale(of: image)
         let shadowLayers = layers(forShadowSize: size)
@@ -424,17 +458,9 @@ enum WindowEffects {
             width: image.size.width,
             height: image.size.height
         )
-        let radius = min(cornerRadiusPoints, min(drawRect.width, drawRect.height) / 2)
-        let shadowPath = CGPath(
-            roundedRect: drawRect,
-            cornerWidth: radius,
-            cornerHeight: radius,
-            transform: nil
-        )
-
         for layer in shadowLayers {
             drawShadowOnly(
-                path: shadowPath,
+                image: shadowSource,
                 sourceRect: drawRect,
                 layer: layer,
                 context: context.cgContext
@@ -503,26 +529,38 @@ enum WindowEffects {
     }
 
     private static func drawShadowOnly(
-        path: CGPath,
+        image: CGImage,
         sourceRect: CGRect,
         layer: ShadowLayer,
         context: CGContext
     ) {
         let clipOutset = shadowFringe(forBlur: layer.blur)
             + max(abs(layer.offset.width), abs(layer.offset.height))
+        let clipRect = sourceRect.insetBy(dx: -clipOutset, dy: -clipOutset)
+        let displacement = clipRect.width + clipOutset
 
+        // Cast from the window's actual alpha, including its antialiased
+        // continuous corners, instead of imposing a fixed circular silhouette.
+        // Move the opaque source out of view so it cannot leave a black rim.
         context.saveGState()
-        context.addRect(sourceRect.insetBy(dx: -clipOutset, dy: -clipOutset))
-        context.addPath(path)
-        context.clip(using: .evenOdd)
+        context.clip(to: clipRect)
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        context.saveGState()
+        context.interpolationQuality = .high
         context.setShadow(
-            offset: layer.offset,
+            offset: CGSize(width: layer.offset.width - displacement, height: layer.offset.height),
             blur: layer.blur,
             color: NSColor.black.withAlphaComponent(layer.opacity).cgColor
         )
-        context.addPath(path)
-        context.setFillColor(NSColor.black.cgColor)
-        context.fillPath()
+        context.draw(image, in: sourceRect.offsetBy(dx: displacement, dy: 0))
+
+        // Keep the shadow hollow using fractional alpha coverage, avoiding
+        // the jagged inverse path clip used by the previous renderer.
+        context.setShadow(offset: .zero, blur: 0, color: nil)
+        context.setBlendMode(.destinationOut)
+        context.draw(image, in: sourceRect)
+        context.restoreGState()
+        context.endTransparencyLayer()
         context.restoreGState()
     }
 }

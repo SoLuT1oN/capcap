@@ -221,6 +221,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         keyMonitor?.isRegularDoubleTapEnabled = needsDoubleTap
 
         // The pin hotkeys are independent of the screenshot hotkey.
+        if Defaults.hasCustomQuickPinHotkey {
+            HotkeyManager.shared.registerQuickPin { [weak self] in
+                self?.handleQuickPinTrigger()
+            }
+        } else {
+            HotkeyManager.shared.unregisterQuickPin()
+        }
+
         if Defaults.hasCustomSelectedImagePinHotkey {
             HotkeyManager.shared.registerSelectedImagePin { [weak self] in
                 self?.handleSelectedImagePinTrigger()
@@ -335,6 +343,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func unregisterNonScreenshotHotkeys() {
+        HotkeyManager.shared.unregisterQuickPin()
         HotkeyManager.shared.unregisterSelectedImagePin()
         HotkeyManager.shared.unregisterClipboardImagePin()
         HotkeyManager.shared.unregisterClipboardTextPin()
@@ -411,7 +420,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                self?.handleEditCompletion(finalImage)
             }
         ) else {
             ToastWindow.show(message: L10n.openImageNoImage)
@@ -488,7 +497,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 focusRestorer.restore()
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                self?.handleEditCompletion(finalImage)
             }
         )
         overlayController?.activate()
@@ -500,7 +509,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func launchSelectedImageEdit() -> OverlayWindowController? {
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         let onComplete: (NSImage?) -> Void = { [weak self] finalImage in
-            self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+            self?.handleEditCompletion(finalImage)
         }
 
         if let url = FinderSelection.currentImageFileURL(),
@@ -525,7 +534,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func launchClipboardImageEdit() -> OverlayWindowController? {
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         let onComplete: (NSImage?) -> Void = { [weak self] finalImage in
-            self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+            self?.handleEditCompletion(finalImage)
         }
 
         if let image = ClipboardImageSource.currentImage(),
@@ -562,6 +571,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.countdownActive = false
             }
         )
+    }
+
+    /// Select a screen region and pin it immediately after capture.
+    func handleQuickPinTrigger() {
+        guard overlayController == nil, recordingEngine == nil, !countdownActive else { return }
+        startCapture(postCaptureAction: .quickPin)
     }
 
     /// Pin-hotkey trigger: pin Finder selection onto the screen. Skipped while
@@ -759,7 +774,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.handleEditSuspension(draft)
                 },
                 onComplete: { [weak self] finalImage in
-                    self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                    self?.handleEditCompletion(finalImage)
                 }
               )
         else {
@@ -797,16 +812,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                self?.handleEditCompletion(finalImage)
             }
         )
         overlayController?.activate()
         applyHotkeyState()
     }
 
-    private func handleEditCompletion(_ finalImage: NSImage?, focusRestorer: SourceAppFocusRestorer? = nil) {
-        // Capture the intent before releasing the overlay; image encoding is asynchronous.
-        let pasteTarget = overlayController?.requestsPasteOnCompletion == true ? focusRestorer : nil
+    private func handleEditCompletion(_ finalImage: NSImage?) {
         if let finalImage = finalImage {
             let quality = Defaults.screenshotClipboardQuality
             if quality.usesLossyCompression {
@@ -822,7 +835,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     ToastWindow.show(message: L10n.screenshotCompressionFailed, duration: 3.0)
                 case .success(let output):
                     ClipboardManager.copyToClipboard(imageOutput: output)
-                    pasteTarget?.pasteCopiedImage()
                     HistoryManager.shared.add(image: finalImage)
                     ToastWindow.show()
                 }
@@ -858,7 +870,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                self?.handleEditCompletion(finalImage)
             }
         )
         suspendedEditDraft = nil
@@ -891,7 +903,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleEditSuspension(draft)
             },
             onComplete: { [weak self] finalImage in
-                self?.handleEditCompletion(finalImage, focusRestorer: focusRestorer)
+                self?.handleEditCompletion(finalImage)
             }
         ) else {
             ToastWindow.show(message: L10n.imageMergeFailed)

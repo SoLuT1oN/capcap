@@ -44,6 +44,9 @@
 "shortcutNeedsModifierTitle" = "Un modificateur est requis";
 "shortcutNeedsModifier" = "Combinez ⌘/⌥/⇧/⌃ et une autre touche (ex. ⌘⇧8), ou F1–F12 seule";
 "shortcutRestore" = "Réinitialiser";
+"quickPinShortcutHeader" = "Épinglage rapide";
+"quickPinShortcutDefaultDisplay" = "Non défini";
+"quickPinShortcutClear" = "Effacer le raccourci d'épinglage rapide";
 "selectedImagePinShortcutHeader" = "Épingler l'image sélectionnée";
 "selectedImagePinShortcutDefaultDisplay" = "Non défini";
 "selectedImagePinShortcutClear" = "Effacer le raccourci d'épinglage de l'image sélectionnée";
@@ -102,6 +105,7 @@
 "shortcutConflictTitle" = "Raccourci déjà utilisé";
 "shortcutConflictScreenshot" = "Cette combinaison de touches est déjà utilisée par le raccourci de capture d'écran. Veuillez en choisir une autre";
 "shortcutConflictCountdown" = "Cette combinaison de touches est déjà utilisée par le raccourci de capture avec compte à rebours (raccourci de capture + ⌥). Veuillez en choisir une autre";
+"shortcutConflictQuickPin" = "Cette combinaison de touches est déjà utilisée par le raccourci d'épinglage rapide. Veuillez en choisir une autre";
 "shortcutConflictSelectedImagePin" = "Cette combinaison de touches est déjà utilisée par le raccourci d'épinglage de l'image sélectionnée. Veuillez en choisir une autre";
 "shortcutConflictClipboardImagePin" = "Cette combinaison de touches est déjà utilisée par le raccourci d'épinglage de l'image du presse-papiers. Veuillez en choisir une autre";
 "shortcutConflictClipboardTextPin" = "Cette combinaison de touches est déjà utilisée par le raccourci d'épinglage du texte du presse-papiers. Veuillez en choisir une autre";
@@ -191,6 +195,7 @@
 "historyPanelShortcutToggleGuide" = "Afficher ou masquer les raccourcis clavier";
 
 /* Cursor chip */
+"dragToQuickPin" = "Cliquez sur une fenêtre ou sélectionnez une zone pour l’épingler directement";
 "dragToScreenshot" = "Cliquez sur une fenêtre ou faites glisser pour capturer";
 "dragToScreenshotAspectFree" = "Cliquez sur une fenêtre ou faites glisser pour capturer · Sélection libre (R)";
 "dragToScreenshotAspect" = "Cliquez sur une fenêtre ou faites glisser pour capturer · Sélection %@ (R)";
@@ -249,6 +254,8 @@
 "tipSpotlight" = "Projecteur";
 "tipMosaic" = "Mosaïque";
 "mosaicGranularity" = "Granularité de la mosaïque";
+"mosaicBlur" = "Flou";
+"mosaicBlurAmount" = "Intensité du flou";
 "tipEraser" = "Gomme";
 "tipMagnifier" = "Loupe";
 "tipNumbered" = "Numéro";
@@ -265,6 +272,9 @@
 "tipMoveSelection" = "Déplacer la sélection";
 "tipAICalendar" = "Ajouter au calendrier";
 "tipScrollCapture" = "Capture longue";
+"tipRotate" = "Rotation";
+"tipRotateLeft" = "Tourner de 90° à gauche";
+"tipRotateRight" = "Tourner de 90° à droite";
 "tipBeautify" = "Embellir";
 "tipOCR" = "Reconnaissance de texte";
 "tipScreenshotTranslate" = "Traduction de capture";
@@ -319,7 +329,11 @@
 "shapeFillTranslucent" = "Remplissage translucide";
 "shapeStyleStandard" = "Style par défaut";
 "shapeStyleRounded" = "Rectangle arrondi";
-"shapeStyleHandDrawn" = "Style arrondi dessiné";
+"shapeStyleHandDrawn" = "Style dessiné à main levée";
+"arrowStyleTapered" = "Flèche effilée";
+"arrowStyleDoubleEnded" = "Flèche à deux pointes";
+"arrowStyleLine" = "Flèche linéaire";
+"arrowStyleDotTail" = "Flèche à base ronde";
 "insertImageFromClipboard" = "Depuis le presse-papiers";
 "insertImageFromFile" = "Depuis un fichier";
 "insertImageChooseFile" = "Choisir une image";
@@ -769,3 +783,5 @@
 "settingsGeneralFiles" = "Fichiers et sortie";
 
 "historyPreviewTextSaveFailed" = "Impossible d’enregistrer le texte, veuillez réessayer";
+
+"windowCapturePreparing" = "Préparation de la capture";

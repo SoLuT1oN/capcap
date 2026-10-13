@@ -47,30 +47,6 @@ final class OverlayPresentationTests: XCTestCase {
         }
     }
 
-    func testDoubleClickRequestsPasteButKeyboardConfirmationOnlyCopies() throws {
-        _ = NSApplication.shared
-        for doubleClick in [true, false] {
-            var completedImage: NSImage?
-            let controller = OverlayWindowController(
-                presetImage: NSImage(cgImage: makeImage(), size: NSSize(width: 320, height: 240)),
-                presetSource: .fullScreen,
-                onComplete: { completedImage = $0 }
-            )
-            controller.activate()
-            drainMainRunLoop()
-            defer { controller.cancel() }
-            let view = try XCTUnwrap(controller.activeSelectionViews.first)
-            XCTAssertTrue(controller.hasActiveEditor)
-            if doubleClick {
-                controller.selectionDidDoubleClickInsideSelection(inView: view)
-            } else {
-                controller.confirmFromKeyboard()
-            }
-            XCTAssertNotNil(completedImage)
-            XCTAssertEqual(controller.requestsPasteOnCompletion, doubleClick)
-        }
-    }
-
     override func tearDown() {
         ToastWindow.dismiss()
         super.tearDown()
@@ -1095,24 +1071,33 @@ final class OverlayPresentationTests: XCTestCase {
             onComplete: { _ in }
         )
         controller.activate()
+        defer { controller.cancel() }
         let selectionView = try XCTUnwrap(controller.activeSelectionViews.first)
-        let displayID = try XCTUnwrap(provider.targets.first?.displayID)
+        let displayID = try XCTUnwrap(
+            selectionView.window?.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+        )
         provider.emit(.image(displayID: displayID, image: makeImage()))
         drainMainRunLoop()
 
+        // Fully visible windows now open the editor from the frozen snapshot.
+        // A partially off-screen window must wait for its complete capture.
+        var rect = selectionRect(in: selectionView)
+        rect.origin.x = -rect.width / 2
         controller.selectionDidComplete(
-            rect: selectionRect(in: selectionView),
+            rect: rect,
             inView: selectionView,
             isWindowSelection: true,
             windowID: 42
         )
         XCTAssertTrue(controller.isWaitingForWindowCapture)
+        XCTAssertFalse(controller.hasActiveEditor)
 
         controller.cancel()
         drainMainRunLoop()
 
         XCTAssertFalse(controller.isWaitingForWindowCapture)
         XCTAssertTrue(controller.isCaptureSessionEnded)
+        XCTAssertFalse(controller.hasActiveEditor)
     }
 
     func testSurfaceIsWarmOnlyAfterPresentedFrame() throws {

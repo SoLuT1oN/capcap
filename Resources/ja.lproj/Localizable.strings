@@ -44,6 +44,9 @@
 "shortcutNeedsModifierTitle" = "修飾キーが必要です";
 "shortcutNeedsModifier" = "⌘・⌥・⇧・⌃ と他のキーの組み合わせ（例：⌘⇧8）、または F1–F12 単独";
 "shortcutRestore" = "デフォルトに戻す";
+"quickPinShortcutHeader" = "クイックピン留め";
+"quickPinShortcutDefaultDisplay" = "未設定";
+"quickPinShortcutClear" = "クイックピン留めのショートカットを消去";
 "selectedImagePinShortcutHeader" = "選択画像をピン留め";
 "selectedImagePinShortcutDefaultDisplay" = "未設定";
 "selectedImagePinShortcutClear" = "選択画像ピン留めショートカットを消去";
@@ -102,6 +105,7 @@
 "shortcutConflictTitle" = "ショートカットは既に使用中です";
 "shortcutConflictScreenshot" = "このキーの組み合わせはスクリーンショットのショートカットで既に使用されています。別の組み合わせを選んでください";
 "shortcutConflictCountdown" = "このキーの組み合わせはカウントダウン撮影のショートカット（スクリーンショットのショートカット + ⌥）で既に使用されています。別の組み合わせを選んでください";
+"shortcutConflictQuickPin" = "このキーの組み合わせはクイックピン留めに使用されています。別の組み合わせを選んでください";
 "shortcutConflictSelectedImagePin" = "このキーの組み合わせは選択画像をピン留めのショートカットで既に使用されています。別の組み合わせを選んでください";
 "shortcutConflictClipboardImagePin" = "このキーの組み合わせはクリップボード画像をピン留めのショートカットで既に使用されています。別の組み合わせを選んでください";
 "shortcutConflictClipboardTextPin" = "このキーの組み合わせはクリップボードテキストをピン留めのショートカットで既に使用されています。別の組み合わせを選んでください";
@@ -191,6 +195,7 @@
 "historyPanelShortcutToggleGuide" = "ショートカット一覧を表示または非表示";
 
 /* Cursor chip */
+"dragToQuickPin" = "ウィンドウをクリックするか範囲をドラッグしてすぐにピン留め";
 "dragToScreenshot" = "ウィンドウをクリックまたはドラッグして撮影";
 "dragToScreenshotAspectFree" = "ウィンドウをクリックまたはドラッグして撮影 · ドラッグ自由比率（R）";
 "dragToScreenshotAspect" = "ウィンドウをクリックまたはドラッグして撮影 · ドラッグ %@（R）";
@@ -249,6 +254,8 @@
 "tipSpotlight" = "スポットライト";
 "tipMosaic" = "モザイク";
 "mosaicGranularity" = "モザイク粒度";
+"mosaicBlur" = "ぼかし";
+"mosaicBlurAmount" = "ぼかしの強さ";
 "tipEraser" = "消しゴム";
 "tipMagnifier" = "拡大鏡";
 "tipNumbered" = "番号";
@@ -265,6 +272,9 @@
 "tipMoveSelection" = "選択範囲を移動";
 "tipAICalendar" = "カレンダーに追加";
 "tipScrollCapture" = "長いスクリーンショット";
+"tipRotate" = "回転";
+"tipRotateLeft" = "左に90°回転";
+"tipRotateRight" = "右に90°回転";
 "tipBeautify" = "装飾";
 "tipOCR" = "文字認識";
 "tipScreenshotTranslate" = "スクリーンショット翻訳";
@@ -319,7 +329,11 @@
 "shapeFillTranslucent" = "半透明の塗り";
 "shapeStyleStandard" = "標準スタイル";
 "shapeStyleRounded" = "角丸四角形スタイル";
-"shapeStyleHandDrawn" = "手描き角丸スタイル";
+"shapeStyleHandDrawn" = "手描きスタイル";
+"arrowStyleTapered" = "先細り矢印";
+"arrowStyleDoubleEnded" = "両矢印";
+"arrowStyleLine" = "線の矢印";
+"arrowStyleDotTail" = "丸付き矢印";
 "insertImageFromClipboard" = "クリップボードから";
 "insertImageFromFile" = "ファイルから";
 "insertImageChooseFile" = "画像を選択";
@@ -769,3 +783,5 @@
 "settingsGeneralFiles" = "ファイルと出力";
 
 "historyPreviewTextSaveFailed" = "テキストを保存できませんでした、再試行してください";
+
+"windowCapturePreparing" = "スクリーンショットを準備中";

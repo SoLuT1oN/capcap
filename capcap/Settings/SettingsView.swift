@@ -162,6 +162,13 @@ class SettingsView: NSView {
     private var colorPickerShortcutRestoreButton: NSButton!
     private var colorPickerShortcutRecordingMonitor: Any?
 
+    // Quick Pin shortcut card
+    private var quickPinShortcutTitleLabel: NSTextField!
+    private var quickPinShortcutField: NSTextField!
+    private var quickPinShortcutSetButton: NSButton!
+    private var quickPinShortcutRestoreButton: NSButton!
+    private var quickPinShortcutRecordingMonitor: Any?
+
     // Pin selected image shortcut card
     private var selectedImagePinShortcutTitleLabel: NSTextField!
     private var selectedImagePinShortcutField: NSTextField!
@@ -430,6 +437,7 @@ class SettingsView: NSView {
         cancelShortcutRecording()
         cancelFullScreenScreenshotShortcutRecording()
         cancelColorPickerShortcutRecording()
+        cancelQuickPinShortcutRecording()
         cancelSelectedImagePinShortcutRecording()
         cancelClipboardImagePinShortcutRecording()
         cancelClipboardTextPinShortcutRecording()
@@ -511,6 +519,7 @@ class SettingsView: NSView {
         refreshShortcutDisplay()
         refreshFullScreenScreenshotShortcutDisplay()
         refreshColorPickerShortcutDisplay()
+        refreshQuickPinShortcutDisplay()
         refreshSelectedImagePinShortcutDisplay()
         refreshClipboardImagePinShortcutDisplay()
         refreshClipboardTextPinShortcutDisplay()
@@ -1423,6 +1432,20 @@ class SettingsView: NSView {
         clipboardImageEditShortcutRestoreButton = clipboardImageEditShortcut.restoreButton
         stack.addArrangedSubview(clipboardImageEditShortcut.card)
         clipboardImageEditShortcut.card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        // Quick Pin shortcut card
+        let quickPinShortcut = buildShortcutCard(
+            title: L10n.quickPinShortcutHeader,
+            setAction: #selector(quickPinShortcutSetClicked),
+            restoreAction: #selector(quickPinShortcutRestoreClicked)
+        )
+        quickPinShortcutTitleLabel = quickPinShortcut.title
+        quickPinShortcutField = quickPinShortcut.field
+        quickPinShortcutSetButton = quickPinShortcut.setButton
+        quickPinShortcutRestoreButton = quickPinShortcut.restoreButton
+        quickPinShortcutRestoreButton.toolTip = L10n.quickPinShortcutClear
+        stack.addArrangedSubview(quickPinShortcut.card)
+        quickPinShortcut.card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         // Pin selected image shortcut card
         let selectedImagePinShortcut = buildShortcutCard(
@@ -3697,6 +3720,9 @@ class SettingsView: NSView {
         if slot != .colorPicker, colorPickerShortcutRecordingMonitor != nil {
             cancelColorPickerShortcutRecording()
         }
+        if slot != .quickPin, quickPinShortcutRecordingMonitor != nil {
+            cancelQuickPinShortcutRecording()
+        }
         if slot != .selectedImagePin, selectedImagePinShortcutRecordingMonitor != nil {
             cancelSelectedImagePinShortcutRecording()
         }
@@ -4013,6 +4039,93 @@ class SettingsView: NSView {
         } else {
             colorPickerShortcutField?.stringValue = L10n.colorPickerShortcutDefaultDisplay
             colorPickerShortcutRestoreButton?.isHidden = true
+        }
+    }
+
+    @objc private func quickPinShortcutSetClicked() {
+        if quickPinShortcutRecordingMonitor != nil {
+            cancelQuickPinShortcutRecording()
+            return
+        }
+        cancelShortcutRecordings(except: .quickPin)
+        HotkeyManager.shared.beginRecording()
+        quickPinShortcutSetButton.title = L10n.shortcutCancel
+        quickPinShortcutField.stringValue = L10n.shortcutWaiting
+        quickPinShortcutRestoreButton.isHidden = true
+
+        quickPinShortcutRecordingMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let modifiers = event.modifierFlags
+            let isEscape = event.keyCode == UInt16(kVK_Escape)
+            let activeModifierMask: NSEvent.ModifierFlags = [.command, .shift, .option, .control]
+            let pressedModifiers = modifiers.intersection(activeModifierMask)
+
+            if isEscape && pressedModifiers.isEmpty {
+                self.cancelQuickPinShortcutRecording()
+                return nil
+            }
+
+            var carbonMods: UInt32 = 0
+            if modifiers.contains(.command) { carbonMods |= UInt32(cmdKey) }
+            if modifiers.contains(.shift)   { carbonMods |= UInt32(shiftKey) }
+            if modifiers.contains(.option)  { carbonMods |= UInt32(optionKey) }
+            if modifiers.contains(.control) { carbonMods |= UInt32(controlKey) }
+            let keyCode = UInt32(event.keyCode)
+
+            if carbonMods == 0 && !HotkeyManager.isFunctionKey(keyCode) {
+                self.cancelQuickPinShortcutRecording()
+                self.presentShortcutNeedsModifierAlert()
+                return nil
+            }
+
+            if let conflict = HotkeyManager.shared.hotkeyConflictMessage(
+                forKeyCode: keyCode, modifiers: carbonMods, assigningTo: .quickPin) {
+                self.cancelQuickPinShortcutRecording()
+                self.presentHotkeyConflictAlert(conflict)
+                return nil
+            }
+
+            Defaults.quickPinHotkeyKeyCode = Int(keyCode)
+            Defaults.quickPinHotkeyModifiers = Int(carbonMods)
+            self.finishQuickPinShortcutRecording()
+            return nil
+        }
+    }
+
+    @objc private func quickPinShortcutRestoreClicked() {
+        if quickPinShortcutRecordingMonitor != nil {
+            cancelQuickPinShortcutRecording()
+        }
+        Defaults.clearQuickPinHotkey()
+        NotificationCenter.default.post(name: .hotkeyDidChange, object: nil)
+        refreshQuickPinShortcutDisplay()
+    }
+
+    private func finishQuickPinShortcutRecording() {
+        if let monitor = quickPinShortcutRecordingMonitor {
+            NSEvent.removeMonitor(monitor)
+            quickPinShortcutRecordingMonitor = nil
+        }
+        HotkeyManager.shared.endRecording()
+        refreshQuickPinShortcutDisplay()
+    }
+
+    func cancelQuickPinShortcutRecording() {
+        guard let monitor = quickPinShortcutRecordingMonitor else { return }
+        NSEvent.removeMonitor(monitor)
+        quickPinShortcutRecordingMonitor = nil
+        HotkeyManager.shared.endRecording()
+        refreshQuickPinShortcutDisplay()
+    }
+
+    private func refreshQuickPinShortcutDisplay() {
+        quickPinShortcutSetButton?.title = L10n.shortcutSet
+        if let display = HotkeyManager.currentQuickPinDisplayString() {
+            quickPinShortcutField?.stringValue = display
+            quickPinShortcutRestoreButton?.isHidden = false
+        } else {
+            quickPinShortcutField?.stringValue = L10n.quickPinShortcutDefaultDisplay
+            quickPinShortcutRestoreButton?.isHidden = true
         }
     }
 
@@ -5415,6 +5528,7 @@ class SettingsView: NSView {
         cancelShortcutRecording()
         cancelFullScreenScreenshotShortcutRecording()
         cancelColorPickerShortcutRecording()
+        cancelQuickPinShortcutRecording()
         cancelSelectedImagePinShortcutRecording()
         cancelClipboardImagePinShortcutRecording()
         cancelClipboardTextPinShortcutRecording()
@@ -5437,6 +5551,7 @@ class SettingsView: NSView {
         refreshShortcutDisplay()
         refreshFullScreenScreenshotShortcutDisplay()
         refreshColorPickerShortcutDisplay()
+        refreshQuickPinShortcutDisplay()
         refreshSelectedImagePinShortcutDisplay()
         refreshClipboardImagePinShortcutDisplay()
         refreshClipboardTextPinShortcutDisplay()
@@ -5557,6 +5672,8 @@ class SettingsView: NSView {
         fullScreenScreenshotShortcutRestoreButton?.toolTip = L10n.shortcutRestore
         colorPickerShortcutTitleLabel?.stringValue = L10n.colorPickerShortcutHeader
         colorPickerShortcutRestoreButton?.toolTip = L10n.shortcutRestore
+        quickPinShortcutTitleLabel?.stringValue = L10n.quickPinShortcutHeader
+        quickPinShortcutRestoreButton?.toolTip = L10n.quickPinShortcutClear
         selectedImagePinShortcutTitleLabel?.stringValue = L10n.selectedImagePinShortcutHeader
         selectedImagePinShortcutRestoreButton?.toolTip = L10n.selectedImagePinShortcutClear
         clipboardImagePinShortcutTitleLabel?.stringValue = L10n.clipboardImagePinShortcutHeader
@@ -5610,6 +5727,7 @@ class SettingsView: NSView {
         refreshShortcutDisplay()
         refreshFullScreenScreenshotShortcutDisplay()
         refreshColorPickerShortcutDisplay()
+        refreshQuickPinShortcutDisplay()
         refreshSelectedImagePinShortcutDisplay()
         refreshClipboardImagePinShortcutDisplay()
         refreshClipboardTextPinShortcutDisplay()
