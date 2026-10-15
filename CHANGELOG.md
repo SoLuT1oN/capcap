@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.21] - 2026-10-15
+
+### Changed
+- Remove separate beautify and text font defaults from Settings (8a0d282)
+
 ## [1.7.20] - 2026-10-15
 
 ### Fixed
