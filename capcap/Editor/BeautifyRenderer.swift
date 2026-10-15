@@ -401,18 +401,6 @@ enum BeautifyRenderer {
 
     // MARK: - Full composite
 
-    /// Measures the inner image's pixel density (pixels per point).
-    private static func pixelScale(of innerImage: NSImage) -> CGFloat {
-        let pointWidth = innerImage.size.width
-        guard pointWidth > 0 else { return 1 }
-        let maxPixelsWide = innerImage.representations
-            .map(\.pixelsWide)
-            .filter { $0 > 0 }
-            .max() ?? 0
-        guard maxPixelsWide > 0 else { return 1 }
-        return max(CGFloat(maxPixelsWide) / pointWidth, 1)
-    }
-
     /// Returns a new NSImage containing `innerImage` wrapped in the beautified frame.
     static func render(innerImage: NSImage, preset: BeautifyPreset) -> NSImage {
         return render(
@@ -439,40 +427,41 @@ enum BeautifyRenderer {
         let innerSize = innerImage.size
         guard innerSize.width > 0, innerSize.height > 0 else { return innerImage }
 
-        let outer = outputSize(innerSize: innerSize, padding: padding)
+        guard let source = innerImage.cgImagePreservingBacking() else { return innerImage }
+
+        // Sliders retain fractional points even when their labels show integers.
+        // Align each margin to backing pixels and keep the screenshot's exact
+        // pixel dimensions; rounding only the outer size resamples its contents.
+        let scaleX = CGFloat(source.width) / innerSize.width
+        let scaleY = CGFloat(source.height) / innerSize.height
+        let paddingPixelsX = Int((max(0, padding) * scaleX).rounded())
+        let paddingPixelsY = Int((max(0, padding) * scaleY).rounded())
+        let pixelsWide = source.width + 2 * paddingPixelsX
+        let pixelsHigh = source.height + 2 * paddingPixelsY
+        let outer = CGSize(width: CGFloat(pixelsWide) / scaleX, height: CGFloat(pixelsHigh) / scaleY)
         let outerRect = CGRect(origin: .zero, size: outer)
-        let inner = innerRect(innerSize: innerSize, padding: padding)
+        let inner = CGRect(
+            x: CGFloat(paddingPixelsX) / scaleX,
+            y: CGFloat(paddingPixelsY) / scaleY,
+            width: innerSize.width,
+            height: innerSize.height
+        )
 
-        // Preserve backing scale by mirroring the inner image's pixel density.
-        let innerPixelScale = pixelScale(of: innerImage)
-        let pixelsWide = Int((outer.width * innerPixelScale).rounded())
-        let pixelsHigh = Int((outer.height * innerPixelScale).rounded())
-
-        guard let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: pixelsWide,
-            pixelsHigh: pixelsHigh,
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
+        guard let cg = CGContext(
+            data: nil,
+            width: pixelsWide,
+            height: pixelsHigh,
+            bitsPerComponent: 8,
             bytesPerRow: 0,
-            bitsPerPixel: 32
-        ) else {
-            return innerImage
-        }
-        rep.size = outer
-
-        guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else {
-            return innerImage
-        }
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return innerImage }
+        cg.scaleBy(x: scaleX, y: scaleY)
+        let ctx = NSGraphicsContext(cgContext: cg, flipped: false)
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = ctx
         ctx.imageInterpolation = .high
-
-        let cg = ctx.cgContext
 
         // 1. Background — transparent presets keep pure alpha (no desktop,
         // no wallpaper, no gradient). Checkerboard is preview-only.
@@ -497,31 +486,21 @@ enum BeautifyRenderer {
         // 3. Draw the image. Normal selections use the beautify card's fixed
         // rounded clip; clicked-window captures pass nil here because their
         // base image is already cut to the window's own alpha/rounded shape.
+        cg.saveGState()
         if let innerClipRadius {
-            cg.saveGState()
             CornerMask().clip(cg, to: inner, radius: innerClipRadius)
-            innerImage.draw(
-                in: inner,
-                from: .zero,
-                operation: .sourceOver,
-                fraction: 1.0,
-                respectFlipped: true,
-                hints: nil
-            )
-            cg.restoreGState()
-        } else {
-            innerImage.draw(
-                in: inner,
-                from: .zero,
-                operation: .sourceOver,
-                fraction: 1.0,
-                respectFlipped: true,
-                hints: nil
-            )
         }
+        // Draw the original backing directly, without AppKit representation
+        // selection or interpolation of text and single-pixel lines.
+        cg.interpolationQuality = .none
+        cg.draw(source, in: inner)
+        cg.restoreGState()
 
         NSGraphicsContext.restoreGraphicsState()
 
+        guard let rendered = cg.makeImage() else { return innerImage }
+        let rep = NSBitmapImageRep(cgImage: rendered)
+        rep.size = outer
         let image = NSImage(size: outer)
         image.addRepresentation(rep)
         return image
