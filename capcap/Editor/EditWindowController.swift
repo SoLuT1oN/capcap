@@ -468,7 +468,7 @@ class EditWindowController {
         repositionFloatingChrome()
         updateEditorInteractionState()
         updateHistoryButtons(canUndo: canvas.canUndo, canRedo: canvas.canRedo)
-        if Defaults.beautifyAutoEnabled {
+        if Defaults.lastBeautifyEnabled {
             activateBeautify()
         }
         bringEditorToFront()
@@ -1483,6 +1483,9 @@ class EditWindowController {
         } else {
             activateBeautify()
         }
+        // Session teardown and scroll capture can disable beautify temporarily
+        // Only an explicit toggle changes the preference for the next editor
+        Defaults.lastBeautifyEnabled = isBeautifyActive
     }
 
     private func activateBeautify() {

@@ -99,9 +99,9 @@ final class OverlayPresentationTests: XCTestCase {
 
     func testWindowCaptureEditorActivatesHandlesOnInitialPresentation() throws {
         _ = NSApplication.shared
-        let previousBeautifyAutoEnabled = Defaults.beautifyAutoEnabled
-        Defaults.beautifyAutoEnabled = false
-        defer { Defaults.beautifyAutoEnabled = previousBeautifyAutoEnabled }
+        let previousBeautifyEnabled = Defaults.lastBeautifyEnabled
+        Defaults.lastBeautifyEnabled = false
+        defer { Defaults.lastBeautifyEnabled = previousBeautifyEnabled }
 
         let selectionView = SelectionView(frame: NSRect(x: 0, y: 0, width: 1000, height: 800))
         let selectionRect = NSRect(x: 160, y: 120, width: 480, height: 320)

@@ -311,16 +311,11 @@
 "beautifyPresetArcticIce" = "極地冰藍";
 "beautifyPresetSageCream" = "鼠尾草奶油";
 "beautifyPresetGraphite" = "石墨灰";
-"beautifyAutoToggleLabel" = "進入編輯器預設開啟美化";
-"beautifyAutoToggleHint" = "開啟編輯器時自動套用上次的美化預設與投影設定";
-"beautifyDefaultPresetLabel" = "預設樣式";
 "beautifyShadowSizeHint" = "僅調整美化投影，邊距會隨投影範圍自動增加";
 "textStrokeEffect" = "描邊";
 "textCalloutEffect" = "標註";
 "textFontLabel" = "字體";
 "textFontSystemDefault" = "系統預設";
-"textFontDefaultLabel" = "預設文字字體";
-"textFontDefaultHint" = "新建文字標註使用的字體";
 "shapeFillEffect" = "填充";
 "shapeFillNone" = "線框";
 "shapeFillOpaque" = "填充";

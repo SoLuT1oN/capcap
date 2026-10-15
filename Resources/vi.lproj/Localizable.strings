@@ -311,16 +311,11 @@
 "beautifyPresetArcticIce" = "Băng Bắc Cực";
 "beautifyPresetSageCream" = "Kem xô thơm";
 "beautifyPresetGraphite" = "Than chì";
-"beautifyAutoToggleLabel" = "Mở trình chỉnh sửa với Beautify";
-"beautifyAutoToggleHint" = "Tự động áp dụng preset làm đẹp và cài đặt bóng đã dùng lần trước khi mở trình chỉnh sửa";
-"beautifyDefaultPresetLabel" = "Preset mặc định";
 "beautifyShadowSizeHint" = "Chỉ điều chỉnh bóng của hiệu ứng làm đẹp, lề tự động tăng để chứa toàn bộ bóng";
 "textStrokeEffect" = "Viền chữ";
 "textCalloutEffect" = "Chú thích";
 "textFontLabel" = "Phông chữ";
 "textFontSystemDefault" = "Mặc định hệ thống";
-"textFontDefaultLabel" = "Phông chữ văn bản mặc định";
-"textFontDefaultHint" = "Phông chữ dùng cho chú thích văn bản mới tạo";
 "shapeFillEffect" = "Tô màu";
 "shapeFillNone" = "Viền";
 "shapeFillOpaque" = "Tô màu";

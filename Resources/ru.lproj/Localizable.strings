@@ -311,16 +311,11 @@
 "beautifyPresetArcticIce" = "Арктический лёд";
 "beautifyPresetSageCream" = "Шалфейный крем";
 "beautifyPresetGraphite" = "Графит";
-"beautifyAutoToggleLabel" = "Открывать редактор с Beautify";
-"beautifyAutoToggleHint" = "Автоматически применять последний пресет оформления и настройки тени при открытии редактора";
-"beautifyDefaultPresetLabel" = "Пресет по умолчанию";
 "beautifyShadowSizeHint" = "Изменяет только тень оформления, автоматически увеличивая отступы, чтобы она помещалась целиком";
 "textStrokeEffect" = "Обводка";
 "textCalloutEffect" = "Выноска";
 "textFontLabel" = "Шрифт";
 "textFontSystemDefault" = "Системный по умолчанию";
-"textFontDefaultLabel" = "Шрифт текста по умолчанию";
-"textFontDefaultHint" = "Шрифт для новых текстовых аннотаций";
 "shapeFillEffect" = "Заливка";
 "shapeFillNone" = "Контур";
 "shapeFillOpaque" = "Заливка";

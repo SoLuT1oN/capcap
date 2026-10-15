@@ -495,9 +495,6 @@ enum L10n {
     static var beautifyPresetArcticIce: String { s("beautifyPresetArcticIce") }
     static var beautifyPresetSageCream: String { s("beautifyPresetSageCream") }
     static var beautifyPresetGraphite: String { s("beautifyPresetGraphite") }
-    static var beautifyAutoToggleLabel: String { s("beautifyAutoToggleLabel") }
-    static var beautifyAutoToggleHint: String { s("beautifyAutoToggleHint") }
-    static var beautifyDefaultPresetLabel: String { s("beautifyDefaultPresetLabel") }
     static var beautifyShadowSizeHint: String { s("beautifyShadowSizeHint") }
 
     // Text tool
@@ -505,8 +502,6 @@ enum L10n {
     static var textCalloutEffect: String { s("textCalloutEffect") }
     static var textFontLabel: String { s("textFontLabel") }
     static var textFontSystemDefault: String { s("textFontSystemDefault") }
-    static var textFontDefaultLabel: String { s("textFontDefaultLabel") }
-    static var textFontDefaultHint: String { s("textFontDefaultHint") }
 
     // Shape tool
     static var shapeFillEffect: String { s("shapeFillEffect") }
@@ -1819,9 +1814,7 @@ struct Defaults {
         }
     }
 
-    /// Default font family for text annotations. Shared by the settings pane
-    /// and the editor's font picker (which also writes it, matching the
-    /// "remember last used" model of the other text-tool properties).
+    /// Last font family selected in the editor's font picker, reused for new text annotations
     /// Normalized at the persistence boundary: a family that is no longer
     /// installed reads back as nil, i.e. the system bold default.
     static var textFontName: String? {
@@ -2034,17 +2027,18 @@ struct Defaults {
         return result
     }
 
-    /// When true, the annotation editor opens with beautify already active,
-    /// using the last-used preset / padding / shadow settings.
-    static var beautifyAutoEnabled: Bool {
+    /// The user's last explicit beautify toggle, independent of temporary editor state
+    static var lastBeautifyEnabled: Bool {
         get {
-            if defaults.object(forKey: "beautifyAutoEnabled") == nil {
-                return false
+            if defaults.object(forKey: "lastBeautifyEnabled") == nil {
+                defaults.set(defaults.bool(forKey: "beautifyAutoEnabled"), forKey: "lastBeautifyEnabled")
+                defaults.removeObject(forKey: "beautifyAutoEnabled")
             }
-            return defaults.bool(forKey: "beautifyAutoEnabled")
+            return defaults.bool(forKey: "lastBeautifyEnabled")
         }
         set {
-            defaults.set(newValue, forKey: "beautifyAutoEnabled")
+            defaults.set(newValue, forKey: "lastBeautifyEnabled")
+            defaults.removeObject(forKey: "beautifyAutoEnabled")
         }
     }
 
