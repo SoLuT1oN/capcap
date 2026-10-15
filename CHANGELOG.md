@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.20] - 2026-10-15
+
+### Fixed
+- Preserve source pixels when rendering beautified images (fbd355c)
+
+### Changed
+- Match beautify shadows to window capture and refine their sizing and localization (ffebf8a, 4c57250)
+
 ## [1.7.19] - 2026-10-11
 
 ### Fixed
