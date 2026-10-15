@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "Арктический лёд";
 "beautifyPresetSageCream" = "Шалфейный крем";
 "beautifyPresetGraphite" = "Графит";
-"beautifyShadowEffect" = "Тень";
 "beautifyAutoToggleLabel" = "Открывать редактор с Beautify";
 "beautifyAutoToggleHint" = "Автоматически применять последний пресет оформления и настройки тени при открытии редактора";
 "beautifyDefaultPresetLabel" = "Пресет по умолчанию";

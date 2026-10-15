@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "아틱 아이스";
 "beautifyPresetSageCream" = "세이지 크림";
 "beautifyPresetGraphite" = "그래파이트";
-"beautifyShadowEffect" = "그림자";
 "beautifyAutoToggleLabel" = "편집기 열 때 미화 자동 적용";
 "beautifyAutoToggleHint" = "편집기를 열면 마지막 꾸미기 프리셋과 그림자 설정을 자동으로 적용합니다";
 "beautifyDefaultPresetLabel" = "기본 프리셋";

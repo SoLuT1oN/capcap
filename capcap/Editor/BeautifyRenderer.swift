@@ -6,61 +6,20 @@ enum BeautifyRenderer {
     // MARK: - Layout constants
 
     static let innerCornerRadius: CGFloat = 12
-    // Ambient shadow (uniform glow around all edges)
-    static let ambientShadowBlur: CGFloat = 24
-    static let ambientShadowOpacity: CGFloat = 0.30
-    static let ambientShadowOffset: CGSize = CGSize(width: 0, height: 0)
-    // Key shadow (slight downward bias for natural depth)
-    static let keyShadowBlur: CGFloat = 38
-    static let keyShadowOpacity: CGFloat = 0.36
-    static let keyShadowOffset: CGSize = CGSize(width: 0, height: -7)
-    /// Window captures already carry the real system corner alpha. Their
-    /// beautify shadow only needs to start slightly inside that edge so the
-    /// light background does not peek through corner mismatches.
-    static let windowInnerShadowInset: CGFloat = 5
-
-    // MARK: - Beautify projection (independent of window-capture settings)
-    static let shadowSizeMin: CGFloat = 0
-    static let shadowSizeMax: CGFloat = 56
+    // Same range as window capture, with an independently saved size.
+    static let shadowSizeMin = CGFloat(Defaults.windowShadowSizeMin)
+    static let shadowSizeMax = CGFloat(Defaults.windowShadowSizeMax)
     static let shadowSizeDefault: CGFloat = 24
-
-    private struct ShadowLayer {
-        let blur: CGFloat
-        let offset: CGSize
-        let opacity: CGFloat
-    }
 
     static func normalizedShadowSize(_ size: CGFloat) -> CGFloat {
         guard size.isFinite else { return shadowSizeDefault }
         return min(max(size, shadowSizeMin), shadowSizeMax)
     }
 
-    private static func shadowLayers(for size: CGFloat) -> [ShadowLayer] {
-        let scale = normalizedShadowSize(size) / shadowSizeDefault
-        guard scale > 0 else { return [] }
-        return [
-            ShadowLayer(
-                blur: ambientShadowBlur * scale,
-                offset: CGSize(width: ambientShadowOffset.width * scale, height: ambientShadowOffset.height * scale),
-                opacity: ambientShadowOpacity
-            ),
-            ShadowLayer(
-                blur: keyShadowBlur * scale,
-                offset: CGSize(width: keyShadowOffset.width * scale, height: keyShadowOffset.height * scale),
-                opacity: keyShadowOpacity
-            ),
-        ]
-    }
-
-    /// Reserve the full drawing extent of both shadow layers. Preview and export
-    /// use this same margin, including the offset and antialiasing fringe.
-    static func padding(forShadowSize size: CGFloat, shadowEnabled: Bool) -> CGFloat {
-        let size = normalizedShadowSize(size)
-        guard shadowEnabled else { return size }
-        let outset = shadowLayers(for: size).map {
-            shadowOutset(blur: $0.blur, offset: $0.offset)
-        }.max() ?? 0
-        return max(size, ceil(outset))
+    /// Match the per-edge margins of a window screenshot at the same size.
+    static func padding(forShadowSize size: CGFloat, shadowEnabled: Bool) -> NSEdgeInsets {
+        guard shadowEnabled else { return NSEdgeInsetsZero }
+        return WindowEffects.shadowPadding(forSize: normalizedShadowSize(size))
     }
 
     // MARK: - Wallpaper
@@ -312,105 +271,30 @@ enum BeautifyRenderer {
         )
     }
 
-    /// Draws a two-layer shadow (ambient + key light) cast by a rounded-rect
-    /// silhouette at `innerRect`, creating a natural floating-card effect.
-    /// The fill used to cast the shadow is moved off-canvas, so transparent pixels
-    /// in the screenshot reveal the beautify background instead of a black
-    /// backing rectangle.
-    static func drawInnerShadow(innerRect: CGRect, cornerRadius: CGFloat, context: CGContext) {
-        drawInnerShadow(
-            innerRect: innerRect,
-            cornerRadius: cornerRadius,
-            inset: 0,
-            context: context
+    /// Apply the same corner mask to both the displayed image and its shadow
+    /// source. Clicked-window images already contain their real alpha mask.
+    static func shadowSource(
+        from image: CGImage,
+        imageSize: CGSize,
+        cornerRadius: CGFloat?
+    ) -> CGImage? {
+        guard let cornerRadius else { return image }
+        guard imageSize.width > 0, imageSize.height > 0,
+              let context = CGContext(
+                data: nil, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return nil }
+        context.scaleBy(
+            x: CGFloat(image.width) / imageSize.width,
+            y: CGFloat(image.height) / imageSize.height
         )
-    }
-
-    static func drawInnerShadow(
-        innerRect: CGRect,
-        cornerRadius: CGFloat,
-        inset: CGFloat,
-        shadowSize: CGFloat = shadowSizeDefault,
-        shadowBaseScale: CGSize = CGSize(width: 1, height: 1),
-        context: CGContext
-    ) {
-        let shadowRect = innerRect.insetBy(dx: inset, dy: inset)
-        guard shadowRect.width > 0, shadowRect.height > 0 else { return }
-        let radius = max(0, cornerRadius - inset)
-        let path = CGPath(
-            roundedRect: shadowRect,
-            cornerWidth: radius,
-            cornerHeight: radius,
-            transform: nil
-        )
-
-        for layer in shadowLayers(for: shadowSize) {
-            drawShadowOnly(
-                path: path,
-                innerRect: shadowRect,
-                offset: layer.offset,
-                blur: layer.blur,
-                opacity: layer.opacity,
-                baseScale: shadowBaseScale,
-                context: context
-            )
-        }
-    }
-
-    private static func drawShadowOnly(
-        path: CGPath,
-        innerRect: CGRect,
-        offset: CGSize,
-        blur: CGFloat,
-        opacity: CGFloat,
-        baseScale: CGSize,
-        context: CGContext
-    ) {
-        let shadowOutset = shadowOutset(blur: blur, offset: offset)
-        let clipRect = innerRect.insetBy(dx: -shadowOutset, dy: -shadowOutset)
-        // Keep the opaque source entirely outside the visible clip, moving its
-        // shadow back into place. An inverse path clip lets black source pixels
-        // leak into the partially covered corner edge and produces a dark rim.
-        let displacement = clipRect.width + shadowOutset
-        var translation = CGAffineTransform(translationX: displacement, y: 0)
-        guard let shadowSource = path.copy(using: &translation) else { return }
-
-        context.saveGState()
-        context.clip(to: clipRect)
-        context.beginTransparencyLayer(auxiliaryInfo: nil)
-        context.saveGState()
-        // Quartz shadows use the context's base space, ignoring later CTM
-        // scaling. The source path above is in user-space points. A raw bitmap
-        // export scales those points into pixels, so its entire return offset
-        // (including the off-canvas displacement) and blur must scale as well.
-        // AppKit preview contexts already establish their own point base space.
-        context.setShadow(
-            offset: CGSize(
-                width: (offset.width - displacement) * baseScale.width,
-                height: offset.height * baseScale.height
-            ),
-            blur: blur * max(baseScale.width, baseScale.height),
-            color: NSColor.black.withAlphaComponent(opacity).cgColor
-        )
-        context.addPath(shadowSource)
-        context.setFillColor(NSColor.black.cgColor)
-        context.fillPath()
-
-        // Remove the interior with antialiased coverage, preserving the hollow
-        // shadow for transparent screenshots without introducing a hard clip.
-        context.setShadow(offset: .zero, blur: 0, color: nil)
-        context.setBlendMode(.destinationOut)
-        context.setAllowsAntialiasing(true)
-        context.setShouldAntialias(true)
-        context.addPath(path)
-        context.fillPath()
-        context.restoreGState()
-        context.endTransparencyLayer()
-        context.restoreGState()
-    }
-
-    private static func shadowOutset(blur: CGFloat, offset: CGSize) -> CGFloat {
-        blur * 3 + max(abs(offset.width), abs(offset.height)) + 2
+        let rect = CGRect(origin: .zero, size: imageSize)
+        CornerMask().clip(context, to: rect, radius: cornerRadius)
+        context.interpolationQuality = .none
+        context.draw(image, in: rect)
+        return context.makeImage()
     }
 
     // MARK: - Full composite
@@ -424,31 +308,43 @@ enum BeautifyRenderer {
         wallpaperImage: NSImage? = nil,
         shadowEnabled: Bool = true,
         shadowSize: CGFloat = shadowSizeDefault,
-        innerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius,
-        innerShadowCornerRadius: CGFloat = BeautifyRenderer.innerCornerRadius,
-        innerShadowInset: CGFloat = 0
+        innerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius
     ) -> NSImage {
         let innerSize = innerImage.size
         guard innerSize.width > 0, innerSize.height > 0 else { return innerImage }
 
-        guard let source = innerImage.cgImagePreservingBacking() else { return innerImage }
+        guard let backing = innerImage.cgImagePreservingBacking(),
+              let source = shadowSource(
+                from: backing, imageSize: innerSize, cornerRadius: innerClipRadius
+              ) else { return innerImage }
 
-        let padding = padding ?? self.padding(forShadowSize: shadowSize, shadowEnabled: shadowEnabled)
+        let margins: NSEdgeInsets
+        if let padding {
+            // The pixel-based agent API explicitly owns its symmetric margin.
+            let p = max(0, padding)
+            margins = NSEdgeInsets(top: p, left: p, bottom: p, right: p)
+        } else {
+            margins = self.padding(forShadowSize: shadowSize, shadowEnabled: shadowEnabled)
+        }
 
         // Sliders retain fractional points even when their labels show integers.
         // Align each margin to backing pixels and keep the screenshot's exact
         // pixel dimensions; rounding only the outer size resamples its contents.
         let scaleX = CGFloat(source.width) / innerSize.width
         let scaleY = CGFloat(source.height) / innerSize.height
-        let paddingPixelsX = Int((max(0, padding) * scaleX).rounded())
-        let paddingPixelsY = Int((max(0, padding) * scaleY).rounded())
-        let pixelsWide = source.width + 2 * paddingPixelsX
-        let pixelsHigh = source.height + 2 * paddingPixelsY
+        let leftPixels = Int((margins.left * scaleX).rounded())
+        let bottomPixels = Int((margins.bottom * scaleY).rounded())
+        let pixelsWide = source.width + (padding != nil
+            ? 2 * leftPixels
+            : Int(((margins.left + margins.right) * scaleX).rounded()))
+        let pixelsHigh = source.height + (padding != nil
+            ? 2 * bottomPixels
+            : Int(((margins.top + margins.bottom) * scaleY).rounded()))
         let outer = CGSize(width: CGFloat(pixelsWide) / scaleX, height: CGFloat(pixelsHigh) / scaleY)
         let outerRect = CGRect(origin: .zero, size: outer)
         let inner = CGRect(
-            x: CGFloat(paddingPixelsX) / scaleX,
-            y: CGFloat(paddingPixelsY) / scaleY,
+            x: CGFloat(leftPixels) / scaleX,
+            y: CGFloat(bottomPixels) / scaleY,
             width: innerSize.width,
             height: innerSize.height
         )
@@ -479,25 +375,19 @@ enum BeautifyRenderer {
             drawBackground(in: outerRect, preset: preset)
         }
 
-        // 2. Soft shadow under the inner rounded rect
+        // 2. Cast from the same alpha as the image, using the window renderer.
         if shadowEnabled {
-            drawInnerShadow(
-                innerRect: inner,
-                cornerRadius: innerShadowCornerRadius,
-                inset: innerShadowInset,
-                shadowSize: shadowSize,
-                shadowBaseScale: CGSize(width: scaleX, height: scaleY),
+            WindowEffects.drawShadow(
+                image: source,
+                sourceRect: inner,
+                size: normalizedShadowSize(shadowSize),
+                baseScale: CGSize(width: scaleX, height: scaleY),
                 context: cg
             )
         }
 
-        // 3. Draw the image. Normal selections use the beautify card's fixed
-        // rounded clip; clicked-window captures pass nil here because their
-        // base image is already cut to the window's own alpha/rounded shape.
+        // 3. The source already carries the final corner/alpha mask.
         cg.saveGState()
-        if let innerClipRadius {
-            CornerMask().clip(cg, to: inner, radius: innerClipRadius)
-        }
         // Draw the original backing directly, without AppKit representation
         // selection or interpolation of text and single-pixel lines.
         cg.interpolationQuality = .none

@@ -1948,12 +1948,9 @@ class EditCanvasView: NSView {
         fallbackBaseImage: NSImage?,
         beautifyPreset: BeautifyPreset? = nil,
         beautifyShadowSize: CGFloat = BeautifyRenderer.shadowSizeDefault,
-        beautifyShadowEnabled: Bool = true,
         wallpaperImage: NSImage? = nil,
         annotationClipMask: NSImage? = nil,
-        beautifyInnerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius,
-        beautifyInnerShadowCornerRadius: CGFloat = BeautifyRenderer.innerCornerRadius,
-        beautifyInnerShadowInset: CGFloat = 0
+        beautifyInnerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius
     ) -> NSImage? {
         guard let baseImage = previewImage ?? fallbackBaseImage else { return nil }
 
@@ -2006,11 +2003,8 @@ class EditCanvasView: NSView {
                 innerImage: orientedImage,
                 preset: preset,
                 wallpaperImage: wallpaperImage,
-                shadowEnabled: beautifyShadowEnabled,
                 shadowSize: beautifyShadowSize,
-                innerClipRadius: beautifyInnerClipRadius,
-                innerShadowCornerRadius: beautifyInnerShadowCornerRadius,
-                innerShadowInset: beautifyInnerShadowInset
+                innerClipRadius: beautifyInnerClipRadius
             )
             return rendered
         }

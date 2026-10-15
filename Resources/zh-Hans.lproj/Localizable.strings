@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "极地冰蓝";
 "beautifyPresetSageCream" = "鼠尾草奶油";
 "beautifyPresetGraphite" = "石墨灰";
-"beautifyShadowEffect" = "阴影效果";
 "beautifyAutoToggleLabel" = "进入编辑器默认开启美化";
 "beautifyAutoToggleHint" = "打开编辑器时自动应用上次的美化预设和投影设置";
 "beautifyDefaultPresetLabel" = "默认预设";

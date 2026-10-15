@@ -119,8 +119,6 @@ class SettingsView: NSView {
     private var beautifyShadowSizeTitleLabel: NSTextField!
     private var beautifyShadowSizeValueLabel: NSTextField!
     private var beautifyShadowSizeSlider: NSSlider!
-    private var beautifyShadowSwitch: NSSwitch!
-    private var beautifyShadowTitleLabel: NSTextField!
     private var beautifyPresetSwatches: [BeautifySettingsSwatchView] = []
 
     // Text annotation defaults card
@@ -1032,17 +1030,6 @@ class SettingsView: NSView {
         inner.addArrangedSubview(shadowSizeSlider)
         shadowSizeSlider.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
 
-        let shadowToggle = makeToggleRow(
-            title: L10n.beautifyShadowEffect,
-            subtitle: nil,
-            isOn: Defaults.lastBeautifyShadowEnabled,
-            action: #selector(beautifyShadowToggled(_:))
-        )
-        beautifyShadowTitleLabel = shadowToggle.title
-        beautifyShadowSwitch = shadowToggle.toggle
-        inner.addArrangedSubview(shadowToggle.row)
-        shadowToggle.row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
         stack.addArrangedSubview(card)
         card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
     }
@@ -1144,8 +1131,7 @@ class SettingsView: NSView {
     private func updateBeautifyControlsEnabled() {
         let enabled = Defaults.beautifyAutoEnabled
         beautifyShadowSizeSlider?.isEnabled = enabled
-        beautifyShadowSwitch?.isEnabled = enabled
-        for label in [beautifyPresetTitleLabel, beautifyShadowSizeTitleLabel, beautifyShadowSizeValueLabel, beautifyShadowTitleLabel] {
+        for label in [beautifyPresetTitleLabel, beautifyShadowSizeTitleLabel, beautifyShadowSizeValueLabel] {
             label?.textColor = NSColor.white.withAlphaComponent(enabled ? 0.94 : 0.4)
         }
         for swatch in beautifyPresetSwatches { swatch.isEnabled = enabled }
@@ -3530,10 +3516,6 @@ class SettingsView: NSView {
         beautifyShadowSizeValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyShadowSize.rounded()))"
     }
 
-    @objc private func beautifyShadowToggled(_ sender: NSSwitch) {
-        Defaults.lastBeautifyShadowEnabled = sender.state == .on
-    }
-
     @objc private func launchAtLoginToggled(_ sender: NSSwitch) {
         let enable = sender.state == .on
         let ok = LaunchAtLogin.setEnabled(enable)
@@ -5618,7 +5600,6 @@ class SettingsView: NSView {
         beautifyShadowSizeTitleLabel?.stringValue = L10n.shadowSizeLabel
         beautifyShadowSizeSlider?.toolTip = L10n.beautifyShadowSizeHint
         beautifyShadowSizeSlider?.setAccessibilityLabel(L10n.shadowSizeLabel)
-        beautifyShadowTitleLabel?.stringValue = L10n.beautifyShadowEffect
         textFontTitleLabel?.stringValue = L10n.textFontDefaultLabel
         textFontHintLabel?.stringValue = L10n.textFontDefaultHint
         textFontPopup?.setAccessibilityLabel(L10n.textFontDefaultLabel)
@@ -5627,7 +5608,6 @@ class SettingsView: NSView {
         updateBeautifyControlsEnabled()
         beautifyShadowSizeSlider?.doubleValue = Defaults.lastBeautifyShadowSize
         beautifyShadowSizeValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyShadowSize.rounded()))"
-        beautifyShadowSwitch?.state = Defaults.lastBeautifyShadowEnabled ? .on : .off
         let beautifySelectedID = Defaults.lastBeautifyPresetID ?? BeautifyPreset.defaultPreset.id
         for swatch in beautifyPresetSwatches {
             swatch.isSelected = (swatch.preset.id == beautifySelectedID)

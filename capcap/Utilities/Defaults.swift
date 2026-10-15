@@ -495,7 +495,6 @@ enum L10n {
     static var beautifyPresetArcticIce: String { s("beautifyPresetArcticIce") }
     static var beautifyPresetSageCream: String { s("beautifyPresetSageCream") }
     static var beautifyPresetGraphite: String { s("beautifyPresetGraphite") }
-    static var beautifyShadowEffect: String { s("beautifyShadowEffect") }
     static var beautifyAutoToggleLabel: String { s("beautifyAutoToggleLabel") }
     static var beautifyAutoToggleHint: String { s("beautifyAutoToggleHint") }
     static var beautifyDefaultPresetLabel: String { s("beautifyDefaultPresetLabel") }
@@ -2021,18 +2020,6 @@ struct Defaults {
                 Double(BeautifyRenderer.normalizedShadowSize(CGFloat(newValue))),
                 forKey: "lastBeautifyShadowSize"
             )
-        }
-    }
-
-    static var lastBeautifyShadowEnabled: Bool {
-        get {
-            if defaults.object(forKey: "lastBeautifyShadowEnabled") == nil {
-                return true
-            }
-            return defaults.bool(forKey: "lastBeautifyShadowEnabled")
-        }
-        set {
-            defaults.set(newValue, forKey: "lastBeautifyShadowEnabled")
         }
     }
 

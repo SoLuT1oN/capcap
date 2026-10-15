@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "アークティックアイス";
 "beautifyPresetSageCream" = "セージクリーム";
 "beautifyPresetGraphite" = "グラファイト";
-"beautifyShadowEffect" = "影効果";
 "beautifyAutoToggleLabel" = "エディタ起動時に美化を有効化";
 "beautifyAutoToggleHint" = "エディタを開くと前回の美化プリセットと影の設定を自動適用します";
 "beautifyDefaultPresetLabel" = "デフォルトのプリセット";

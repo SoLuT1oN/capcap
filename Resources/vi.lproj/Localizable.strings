@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "Băng Bắc Cực";
 "beautifyPresetSageCream" = "Kem xô thơm";
 "beautifyPresetGraphite" = "Than chì";
-"beautifyShadowEffect" = "Hiệu ứng bóng";
 "beautifyAutoToggleLabel" = "Mở trình chỉnh sửa với Beautify";
 "beautifyAutoToggleHint" = "Tự động áp dụng preset làm đẹp và cài đặt bóng đã dùng lần trước khi mở trình chỉnh sửa";
 "beautifyDefaultPresetLabel" = "Preset mặc định";

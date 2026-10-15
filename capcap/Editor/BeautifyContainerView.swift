@@ -2,8 +2,8 @@ import AppKit
 import CoreGraphics
 
 /// Wraps `EditCanvasView` as a subview. When a beautify preset is set, the
-/// container grows to `innerSize + 2·padding`, repositions the canvas at
-/// `(padding, padding)`, and draws the gradient background + inner shadow +
+/// container grows by the window shadow's per-edge margins, repositions the
+/// canvas at `(left, bottom)`, and draws the gradient background + inner shadow +
 /// base screenshot behind the canvas. Rotation and display scaling preserve
 /// the canvas's logical bounds so tools, hit tests, and editable text retain
 /// their document coordinates in every orientation.
@@ -14,23 +14,18 @@ final class BeautifyContainerView: NSView {
     /// Cached wallpaper image for the wallpaper preset.
     var wallpaperImage: NSImage?
 
-    /// Controls the extra beautify shadow cast by the inner rounded card.
-    private(set) var shadowEnabled: Bool = true
-
-    /// Corner radius used for the beautify shadow silhouette. The canvas may
-    /// use an image alpha mask instead of a fixed clip for clicked-window
-    /// captures, but the shadow still needs a close window-shaped fallback.
-    private var innerShadowCornerRadius: CGFloat = BeautifyRenderer.innerCornerRadius
-
-    /// Insets the shadow source for clicked-window captures. This is much
-    /// cheaper than extracting the exact window alpha and avoids corner bleed.
-    private var innerShadowInset: CGFloat = 0
+    // Reuse the alpha mask while the slider moves; rebuilding a full-resolution
+    // rotated/masked image on every draw would make shadow adjustment expensive.
+    private var cachedShadowImage: NSImage?
+    private var cachedShadowRotation: ImageRotation = .none
+    private var cachedShadowCornerRadius: CGFloat?
+    private var cachedShadowSource: CGImage?
 
     private(set) var shadowSize: CGFloat = BeautifyRenderer.shadowSizeDefault
 
-    var contentPadding: CGFloat {
-        guard isBeautifyEnabled else { return 0 }
-        return BeautifyRenderer.padding(forShadowSize: shadowSize, shadowEnabled: shadowEnabled)
+    var contentPadding: NSEdgeInsets {
+        guard isBeautifyEnabled else { return NSEdgeInsetsZero }
+        return BeautifyRenderer.padding(forShadowSize: shadowSize, shadowEnabled: true)
     }
 
     var isBeautifyEnabled: Bool { beautifyPreset != nil }
@@ -63,6 +58,10 @@ final class BeautifyContainerView: NSView {
 
     func setBeautify(preset: BeautifyPreset?) {
         beautifyPreset = preset
+        if preset == nil {
+            cachedShadowImage = nil
+            cachedShadowSource = nil
+        }
         // A beautify preset owns the area behind the canvas (gradient,
         // wallpaper, or its own checkerboard). In normal editing the canvas
         // supplies a stable transparency preview instead of exposing the
@@ -80,23 +79,6 @@ final class BeautifyContainerView: NSView {
         needsDisplay = true
     }
 
-    func setShadowEnabled(_ enabled: Bool) {
-        guard shadowEnabled != enabled else { return }
-        shadowEnabled = enabled
-        relayout()
-        needsDisplay = true
-    }
-
-    func setInnerShadowCornerRadius(_ radius: CGFloat) {
-        innerShadowCornerRadius = radius
-        needsDisplay = true
-    }
-
-    func setInnerShadowInset(_ inset: CGFloat) {
-        innerShadowInset = inset
-        needsDisplay = true
-    }
-
     /// Called by the controller when the canvas's intrinsic size changes
     /// (selection resize or long-screenshot preview load).
     func canvasSizeDidChange() {
@@ -110,16 +92,16 @@ final class BeautifyContainerView: NSView {
     private func relayout() {
         guard let canvasView else { return }
         let inner = canvasView.orientedDisplaySize
-        let p: CGFloat
+        let padding: NSEdgeInsets
         let newSize: CGSize
         if beautifyPreset != nil, inner.width > 0, inner.height > 0 {
-            p = contentPadding
+            padding = contentPadding
             newSize = CGSize(
-                width: inner.width + 2 * p,
-                height: inner.height + 2 * p
+                width: inner.width + padding.left + padding.right,
+                height: inner.height + padding.top + padding.bottom
             )
         } else {
-            p = 0
+            padding = NSEdgeInsetsZero
             newSize = inner
         }
         if frame.size != newSize {
@@ -129,8 +111,8 @@ final class BeautifyContainerView: NSView {
         // rotated bounds before translating them into the inner card rect.
         let rotatedBounds = canvasView.convert(canvasView.bounds, to: self)
         let origin = NSPoint(
-            x: canvasView.frame.origin.x + p - rotatedBounds.minX,
-            y: canvasView.frame.origin.y + p - rotatedBounds.minY
+            x: canvasView.frame.origin.x + padding.left - rotatedBounds.minX,
+            y: canvasView.frame.origin.y + padding.bottom - rotatedBounds.minY
         )
         if canvasView.frame.origin != origin {
             canvasView.setFrameOrigin(origin)
@@ -162,15 +144,35 @@ final class BeautifyContainerView: NSView {
             BeautifyRenderer.drawBackground(in: outerRect, preset: preset)
         }
 
-        // 2. Soft shadow silhouette under the canvas's rounded rect
-        if shadowEnabled {
-            BeautifyRenderer.drawInnerShadow(
-                innerRect: innerRect,
-                cornerRadius: innerShadowCornerRadius,
-                inset: innerShadowInset,
-                shadowSize: shadowSize,
+        // 2. Use the same image alpha and renderer as window screenshots.
+        if let source = shadowSource(for: canvasView) {
+            WindowEffects.drawShadow(
+                image: source, sourceRect: innerRect, size: shadowSize,
                 context: context
             )
         }
+    }
+
+    private func shadowSource(for canvasView: EditCanvasView) -> CGImage? {
+        // Only use already prepared editor images. Never capture the screen
+        // from draw(_:), which could include the editor itself.
+        guard let image = canvasView.previewImage ?? canvasView.externalBaseImage
+            ?? canvasView.windowBaseImage ?? canvasView.overrideBaseImage else { return nil }
+        let rotation = canvasView.imageRotation
+        let radius = canvasView.beautifyCornerRadius
+        if cachedShadowImage === image, cachedShadowRotation == rotation,
+           cachedShadowCornerRadius == radius, let cachedShadowSource {
+            return cachedShadowSource
+        }
+        guard let oriented = rotation.render(image),
+              let backing = oriented.cgImagePreservingBacking(),
+              let source = BeautifyRenderer.shadowSource(
+                from: backing, imageSize: oriented.size, cornerRadius: radius
+              ) else { return nil }
+        cachedShadowImage = image
+        cachedShadowRotation = rotation
+        cachedShadowCornerRadius = radius
+        cachedShadowSource = source
+        return source
     }
 }

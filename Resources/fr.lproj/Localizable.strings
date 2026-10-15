@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "Glace arctique";
 "beautifyPresetSageCream" = "Sauge crème";
 "beautifyPresetGraphite" = "Graphite";
-"beautifyShadowEffect" = "Ombre";
 "beautifyAutoToggleLabel" = "Ouvrir l'éditeur avec Beautify";
 "beautifyAutoToggleHint" = "Applique automatiquement le dernier préréglage et les réglages d’ombre de l’embellissement à l’ouverture de l’éditeur";
 "beautifyDefaultPresetLabel" = "Préréglage par défaut";

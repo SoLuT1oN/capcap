@@ -311,7 +311,6 @@
 "beautifyPresetArcticIce" = "Arctic Ice";
 "beautifyPresetSageCream" = "Sage Cream";
 "beautifyPresetGraphite" = "Graphite";
-"beautifyShadowEffect" = "Shadow Effect";
 "beautifyAutoToggleLabel" = "Open Editor with Beautify";
 "beautifyAutoToggleHint" = "Automatically apply the last beautify preset and shadow settings when the editor opens";
 "beautifyDefaultPresetLabel" = "Default Preset";
