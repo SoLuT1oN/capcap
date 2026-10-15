@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "s";
 "windowShadowToggleLabel" = "Window Capture Shadow";
 "windowShadowToggleHint" = "Round the corners of window captures and add a macOS-style drop shadow";
-"windowShadowSizeLabel" = "Shadow Size";
+"shadowSizeLabel" = "Drop Shadow Size";
 "windowShadowSizeHint" = "Larger values blur softer and spread wider, so the window appears to float higher";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "Graphite";
 "beautifyShadowEffect" = "Shadow Effect";
 "beautifyAutoToggleLabel" = "Open Editor with Beautify";
-"beautifyAutoToggleHint" = "Automatically apply the last beautify preset, padding, and shadow when the editor opens";
+"beautifyAutoToggleHint" = "Automatically apply the last beautify preset and shadow settings when the editor opens";
 "beautifyDefaultPresetLabel" = "Default Preset";
-"beautifyDefaultPaddingLabel" = "Default Padding";
+"beautifyShadowSizeHint" = "Adjust only the beautify shadow, with margins that grow automatically to fit it";
 "textStrokeEffect" = "Stroke";
 "textCalloutEffect" = "Callout";
 "textFontLabel" = "Font";

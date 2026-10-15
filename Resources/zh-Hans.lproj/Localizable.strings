@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "秒";
 "windowShadowToggleLabel" = "窗口截图阴影";
 "windowShadowToggleHint" = "点选窗口截图时自动裁出圆角，并加上 macOS 风格的投影";
-"windowShadowSizeLabel" = "阴影大小";
+"shadowSizeLabel" = "投影大小";
 "windowShadowSizeHint" = "数值越大投影越柔和、扩散越远，窗口看起来悬浮得越高";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "石墨灰";
 "beautifyShadowEffect" = "阴影效果";
 "beautifyAutoToggleLabel" = "进入编辑器默认开启美化";
-"beautifyAutoToggleHint" = "打开编辑器时自动应用上次的美化预设、边距和阴影";
+"beautifyAutoToggleHint" = "打开编辑器时自动应用上次的美化预设和投影设置";
 "beautifyDefaultPresetLabel" = "默认预设";
-"beautifyDefaultPaddingLabel" = "默认边距";
+"beautifyShadowSizeHint" = "仅调整美化投影，边距会随投影范围自动增加";
 "textStrokeEffect" = "描边";
 "textCalloutEffect" = "标注";
 "textFontLabel" = "字体";

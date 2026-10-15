@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "秒";
 "windowShadowToggleLabel" = "ウインドウ撮影の影";
 "windowShadowToggleHint" = "ウインドウを選んで撮影すると角を丸め、macOS 風のドロップシャドウを追加します";
-"windowShadowSizeLabel" = "影のサイズ";
+"shadowSizeLabel" = "ドロップシャドウのサイズ";
 "windowShadowSizeHint" = "値を大きくするほど影が柔らかく広がり、ウインドウが高く浮いて見えます";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "グラファイト";
 "beautifyShadowEffect" = "影効果";
 "beautifyAutoToggleLabel" = "エディタ起動時に美化を有効化";
-"beautifyAutoToggleHint" = "エディタを開くと前回の美化プリセット・余白・影を自動適用します";
+"beautifyAutoToggleHint" = "エディタを開くと前回の美化プリセットと影の設定を自動適用します";
 "beautifyDefaultPresetLabel" = "デフォルトのプリセット";
-"beautifyDefaultPaddingLabel" = "デフォルトの余白";
+"beautifyShadowSizeHint" = "美化の影のみを調整し、影が収まるよう余白を自動で広げます";
 "textStrokeEffect" = "縁取り";
 "textCalloutEffect" = "吹き出し";
 "textFontLabel" = "フォント";

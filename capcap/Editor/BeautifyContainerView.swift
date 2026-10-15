@@ -26,11 +26,12 @@ final class BeautifyContainerView: NSView {
     /// cheaper than extracting the exact window alpha and avoids corner bleed.
     private var innerShadowInset: CGFloat = 0
 
-    /// User-driven padding override. When `nil`, `relayout()` falls back to
-    /// `BeautifyRenderer.padding(for:)`. When set, the live preview uses this
-    /// value and the controller is responsible for forwarding the same value
-    /// to `BeautifyRenderer.render(innerImage:preset:padding:)` at save time.
-    private(set) var customPadding: CGFloat?
+    private(set) var shadowSize: CGFloat = BeautifyRenderer.shadowSizeDefault
+
+    var contentPadding: CGFloat {
+        guard isBeautifyEnabled else { return 0 }
+        return BeautifyRenderer.padding(forShadowSize: shadowSize, shadowEnabled: shadowEnabled)
+    }
 
     var isBeautifyEnabled: Bool { beautifyPreset != nil }
 
@@ -71,14 +72,18 @@ final class BeautifyContainerView: NSView {
         needsDisplay = true
     }
 
-    func setPadding(_ padding: CGFloat?) {
-        customPadding = padding
+    func setShadowSize(_ size: CGFloat) {
+        let size = BeautifyRenderer.normalizedShadowSize(size)
+        guard shadowSize != size else { return }
+        shadowSize = size
         relayout()
         needsDisplay = true
     }
 
     func setShadowEnabled(_ enabled: Bool) {
+        guard shadowEnabled != enabled else { return }
         shadowEnabled = enabled
+        relayout()
         needsDisplay = true
     }
 
@@ -95,33 +100,41 @@ final class BeautifyContainerView: NSView {
     /// Called by the controller when the canvas's intrinsic size changes
     /// (selection resize or long-screenshot preview load).
     func canvasSizeDidChange() {
+        if let canvasView {
+            canvasView.setPresentationScale(canvasView.presentationScale)
+        }
         relayout()
         needsDisplay = true
     }
 
     private func relayout() {
         guard let canvasView else { return }
-        canvasView.setPresentationScale(canvasView.presentationScale)
         let inner = canvasView.orientedDisplaySize
         let p: CGFloat
+        let newSize: CGSize
         if beautifyPreset != nil, inner.width > 0, inner.height > 0 {
-            p = customPadding ?? BeautifyRenderer.padding(for: inner)
-            let newSize = CGSize(
+            p = contentPadding
+            newSize = CGSize(
                 width: inner.width + 2 * p,
                 height: inner.height + 2 * p
             )
-            setFrameSize(newSize)
         } else {
             p = 0
-            setFrameSize(inner)
+            newSize = inner
+        }
+        if frame.size != newSize {
+            setFrameSize(newSize)
         }
         // frameRotation rotates around the frame origin. Locate the actual
         // rotated bounds before translating them into the inner card rect.
         let rotatedBounds = canvasView.convert(canvasView.bounds, to: self)
-        canvasView.setFrameOrigin(NSPoint(
+        let origin = NSPoint(
             x: canvasView.frame.origin.x + p - rotatedBounds.minX,
             y: canvasView.frame.origin.y + p - rotatedBounds.minY
-        ))
+        )
+        if canvasView.frame.origin != origin {
+            canvasView.setFrameOrigin(origin)
+        }
     }
 
     // MARK: - Drawing
@@ -155,6 +168,7 @@ final class BeautifyContainerView: NSView {
                 innerRect: innerRect,
                 cornerRadius: innerShadowCornerRadius,
                 inset: innerShadowInset,
+                shadowSize: shadowSize,
                 context: context
             )
         }

@@ -170,8 +170,9 @@ class EditWindowController {
     private var beautifySubToolbarView: BeautifySubToolbar?
     private var isBeautifyActive: Bool = false
     private var currentBeautifyPreset: BeautifyPreset?
-    private var currentBeautifyPadding: CGFloat = CGFloat(Defaults.lastBeautifyPadding)
+    private var currentBeautifyShadowSize: CGFloat = CGFloat(Defaults.lastBeautifyShadowSize)
     private var currentBeautifyShadowEnabled: Bool = Defaults.lastBeautifyShadowEnabled
+    private var isAdjustingBeautifyShadowSize = false
 
     /// True when the capture came from clicking a single window (not a free
     /// drag). Drives the rounded-corner + drop-shadow effect on the final
@@ -274,7 +275,7 @@ class EditWindowController {
     struct BeautifyState {
         let isActive: Bool
         let presetID: String?
-        let padding: CGFloat
+        let shadowSize: CGFloat
         let shadowEnabled: Bool
     }
 
@@ -1323,9 +1324,12 @@ class EditWindowController {
     /// Reposition the main toolbar, beautify gradient row, tool color/size
     /// row, and selection chrome overlay against the current `selectionViewRect`
     /// and beautify state. Called whenever the underlying geometry changes —
-    /// beautify toggles, preset/padding changes, or the user resizes the
+    /// beautify toggles, preset/projection changes, or the user resizes the
     /// selection.
     private func repositionFloatingChrome() {
+        // Moving the slider while it tracks the pointer changes its local
+        // mouse coordinates, feeding a new value back into the layout again.
+        guard !isAdjustingBeautifyShadowSize else { return }
         guard let hostSelectionView else { return }
         if let toolbarView {
             toolbarView.frame = toolbarRect(
@@ -1519,7 +1523,7 @@ class EditWindowController {
             loadBeautifyWallpaper(presetID: preset.id)
         }
         container.setBeautify(preset: preset)
-        container.setPadding(currentBeautifyPadding)
+        container.setShadowSize(currentBeautifyShadowSize)
         container.setShadowEnabled(currentBeautifyShadowEnabled)
         isBeautifyActive = true
         toolbars.forEach { $0.setBeautifyActive(true) }
@@ -1538,13 +1542,13 @@ class EditWindowController {
             return
         }
         dismissBeautifyPresetPopover()
+        finishBeautifyShadowSizeAdjustment(repositionChrome: false)
         currentBeautifyPreset = nil
 
         canvasView.beautifyCornerRadius = nil
         canvasView.externalBaseImage = nil
 
         container.setBeautify(preset: nil)
-        container.setPadding(nil)
         container.setInnerShadowCornerRadius(BeautifyRenderer.innerCornerRadius)
         container.setInnerShadowInset(0)
         isBeautifyActive = false
@@ -1580,19 +1584,35 @@ class EditWindowController {
         repositionFloatingChrome()
     }
 
-    private func applyBeautifyPadding(_ padding: CGFloat) {
-        currentBeautifyPadding = padding
-        Defaults.lastBeautifyPadding = Double(padding)
-        beautifyContainerView?.setPadding(padding)
-        updateCanvasFrameForBeautify()
+    private func applyBeautifyShadowSize(_ size: CGFloat) {
+        let size = BeautifyRenderer.normalizedShadowSize(size)
+        guard currentBeautifyShadowSize != size else { return }
+        let scrollOrigin = canvasScrollView?.contentView.bounds.origin
+        currentBeautifyShadowSize = size
+        if !isAdjustingBeautifyShadowSize {
+            Defaults.lastBeautifyShadowSize = Double(size)
+        }
+        beautifyContainerView?.setShadowSize(currentBeautifyShadowSize)
+        updateCanvasFrameForBeautify(preservingScrollOrigin: scrollOrigin)
         repositionFloatingChrome()
-        canvasView?.needsDisplay = true
+    }
+
+    private func finishBeautifyShadowSizeAdjustment(repositionChrome: Bool = true) {
+        guard isAdjustingBeautifyShadowSize else { return }
+        isAdjustingBeautifyShadowSize = false
+        Defaults.lastBeautifyShadowSize = Double(currentBeautifyShadowSize)
+        if repositionChrome {
+            repositionFloatingChrome()
+        }
     }
 
     private func applyBeautifyShadowEnabled(_ enabled: Bool) {
+        let scrollOrigin = canvasScrollView?.contentView.bounds.origin
         currentBeautifyShadowEnabled = enabled
         Defaults.lastBeautifyShadowEnabled = enabled
         beautifyContainerView?.setShadowEnabled(enabled)
+        updateCanvasFrameForBeautify(preservingScrollOrigin: scrollOrigin)
+        repositionFloatingChrome()
         canvasView?.needsDisplay = true
     }
 
@@ -1616,6 +1636,7 @@ class EditWindowController {
         }
 
         dismissBeautifyPresetPopover()
+        finishBeautifyShadowSizeAdjustment(repositionChrome: false)
         beautifySubToolbarView?.removeFromSuperview()
 
         let toolbarPresets = BeautifyPreset.toolbarPresets(
@@ -1634,7 +1655,7 @@ class EditWindowController {
             frame: subRect,
             presets: toolbarPresets,
             screen: screen,
-            initialPadding: currentBeautifyPadding,
+            initialShadowSize: currentBeautifyShadowSize,
             initialShadowEnabled: currentBeautifyShadowEnabled
         )
         view.currentPresetID = preset.id
@@ -1645,8 +1666,14 @@ class EditWindowController {
         view.onMoreRequested = { [weak self, weak view] anchor in
             self?.showBeautifyPresetPicker(anchoredTo: anchor, subToolbar: view)
         }
-        view.onPaddingChanged = { [weak self] padding in
-            self?.applyBeautifyPadding(padding)
+        view.onShadowSizeChanged = { [weak self] size in
+            self?.applyBeautifyShadowSize(size)
+        }
+        view.onShadowSizeEditingBegan = { [weak self] in
+            self?.isAdjustingBeautifyShadowSize = true
+        }
+        view.onShadowSizeEditingEnded = { [weak self] in
+            self?.finishBeautifyShadowSizeAdjustment()
         }
         view.onShadowEnabledChanged = { [weak self] enabled in
             self?.applyBeautifyShadowEnabled(enabled)
@@ -1711,7 +1738,7 @@ class EditWindowController {
         subToolbar?.currentPresetID = preset.id
     }
 
-    private func updateCanvasFrameForBeautify() {
+    private func updateCanvasFrameForBeautify(preservingScrollOrigin scrollOrigin: NSPoint? = nil) {
         guard
             let canvasView,
             let canvasScrollView,
@@ -1721,14 +1748,26 @@ class EditWindowController {
             return
         }
 
-        if isBeautifyActive {
-            canvasScrollView.frame = outerVisualRect(in: hostSelectionView.bounds)
-        } else {
-            canvasScrollView.frame = selectionViewRect
+        let frame = isBeautifyActive
+            ? outerVisualRect(in: hostSelectionView.bounds)
+            : selectionViewRect
+        if canvasScrollView.frame != frame {
+            canvasScrollView.frame = frame
         }
 
-        updateCanvasScrollAvailability()
-        resetCanvasScrollPosition()
+        if let scrollOrigin {
+            updateCanvasScrollAvailability()
+            let clipView = canvasScrollView.contentView
+            var bounds = clipView.bounds
+            bounds.origin = scrollOrigin
+            let origin = clipView.constrainBoundsRect(bounds).origin
+            if clipView.bounds.origin != origin {
+                clipView.scroll(to: origin)
+                canvasScrollView.reflectScrolledClipView(clipView)
+            }
+        } else {
+            resetCanvasScrollPosition()
+        }
         container.needsDisplay = true
         canvasView.needsDisplay = true
     }
@@ -1744,8 +1783,10 @@ class EditWindowController {
         guard let scrollView = canvasScrollView, let documentView = scrollView.documentView else {
             return
         }
-        scrollView.hasHorizontalScroller = false
-        scrollView.hasVerticalScroller = documentView.frame.height > scrollView.contentView.bounds.height + 0.5
+        let needsVerticalScroller = documentView.frame.height > scrollView.contentView.bounds.height + 0.5
+        if scrollView.hasVerticalScroller != needsVerticalScroller {
+            scrollView.hasVerticalScroller = needsVerticalScroller
+        }
     }
 
     private func resetCanvasScrollPosition() {
@@ -1774,8 +1815,10 @@ class EditWindowController {
         guard outer.width > 0, outer.height > 0 else {
             return selectionViewRect
         }
-        let p = container.customPadding ?? BeautifyRenderer.padding(for: container.innerImageSize)
-        if isCanvasTallerThanViewport {
+        let p = container.contentPadding
+        // Compare content with the stable selection viewport. The scroll view
+        // still has its previous size while a new margin is being applied.
+        if container.innerImageSize.height > selectionViewRect.height + 0.5 {
             return NSRect(
                 x: selectionViewRect.minX - p,
                 y: selectionViewRect.minY - p,
@@ -2830,6 +2873,7 @@ class EditWindowController {
     }
 
     func tearDown() {
+        finishBeautifyShadowSizeAdjustment(repositionChrome: false)
         detachWindowCapturePreparation()
         pendingWindowCaptureAction = nil
         if let alert = windowCaptureWaitAlert {
@@ -2902,7 +2946,7 @@ class EditWindowController {
             beautifyState: BeautifyState(
                 isActive: isBeautifyActive,
                 presetID: currentBeautifyPreset?.id,
-                padding: currentBeautifyPadding,
+                shadowSize: currentBeautifyShadowSize,
                 shadowEnabled: currentBeautifyShadowEnabled
             ),
             overrideBaseImageCropRect: overrideBaseImageCropRect,
@@ -2974,14 +3018,14 @@ class EditWindowController {
         }
 
         currentBeautifyPreset = preset
-        currentBeautifyPadding = state.padding
+        currentBeautifyShadowSize = state.shadowSize
         currentBeautifyShadowEnabled = state.shadowEnabled
         if preset.isWallpaper {
             container.wallpaperImage = nil
             loadBeautifyWallpaper(presetID: preset.id)
         }
         container.setBeautify(preset: preset)
-        container.setPadding(state.padding)
+        container.setShadowSize(state.shadowSize)
         container.setShadowEnabled(state.shadowEnabled)
         isBeautifyActive = true
         toolbars.forEach { $0.setBeautifyActive(true) }
@@ -3013,7 +3057,7 @@ class EditWindowController {
         guard let composite = canvasView?.compositeImage(
             fallbackBaseImage: fallbackBaseImage,
             beautifyPreset: currentBeautifyPreset,
-            beautifyPadding: isBeautifyActive ? currentBeautifyPadding : nil,
+            beautifyShadowSize: currentBeautifyShadowSize,
             beautifyShadowEnabled: isBeautifyActive ? currentBeautifyShadowEnabled : true,
             wallpaperImage: isBeautifyActive ? beautifyContainerView?.wallpaperImage : nil,
             annotationClipMask: annotationClipMask,
@@ -6249,19 +6293,21 @@ private class BeautifySubToolbar: NSView {
         didSet { updateSelection() }
     }
 
-    var onPaddingChanged: ((CGFloat) -> Void)?
+    var onShadowSizeChanged: ((CGFloat) -> Void)?
+    var onShadowSizeEditingBegan: (() -> Void)?
+    var onShadowSizeEditingEnded: (() -> Void)?
     var onShadowEnabledChanged: ((Bool) -> Void)?
 
     private var swatchButtons: [BeautifySwatchView] = []
     private(set) var presets: [BeautifyPreset]
-    private let initialPadding: CGFloat
+    private let initialShadowSize: CGFloat
     private let initialShadowEnabled: Bool
     private let screen: NSScreen
     private let moreButton = MoreOptionsButton(
         frame: .zero,
         toolTip: L10n.tipMoreBeautifyPresets
     )
-    private var paddingSlider: HUDSlider?
+    private var shadowSizeSlider: HUDSlider?
     private var shadowCheckbox: HUDCheckboxButton?
     private let swatchDiameter: CGFloat = BeautifySubToolbar.swatchDiameter
     private let swatchSpacing: CGFloat = BeautifySubToolbar.swatchSpacing
@@ -6286,12 +6332,12 @@ private class BeautifySubToolbar: NSView {
         frame: NSRect,
         presets: [BeautifyPreset],
         screen: NSScreen,
-        initialPadding: CGFloat = BeautifyRenderer.paddingSliderDefault,
+        initialShadowSize: CGFloat = BeautifyRenderer.shadowSizeDefault,
         initialShadowEnabled: Bool = true
     ) {
         self.presets = presets
         self.screen = screen
-        self.initialPadding = initialPadding
+        self.initialShadowSize = initialShadowSize
         self.initialShadowEnabled = initialShadowEnabled
         super.init(frame: frame)
         setup()
@@ -6343,11 +6389,11 @@ private class BeautifySubToolbar: NSView {
         x = addSeparator(after: moreButton.frame.maxX)
 
         let slider = HUDSlider(
-            value: Double(initialPadding),
-            minValue: Double(BeautifyRenderer.paddingSliderMin),
-            maxValue: Double(BeautifyRenderer.paddingSliderMax),
+            value: Double(initialShadowSize),
+            minValue: Double(BeautifyRenderer.shadowSizeMin),
+            maxValue: Double(BeautifyRenderer.shadowSizeMax),
             target: self,
-            action: #selector(paddingSliderChanged(_:))
+            action: #selector(shadowSizeSliderChanged(_:))
         )
         slider.isContinuous = true
         slider.frame = NSRect(
@@ -6356,8 +6402,12 @@ private class BeautifySubToolbar: NSView {
             width: sliderWidth,
             height: sliderHeight
         )
+        slider.toolTip = L10n.beautifyShadowSizeHint
+        slider.setAccessibilityLabel(L10n.shadowSizeLabel)
+        slider.onEditingBegan = { [weak self] in self?.onShadowSizeEditingBegan?() }
+        slider.onEditingEnded = { [weak self] in self?.onShadowSizeEditingEnded?() }
         addSubview(slider)
-        paddingSlider = slider
+        shadowSizeSlider = slider
 
         x = addSeparator(after: slider.frame.maxX)
 
@@ -6441,12 +6491,12 @@ private class BeautifySubToolbar: NSView {
         onPresetSelected?(preset)
     }
 
-    @objc private func paddingSliderChanged(_ sender: HUDSlider) {
+    @objc private func shadowSizeSliderChanged(_ sender: HUDSlider) {
         let clamped = max(
-            BeautifyRenderer.paddingSliderMin,
-            min(BeautifyRenderer.paddingSliderMax, CGFloat(sender.doubleValue))
+            BeautifyRenderer.shadowSizeMin,
+            min(BeautifyRenderer.shadowSizeMax, CGFloat(sender.doubleValue))
         )
-        onPaddingChanged?(clamped)
+        onShadowSizeChanged?(clamped)
     }
 
     @objc private func shadowCheckboxChanged(_ sender: NSButton) {

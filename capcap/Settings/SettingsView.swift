@@ -116,9 +116,9 @@ class SettingsView: NSView {
     private var beautifyAutoTitleLabel: NSTextField!
     private var beautifyAutoSubtitleLabel: NSTextField?
     private var beautifyPresetTitleLabel: NSTextField!
-    private var beautifyPaddingTitleLabel: NSTextField!
-    private var beautifyPaddingValueLabel: NSTextField!
-    private var beautifyPaddingSlider: NSSlider!
+    private var beautifyShadowSizeTitleLabel: NSTextField!
+    private var beautifyShadowSizeValueLabel: NSTextField!
+    private var beautifyShadowSizeSlider: NSSlider!
     private var beautifyShadowSwitch: NSSwitch!
     private var beautifyShadowTitleLabel: NSTextField!
     private var beautifyPresetSwatches: [BeautifySettingsSwatchView] = []
@@ -881,7 +881,7 @@ class SettingsView: NSView {
         header.spacing = 8
         header.translatesAutoresizingMaskIntoConstraints = false
 
-        windowShadowSizeTitleLabel = primaryLabel(L10n.windowShadowSizeLabel)
+        windowShadowSizeTitleLabel = primaryLabel(L10n.shadowSizeLabel)
         header.addArrangedSubview(windowShadowSizeTitleLabel)
         header.addArrangedSubview(flexSpacer())
 
@@ -998,37 +998,39 @@ class SettingsView: NSView {
         }
         inner.addArrangedSubview(swatchRow)
 
-        let paddingHeader = NSStackView()
-        paddingHeader.orientation = .horizontal
-        paddingHeader.alignment = .firstBaseline
-        paddingHeader.spacing = 8
-        paddingHeader.translatesAutoresizingMaskIntoConstraints = false
+        let shadowSizeHeader = NSStackView()
+        shadowSizeHeader.orientation = .horizontal
+        shadowSizeHeader.alignment = .firstBaseline
+        shadowSizeHeader.spacing = 8
+        shadowSizeHeader.translatesAutoresizingMaskIntoConstraints = false
 
-        beautifyPaddingTitleLabel = primaryLabel(L10n.beautifyDefaultPaddingLabel)
-        paddingHeader.addArrangedSubview(beautifyPaddingTitleLabel)
-        paddingHeader.addArrangedSubview(flexSpacer())
+        beautifyShadowSizeTitleLabel = primaryLabel(L10n.shadowSizeLabel)
+        shadowSizeHeader.addArrangedSubview(beautifyShadowSizeTitleLabel)
+        shadowSizeHeader.addArrangedSubview(flexSpacer())
 
-        beautifyPaddingValueLabel = NSTextField(labelWithString: "\(Int(Defaults.lastBeautifyPadding.rounded()))")
-        beautifyPaddingValueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-        beautifyPaddingValueLabel.textColor = NSColor.white.withAlphaComponent(0.88)
-        paddingHeader.addArrangedSubview(beautifyPaddingValueLabel)
+        beautifyShadowSizeValueLabel = NSTextField(labelWithString: "\(Int(Defaults.lastBeautifyShadowSize.rounded()))")
+        beautifyShadowSizeValueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        beautifyShadowSizeValueLabel.textColor = NSColor.white.withAlphaComponent(0.88)
+        shadowSizeHeader.addArrangedSubview(beautifyShadowSizeValueLabel)
 
-        inner.addArrangedSubview(paddingHeader)
-        paddingHeader.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
+        inner.addArrangedSubview(shadowSizeHeader)
+        shadowSizeHeader.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
 
-        let paddingSlider = NSSlider(
-            value: Defaults.lastBeautifyPadding,
-            minValue: Double(BeautifyRenderer.paddingSliderMin),
-            maxValue: Double(BeautifyRenderer.paddingSliderMax),
+        let shadowSizeSlider = NSSlider(
+            value: Defaults.lastBeautifyShadowSize,
+            minValue: Double(BeautifyRenderer.shadowSizeMin),
+            maxValue: Double(BeautifyRenderer.shadowSizeMax),
             target: self,
-            action: #selector(beautifyPaddingChanged(_:))
+            action: #selector(beautifyShadowSizeChanged(_:))
         )
-        paddingSlider.controlSize = .small
-        paddingSlider.isContinuous = true
-        paddingSlider.translatesAutoresizingMaskIntoConstraints = false
-        beautifyPaddingSlider = paddingSlider
-        inner.addArrangedSubview(paddingSlider)
-        paddingSlider.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
+        shadowSizeSlider.controlSize = .small
+        shadowSizeSlider.isContinuous = true
+        shadowSizeSlider.translatesAutoresizingMaskIntoConstraints = false
+        shadowSizeSlider.toolTip = L10n.beautifyShadowSizeHint
+        shadowSizeSlider.setAccessibilityLabel(L10n.shadowSizeLabel)
+        beautifyShadowSizeSlider = shadowSizeSlider
+        inner.addArrangedSubview(shadowSizeSlider)
+        shadowSizeSlider.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
 
         let shadowToggle = makeToggleRow(
             title: L10n.beautifyShadowEffect,
@@ -1141,9 +1143,9 @@ class SettingsView: NSView {
 
     private func updateBeautifyControlsEnabled() {
         let enabled = Defaults.beautifyAutoEnabled
-        beautifyPaddingSlider?.isEnabled = enabled
+        beautifyShadowSizeSlider?.isEnabled = enabled
         beautifyShadowSwitch?.isEnabled = enabled
-        for label in [beautifyPresetTitleLabel, beautifyPaddingTitleLabel, beautifyPaddingValueLabel, beautifyShadowTitleLabel] {
+        for label in [beautifyPresetTitleLabel, beautifyShadowSizeTitleLabel, beautifyShadowSizeValueLabel, beautifyShadowTitleLabel] {
             label?.textColor = NSColor.white.withAlphaComponent(enabled ? 0.94 : 0.4)
         }
         for swatch in beautifyPresetSwatches { swatch.isEnabled = enabled }
@@ -3523,9 +3525,9 @@ class SettingsView: NSView {
         }
     }
 
-    @objc private func beautifyPaddingChanged(_ sender: NSSlider) {
-        Defaults.lastBeautifyPadding = sender.doubleValue
-        beautifyPaddingValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyPadding.rounded()))"
+    @objc private func beautifyShadowSizeChanged(_ sender: NSSlider) {
+        Defaults.lastBeautifyShadowSize = sender.doubleValue
+        beautifyShadowSizeValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyShadowSize.rounded()))"
     }
 
     @objc private func beautifyShadowToggled(_ sender: NSSwitch) {
@@ -5608,12 +5610,14 @@ class SettingsView: NSView {
         updateHistoryPanelModeControlsEnabled()
         windowShadowTitleLabel?.stringValue = L10n.windowShadowToggleLabel
         windowShadowSubtitleLabel?.stringValue = L10n.windowShadowToggleHint
-        windowShadowSizeTitleLabel?.stringValue = L10n.windowShadowSizeLabel
+        windowShadowSizeTitleLabel?.stringValue = L10n.shadowSizeLabel
         windowShadowSizeHintLabel?.stringValue = L10n.windowShadowSizeHint
         beautifyAutoTitleLabel?.stringValue = L10n.beautifyAutoToggleLabel
         beautifyAutoSubtitleLabel?.stringValue = L10n.beautifyAutoToggleHint
         beautifyPresetTitleLabel?.stringValue = L10n.beautifyDefaultPresetLabel
-        beautifyPaddingTitleLabel?.stringValue = L10n.beautifyDefaultPaddingLabel
+        beautifyShadowSizeTitleLabel?.stringValue = L10n.shadowSizeLabel
+        beautifyShadowSizeSlider?.toolTip = L10n.beautifyShadowSizeHint
+        beautifyShadowSizeSlider?.setAccessibilityLabel(L10n.shadowSizeLabel)
         beautifyShadowTitleLabel?.stringValue = L10n.beautifyShadowEffect
         textFontTitleLabel?.stringValue = L10n.textFontDefaultLabel
         textFontHintLabel?.stringValue = L10n.textFontDefaultHint
@@ -5621,8 +5625,8 @@ class SettingsView: NSView {
         rebuildTextFontPopupItems()
         beautifyAutoSwitch?.state = Defaults.beautifyAutoEnabled ? .on : .off
         updateBeautifyControlsEnabled()
-        beautifyPaddingSlider?.doubleValue = Defaults.lastBeautifyPadding
-        beautifyPaddingValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyPadding.rounded()))"
+        beautifyShadowSizeSlider?.doubleValue = Defaults.lastBeautifyShadowSize
+        beautifyShadowSizeValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyShadowSize.rounded()))"
         beautifyShadowSwitch?.state = Defaults.lastBeautifyShadowEnabled ? .on : .off
         let beautifySelectedID = Defaults.lastBeautifyPresetID ?? BeautifyPreset.defaultPreset.id
         for swatch in beautifyPresetSwatches {

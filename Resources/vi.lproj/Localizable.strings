@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "giây";
 "windowShadowToggleLabel" = "Đổ bóng khi chụp cửa sổ";
 "windowShadowToggleHint" = "Bo góc ảnh chụp cửa sổ và thêm bóng đổ kiểu macOS";
-"windowShadowSizeLabel" = "Kích thước bóng";
+"shadowSizeLabel" = "Kích thước bóng đổ";
 "windowShadowSizeHint" = "Giá trị lớn hơn làm bóng mờ mềm hơn và lan rộng hơn, khiến cửa sổ trông nổi cao hơn";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "Than chì";
 "beautifyShadowEffect" = "Hiệu ứng bóng";
 "beautifyAutoToggleLabel" = "Mở trình chỉnh sửa với Beautify";
-"beautifyAutoToggleHint" = "Tự động áp dụng preset, lề và bóng đã dùng lần trước khi mở trình chỉnh sửa";
+"beautifyAutoToggleHint" = "Tự động áp dụng preset làm đẹp và cài đặt bóng đã dùng lần trước khi mở trình chỉnh sửa";
 "beautifyDefaultPresetLabel" = "Preset mặc định";
-"beautifyDefaultPaddingLabel" = "Lề mặc định";
+"beautifyShadowSizeHint" = "Chỉ điều chỉnh bóng của hiệu ứng làm đẹp, lề tự động tăng để chứa toàn bộ bóng";
 "textStrokeEffect" = "Viền chữ";
 "textCalloutEffect" = "Chú thích";
 "textFontLabel" = "Phông chữ";

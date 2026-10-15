@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "с";
 "windowShadowToggleLabel" = "Тень при снимке окна";
 "windowShadowToggleHint" = "Скругляет углы снимков окон и добавляет тень в стиле macOS";
-"windowShadowSizeLabel" = "Размер тени";
+"shadowSizeLabel" = "Размер падающей тени";
 "windowShadowSizeHint" = "Чем больше значение, тем мягче и шире тень — окно словно приподнято выше";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "Графит";
 "beautifyShadowEffect" = "Тень";
 "beautifyAutoToggleLabel" = "Открывать редактор с Beautify";
-"beautifyAutoToggleHint" = "Автоматически применять последний пресет, отступ и тень при открытии редактора";
+"beautifyAutoToggleHint" = "Автоматически применять последний пресет оформления и настройки тени при открытии редактора";
 "beautifyDefaultPresetLabel" = "Пресет по умолчанию";
-"beautifyDefaultPaddingLabel" = "Отступ по умолчанию";
+"beautifyShadowSizeHint" = "Изменяет только тень оформления, автоматически увеличивая отступы, чтобы она помещалась целиком";
 "textStrokeEffect" = "Обводка";
 "textCalloutEffect" = "Выноска";
 "textFontLabel" = "Шрифт";

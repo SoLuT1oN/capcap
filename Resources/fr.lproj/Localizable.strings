@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "s";
 "windowShadowToggleLabel" = "Ombre des captures de fenêtre";
 "windowShadowToggleHint" = "Arrondit les coins des captures de fenêtre et ajoute une ombre portée façon macOS";
-"windowShadowSizeLabel" = "Taille de l'ombre";
+"shadowSizeLabel" = "Taille de l’ombre portée";
 "windowShadowSizeHint" = "Des valeurs élevées adoucissent et élargissent l'ombre : la fenêtre semble flotter plus haut";
 
 /* Screenshot shortcut */
@@ -313,9 +313,9 @@
 "beautifyPresetGraphite" = "Graphite";
 "beautifyShadowEffect" = "Ombre";
 "beautifyAutoToggleLabel" = "Ouvrir l'éditeur avec Beautify";
-"beautifyAutoToggleHint" = "Applique automatiquement le dernier préréglage, le padding et l'ombre à l'ouverture de l'éditeur";
+"beautifyAutoToggleHint" = "Applique automatiquement le dernier préréglage et les réglages d’ombre de l’embellissement à l’ouverture de l’éditeur";
 "beautifyDefaultPresetLabel" = "Préréglage par défaut";
-"beautifyDefaultPaddingLabel" = "Marge par défaut";
+"beautifyShadowSizeHint" = "Ajuste uniquement l’ombre de l’embellissement, avec des marges qui s’agrandissent automatiquement pour la contenir";
 "textStrokeEffect" = "Contour";
 "textCalloutEffect" = "Annotation";
 "textFontLabel" = "Police";
