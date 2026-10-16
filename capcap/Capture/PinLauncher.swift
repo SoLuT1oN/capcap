@@ -1282,6 +1282,7 @@ final class PinContentView: NSView, NSDraggingSource {
         }
     }
     private var hasOCRResult = false
+    private var ocrProviderKind: OCRProviderKind?
     private var ocrRunID = UUID()
     private var ocrRecognitionTask: Task<Void, Never>?
 
@@ -1831,6 +1832,10 @@ final class PinContentView: NSView, NSDraggingSource {
 
     private func toggleOCRSelection() {
         guard image != nil else { return }
+        if ocrProviderKind != Defaults.ocrProviderKind {
+            resetOCRSelection()
+            ocrProviderKind = Defaults.ocrProviderKind
+        }
         if isOCRSelectionEnabled {
             isOCRSelectionEnabled = false
             return
@@ -1855,9 +1860,26 @@ final class PinContentView: NSView, NSDraggingSource {
         let imageForOCR = image.copy() as? NSImage ?? image
 
         ocrRecognitionTask = Task { @MainActor [weak self] in
-            let lines = await OCRService.recognizeLines(image: imageForOCR)
-            guard let self, self.ocrRunID == runID else { return }
+            let result: OCRResult
+            do {
+                result = try await OCRService.recognizeResult(image: imageForOCR)
+            } catch {
+                guard !Task.isCancelled, let self, self.ocrRunID == runID else { return }
+                self.ocrRecognitionTask = nil
+                self.isOCRSelectionEnabled = false
+                ToastWindow.show(message: error.localizedDescription, duration: 2.5)
+                return
+            }
+            guard !Task.isCancelled, let self, self.ocrRunID == runID else { return }
             self.ocrRecognitionTask = nil
+            let lines = result.lines
+            if lines.isEmpty, !result.text.isEmpty, let window = self.window,
+               let screen = window.screen ?? NSScreen.main {
+                self.isOCRSelectionEnabled = false
+                OCRTranslatePanel.presentTextRecognition(image: imageForOCR, anchorRect: window.frame,
+                                                         screen: screen, initialResult: result)
+                return
+            }
             self.hasOCRResult = true
             self.ocrOverlay.lines = lines
             if lines.isEmpty {

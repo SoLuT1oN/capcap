@@ -22,12 +22,49 @@ struct RecognizedTextLine: Equatable {
     }
 }
 
-/// Apple OCR helpers. Vision supplies geometric reading order; VisionKit adds
-/// native Live Text interactions and a fallback when Vision finds no lines.
+/// OCR routing plus Apple recognition helpers. Native Live Text remains
+/// exclusive to Apple results so it cannot replace another provider's text.
 enum OCRService {
     private static let preferredRecognitionLanguages = [
         "zh-Hans", "zh-Hant", "en-US", "ja-JP", "ko-KR"
     ]
+
+    @MainActor
+    static func recognizeResult(image: NSImage) async throws -> OCRResult {
+        let kind = Defaults.ocrProviderKind
+        let config = OCRConfigStore.load(kind)
+        return try await recognizeResult(image: image, kind: kind, config: config)
+    }
+
+    static func recognizeResult(image: NSImage, kind: OCRProviderKind,
+                                config: OCRProviderConfig) async throws -> OCRResult {
+        try Task.checkCancellation()
+        if kind == .apple {
+            let lines = await recognizeLines(image: image)
+            try Task.checkCancellation()
+            if !lines.isEmpty { return OCRResult(lines: lines, provider: kind) }
+            let analysis = await analyzeText(image: image)
+            try Task.checkCancellation()
+            return OCRResult(text: analysis?.transcript ?? "", provider: kind)
+        }
+        do {
+            return try await AsyncDeadline.run(seconds: 65) {
+                try await NetworkOCRProvider.recognize(image: image, kind: kind, config: config)
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch is AsyncDeadline.TimedOut {
+            throw OCRProviderError.timeout
+        } catch let error as URLError {
+            if error.code == .cancelled { throw CancellationError() }
+            if error.code == .timedOut { throw OCRProviderError.timeout }
+            throw OCRProviderError.service(String(error.errorCode))
+        } catch let error as OCRProviderError {
+            throw error
+        } catch {
+            throw OCRProviderError.response
+        }
+    }
 
     /// Recognizes text in `image` and returns it as newline-joined lines,
     /// ordered top-to-bottom then left-to-right. Returns an empty string when
@@ -157,7 +194,7 @@ enum OCRService {
     /// Group by actual line height rather than a fixed fraction of the image.
     /// A fuzzy comparison inside `sorted` is not transitive, and emitting every
     /// observation on a new line turns widely spaced horizontal titles vertical.
-    private static func readingOrderLines(_ fragments: [RecognizedTextLine]) -> [RecognizedTextLine] {
+    static func readingOrderLines(_ fragments: [RecognizedTextLine], joinsCJK: Bool = false) -> [RecognizedTextLine] {
         let sorted = fragments.sorted {
             if $0.boundingBox.midY != $1.boundingBox.midY {
                 return $0.boundingBox.midY > $1.boundingBox.midY
@@ -195,7 +232,12 @@ enum OCRService {
                     fragment.boundingBox.width / CGFloat(max(fragment.text.count, 1))
                 )
                 let gap = fragment.boundingBox.minX - previous.boundingBox.maxX
-                text += gap > characterWidth * 3 ? "\t" : " "
+                if gap > characterWidth * 3 {
+                    text += "\t"
+                } else if !(joinsCJK && previous.text.last?.isCJKLike == true
+                            && fragment.text.first?.isCJKLike == true && gap < characterWidth * 0.75) {
+                    text += " "
+                }
                 text += fragment.text
                 bounds = bounds.union(fragment.boundingBox)
             }

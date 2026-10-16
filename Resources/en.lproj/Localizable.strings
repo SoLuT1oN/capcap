@@ -707,3 +707,29 @@
 "historyPreviewTextSaveFailed" = "Unable to save text, please try again";
 
 "windowCapturePreparing" = "Preparing screenshot";
+
+// Configurable OCR providers
+"settingsTabOCR" = "OCR";
+"ocrProviderApple" = "Apple · On-device";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "OpenAI-compatible vision model";
+"ocrProviderLabel" = "OCR provider";
+"ocrEndpointLabel" = "Full API endpoint";
+"ocrModelLabel" = "Vision model name";
+"ocrRegionLabel" = "Region";
+"ocrOptionalKey" = "Optional for servers without authentication";
+"ocrVisionModelHint" = "Enter an installed or available vision model";
+"ocrLocalDescription" = "Recognize text on this Mac without uploading images";
+"ocrCloudDescription" = "Images are sent to the selected provider when you use OCR, including screenshot translation, pins and history previews";
+"ocrCompatibleDescription" = "Use a vision-capable Chat Completions API, including OpenAI, Qwen or a local server · Images are sent to the endpoint you configure";
+"ocrOllamaDescription" = "Connect to Ollama and enter an installed vision model · Images are sent to your configured Ollama server";
+"ocrTextOnlyDescription" = "This model returns text without coordinates · Pins and history open the text result panel instead of image text selection";
+"ocrDocumentation" = "Provider documentation";
+"ocrSettingsSaved" = "Settings saved automatically · Applies to the next recognition request";
+"ocrConfigurationError" = "Complete the required credentials, endpoint and model settings";
+"ocrEndpointError" = "Use a full HTTPS API URL or HTTP on localhost";
+"ocrImageError" = "Unable to decode the image";
+"ocrResponseError" = "OCR failed or returned an incomplete response";
+"ocrTimeoutError" = "OCR timed out · Check the service or try again";
+"ocrRequestFailed" = "OCR request failed";

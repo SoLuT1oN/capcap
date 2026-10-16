@@ -707,3 +707,29 @@
 "historyPreviewTextSaveFailed" = "文字儲存失敗，請重試";
 
 "windowCapturePreparing" = "正在準備截圖";
+
+// Configurable OCR providers
+"settingsTabOCR" = "文字辨識";
+"ocrProviderApple" = "Apple · 本機辨識";
+"ocrProviderBaidu" = "百度 OCR";
+"ocrProviderTencent" = "騰訊雲 OCR";
+"ocrProviderCompatible" = "OpenAI 相容視覺模型";
+"ocrProviderLabel" = "OCR 供應商";
+"ocrEndpointLabel" = "完整 API 網址";
+"ocrModelLabel" = "視覺模型名稱";
+"ocrRegionLabel" = "地區";
+"ocrOptionalKey" = "無需驗證的服務可留空";
+"ocrVisionModelHint" = "填寫已安裝或可用的視覺模型";
+"ocrLocalDescription" = "在這台 Mac 上辨識文字，無需上傳圖片";
+"ocrCloudDescription" = "使用文字辨識時會將圖片傳送至所選供應商，包括截圖翻譯、貼圖和歷史預覽";
+"ocrCompatibleDescription" = "支援 OpenAI、通義千問或本機服務的視覺 Chat Completions 介面 · 圖片會傳送至你設定的網址";
+"ocrOllamaDescription" = "連接 Ollama 並填寫已安裝的視覺模型 · 圖片會傳送至你設定的 Ollama 服務";
+"ocrTextOnlyDescription" = "此模型只回傳文字，不提供座標 · 貼圖和歷史預覽會開啟文字結果面板，無法在圖片上選字";
+"ocrDocumentation" = "供應商文件";
+"ocrSettingsSaved" = "設定自動儲存 · 下次辨識時生效";
+"ocrConfigurationError" = "請補齊所需的金鑰、API 網址和模型設定";
+"ocrEndpointError" = "請填寫完整 HTTPS API 網址，本機服務可使用 HTTP";
+"ocrImageError" = "無法解碼圖片";
+"ocrResponseError" = "OCR 辨識失敗或回傳了不完整的回應";
+"ocrTimeoutError" = "OCR 辨識逾時 · 請檢查服務或重試";
+"ocrRequestFailed" = "OCR 請求失敗";

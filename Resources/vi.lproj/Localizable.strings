@@ -707,3 +707,29 @@
 "historyPreviewTextSaveFailed" = "Không thể lưu văn bản, vui lòng thử lại";
 
 "windowCapturePreparing" = "Đang chuẩn bị ảnh chụp màn hình";
+
+// Configurable OCR providers
+"settingsTabOCR" = "Nhận dạng văn bản";
+"ocrProviderApple" = "Apple · Trên thiết bị";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "Mô hình thị giác tương thích OpenAI";
+"ocrProviderLabel" = "Nhà cung cấp OCR";
+"ocrEndpointLabel" = "Địa chỉ API đầy đủ";
+"ocrModelLabel" = "Tên mô hình thị giác";
+"ocrRegionLabel" = "Khu vực";
+"ocrOptionalKey" = "Có thể bỏ trống nếu máy chủ không cần xác thực";
+"ocrVisionModelHint" = "Nhập mô hình thị giác đã cài hoặc có sẵn";
+"ocrLocalDescription" = "Nhận dạng văn bản trên máy Mac này mà không tải ảnh lên";
+"ocrCloudDescription" = "Ảnh được gửi đến nhà cung cấp đã chọn khi dùng OCR, bao gồm dịch ảnh chụp, ảnh ghim và xem trước lịch sử";
+"ocrCompatibleDescription" = "Dùng API Chat Completions hỗ trợ thị giác như OpenAI, Qwen hoặc máy chủ cục bộ · Ảnh được gửi đến địa chỉ bạn cấu hình";
+"ocrOllamaDescription" = "Kết nối Ollama và nhập mô hình thị giác đã cài · Ảnh được gửi đến máy chủ Ollama đã cấu hình";
+"ocrTextOnlyDescription" = "Mô hình này chỉ trả về văn bản, không có tọa độ · Ảnh ghim và lịch sử sẽ mở bảng kết quả thay vì chọn chữ trên ảnh";
+"ocrDocumentation" = "Tài liệu nhà cung cấp";
+"ocrSettingsSaved" = "Tự động lưu cài đặt · Áp dụng cho lần nhận dạng tiếp theo";
+"ocrConfigurationError" = "Điền thông tin xác thực, địa chỉ API và mô hình bắt buộc";
+"ocrEndpointError" = "Dùng URL API HTTPS đầy đủ hoặc HTTP trên localhost";
+"ocrImageError" = "Không thể giải mã ảnh";
+"ocrResponseError" = "OCR thất bại hoặc phản hồi không đầy đủ";
+"ocrTimeoutError" = "OCR hết thời gian chờ · Kiểm tra dịch vụ hoặc thử lại";
+"ocrRequestFailed" = "Yêu cầu OCR thất bại";

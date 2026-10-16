@@ -2092,7 +2092,16 @@ extension OverlayWindowController: SelectionViewDelegate {
         )
 
         Task { @MainActor in
-            let text = await OCRService.recognize(image: image)
+            let text: String
+            do {
+                text = try await OCRService.recognizeResult(image: image).text
+            } catch {
+                guard !Task.isCancelled else { return }
+                ToastWindow.show(message: error.localizedDescription, on: screen,
+                                 centerAnchor: centerAnchor, duration: 2.5)
+                return
+            }
+            guard !Task.isCancelled else { return }
             if text.isEmpty {
                 ToastWindow.show(
                     message: L10n.copyImageTextNoText,

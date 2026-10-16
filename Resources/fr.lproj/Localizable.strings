@@ -707,3 +707,29 @@
 "historyPreviewTextSaveFailed" = "Impossible d’enregistrer le texte, veuillez réessayer";
 
 "windowCapturePreparing" = "Préparation de la capture";
+
+// Configurable OCR providers
+"settingsTabOCR" = "Reconnaissance de texte";
+"ocrProviderApple" = "Apple · Sur cet appareil";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "Modèle visuel compatible OpenAI";
+"ocrProviderLabel" = "Fournisseur OCR";
+"ocrEndpointLabel" = "URL complète de l’API";
+"ocrModelLabel" = "Nom du modèle visuel";
+"ocrRegionLabel" = "Région";
+"ocrOptionalKey" = "Facultatif pour un serveur sans authentification";
+"ocrVisionModelHint" = "Saisissez un modèle visuel installé ou disponible";
+"ocrLocalDescription" = "Reconnaître le texte sur ce Mac sans téléverser les images";
+"ocrCloudDescription" = "Les images sont envoyées au fournisseur choisi lors de la reconnaissance, y compris pour la traduction de captures, les images épinglées et l’historique";
+"ocrCompatibleDescription" = "Utilisez une API Chat Completions visuelle, dont OpenAI, Qwen ou un serveur local · Les images sont envoyées à l’adresse configurée";
+"ocrOllamaDescription" = "Connectez Ollama et indiquez un modèle visuel installé · Les images sont envoyées au serveur Ollama configuré";
+"ocrTextOnlyDescription" = "Ce modèle renvoie du texte sans coordonnées · Les images épinglées et l’historique ouvrent le panneau de résultats au lieu de la sélection dans l’image";
+"ocrDocumentation" = "Documentation du fournisseur";
+"ocrSettingsSaved" = "Paramètres enregistrés automatiquement · Appliqués à la prochaine reconnaissance";
+"ocrConfigurationError" = "Complétez les identifiants, l’URL et le modèle requis";
+"ocrEndpointError" = "Utilisez une URL API HTTPS complète ou HTTP sur localhost";
+"ocrImageError" = "Impossible de décoder l’image";
+"ocrResponseError" = "Échec OCR ou réponse incomplète";
+"ocrTimeoutError" = "Délai OCR dépassé · Vérifiez le service ou réessayez";
+"ocrRequestFailed" = "Échec de la requête OCR";

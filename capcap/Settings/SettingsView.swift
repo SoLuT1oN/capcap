@@ -13,6 +13,7 @@ enum SettingsTab: CaseIterable {
     case history
     case files
     case upload
+    case ocr
     case translation
     case permissions
     case about
@@ -27,6 +28,7 @@ enum SettingsTab: CaseIterable {
         case .files: return L10n.settingsGeneralFiles
         case .toolbar: return L10n.settingsTabToolbar
         case .upload: return L10n.settingsTabUpload
+        case .ocr: return L10n.settingsTabOCR
         case .translation: return L10n.settingsTabTranslation
         case .permissions: return L10n.settingsTabPermissions
         case .about: return L10n.settingsTabAbout
@@ -43,6 +45,7 @@ enum SettingsTab: CaseIterable {
         case .files: return "doc"
         case .toolbar: return "slider.horizontal.3"
         case .upload: return "icloud.and.arrow.up.fill"
+        case .ocr: return "text.viewfinder"
         case .translation: return "translate"
         case .permissions: return "lock.shield.fill"
         case .about: return "info.circle.fill"
@@ -57,7 +60,7 @@ enum SettingsTab: CaseIterable {
         case .toolbar, .recording:
             return NSColor(calibratedRed: 0.95, green: 0.54, blue: 0.62, alpha: 1.0)
         case .upload: return NSColor(calibratedRed: 0.99, green: 0.72, blue: 0.32, alpha: 1.0)
-        case .translation, .files:
+        case .translation, .files, .ocr:
             return NSColor(calibratedRed: 0.38, green: 0.80, blue: 0.78, alpha: 1.0)
         case .permissions: return NSColor(calibratedRed: 0.36, green: 0.78, blue: 0.50, alpha: 1.0)
         case .about, .history:
@@ -474,6 +477,7 @@ class SettingsView: NSView {
         paneViews[.toolbar] = buildToolbarPane()
         paneViews[.upload] = buildUploadPane()
         paneViews[.translation] = buildTranslationPane()
+        paneViews[.ocr] = OCRSettingsPane()
         paneViews[.permissions] = buildPermissionsPane()
         paneViews[.about] = buildAboutPane()
 

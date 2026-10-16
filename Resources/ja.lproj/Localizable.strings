@@ -707,3 +707,29 @@
 "historyPreviewTextSaveFailed" = "テキストを保存できませんでした、再試行してください";
 
 "windowCapturePreparing" = "スクリーンショットを準備中";
+
+// Configurable OCR providers
+"settingsTabOCR" = "文字認識";
+"ocrProviderApple" = "Apple · デバイス内";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "OpenAI 互換の視覚モデル";
+"ocrProviderLabel" = "OCR プロバイダー";
+"ocrEndpointLabel" = "完全な API URL";
+"ocrModelLabel" = "視覚モデル名";
+"ocrRegionLabel" = "リージョン";
+"ocrOptionalKey" = "認証不要のサーバーでは省略可能";
+"ocrVisionModelHint" = "インストール済みまたは利用可能な視覚モデルを入力";
+"ocrLocalDescription" = "画像をアップロードせずにこの Mac で文字を認識";
+"ocrCloudDescription" = "スクリーンショット翻訳、ピン留め、履歴プレビューを含む OCR の使用時に、選択したプロバイダーへ画像を送信";
+"ocrCompatibleDescription" = "OpenAI、Qwen、ローカルサーバーなどの視覚対応 Chat Completions API を使用 · 設定した URL に画像を送信";
+"ocrOllamaDescription" = "Ollama に接続してインストール済みの視覚モデルを入力 · 設定した Ollama サーバーに画像を送信";
+"ocrTextOnlyDescription" = "このモデルは座標なしのテキストを返します · ピン留めと履歴では画像内の文字選択の代わりに結果パネルを表示";
+"ocrDocumentation" = "プロバイダーのドキュメント";
+"ocrSettingsSaved" = "設定を自動保存 · 次の認識から適用";
+"ocrConfigurationError" = "必要な認証情報、API URL、モデル設定を入力してください";
+"ocrEndpointError" = "完全な HTTPS API URL を入力してください · localhost は HTTP も利用可能";
+"ocrImageError" = "画像をデコードできません";
+"ocrResponseError" = "OCR が失敗したか、応答が不完全です";
+"ocrTimeoutError" = "OCR がタイムアウトしました · サービスを確認するか再試行してください";
+"ocrRequestFailed" = "OCR リクエストが失敗しました";

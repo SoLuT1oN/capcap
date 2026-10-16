@@ -1,5 +1,15 @@
 import Foundation
 
+extension Defaults {
+    /// An explicit selection applies to every image-to-text entry point.
+    static var ocrProviderKind: OCRProviderKind {
+        get {
+            OCRProviderKind(rawValue: UserDefaults.standard.string(forKey: "ocr.provider") ?? "") ?? .apple
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "ocr.provider") }
+    }
+}
+
 /// A language the app's UI can be displayed in. Raw values double as the
 /// `appLanguage` UserDefaults value (kept stable for backward compatibility).
 enum AppLanguage: String, CaseIterable {
@@ -777,6 +787,30 @@ enum L10n {
 
     // OCR & Translation — result panel
     static var ocrTextHeader: String { s("ocrTextHeader") }
+    static var settingsTabOCR: String { s("settingsTabOCR") }
+    static var ocrProviderApple: String { s("ocrProviderApple") }
+    static var ocrProviderBaidu: String { s("ocrProviderBaidu") }
+    static var ocrProviderTencent: String { s("ocrProviderTencent") }
+    static var ocrProviderCompatible: String { s("ocrProviderCompatible") }
+    static var ocrProviderLabel: String { s("ocrProviderLabel") }
+    static var ocrEndpointLabel: String { s("ocrEndpointLabel") }
+    static var ocrModelLabel: String { s("ocrModelLabel") }
+    static var ocrRegionLabel: String { s("ocrRegionLabel") }
+    static var ocrOptionalKey: String { s("ocrOptionalKey") }
+    static var ocrVisionModelHint: String { s("ocrVisionModelHint") }
+    static var ocrLocalDescription: String { s("ocrLocalDescription") }
+    static var ocrCloudDescription: String { s("ocrCloudDescription") }
+    static var ocrCompatibleDescription: String { s("ocrCompatibleDescription") }
+    static var ocrOllamaDescription: String { s("ocrOllamaDescription") }
+    static var ocrTextOnlyDescription: String { s("ocrTextOnlyDescription") }
+    static var ocrDocumentation: String { s("ocrDocumentation") }
+    static var ocrSettingsSaved: String { s("ocrSettingsSaved") }
+    static var ocrConfigurationError: String { s("ocrConfigurationError") }
+    static var ocrEndpointError: String { s("ocrEndpointError") }
+    static var ocrImageError: String { s("ocrImageError") }
+    static var ocrResponseError: String { s("ocrResponseError") }
+    static var ocrTimeoutError: String { s("ocrTimeoutError") }
+    static var ocrRequestFailed: String { s("ocrRequestFailed") }
     static var ocrRecognizing: String { s("ocrRecognizing") }
     static var ocrNoText: String { s("ocrNoText") }
     static var ocrCopy: String { s("ocrCopy") }

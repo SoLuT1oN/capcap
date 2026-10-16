@@ -5684,13 +5684,32 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
         imageView.animates = false
         updateOCRButton(isRecognizing: true)
         ocrTask = Task { @MainActor [weak self] in
-            let lines = await OCRService.recognizeLines(image: image)
+            let result: OCRResult
+            do {
+                result = try await OCRService.recognizeResult(image: image)
+            } catch {
+                guard !Task.isCancelled, let self, self.loadGeneration == generation else { return }
+                self.ocrTask = nil
+                self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
+                self.updateOCRButton(isRecognizing: false)
+                ToastWindow.show(message: error.localizedDescription)
+                return
+            }
+            let lines = result.lines
             guard !Task.isCancelled else { return }
             // Match the existing OCR panel: use geometric text selection first,
             // with native Live Text as the fallback when no lines are found.
-            let analysis = lines.isEmpty ? await OCRService.analyzeText(image: image) : nil
+            let analysis = result.provider == .apple && lines.isEmpty ? await OCRService.analyzeText(image: image) : nil
             guard !Task.isCancelled, let self, self.loadGeneration == generation else { return }
             self.ocrTask = nil
+            if lines.isEmpty, !result.text.isEmpty, analysis == nil,
+               let window = self.window, let screen = window.screen ?? NSScreen.main {
+                self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
+                self.updateOCRButton(isRecognizing: false)
+                OCRTranslatePanel.presentTextRecognition(image: image, anchorRect: window.frame,
+                                                         screen: screen, initialResult: result)
+                return
+            }
             guard !lines.isEmpty || analysis != nil,
                   let content = self.window?.contentView else {
                 self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
