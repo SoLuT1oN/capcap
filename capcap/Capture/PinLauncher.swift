@@ -109,13 +109,25 @@ enum PinLauncher {
 
     /// Creates a floating pinned window for `image`. When `origin` is nil the
     /// window is centered on the screen under the cursor. Oversized images are
-    /// scaled down to fit the screen.
-    static func pin(image: NSImage, at origin: NSPoint? = nil, source: PinSource? = nil) {
+    /// scaled down to fit the screen. The original image is saved to history
+    /// unless the caller is pinning an existing history entry.
+    static func pin(
+        image: NSImage,
+        at origin: NSPoint? = nil,
+        source: PinSource? = nil,
+        saveToHistory: Bool = true
+    ) {
         let screen = activeScreen()
         let size = fittedSize(for: image.size, on: screen)
         let frameOrigin = origin ?? centeredOrigin(for: size, on: screen)
 
-        makeWindow(image: image, size: size, origin: frameOrigin, source: source)
+        makeWindow(
+            image: image,
+            size: size,
+            origin: frameOrigin,
+            source: source,
+            saveToHistory: saveToHistory
+        )
     }
 
     /// Creates a floating editable text pin backed by a regular AppKit text view.
@@ -145,11 +157,23 @@ enum PinLauncher {
         let baseOrigin = centeredOrigin(for: first.size, on: screen)
         for (index, pin) in pins.enumerated() {
             let origin = stackedOrigin(baseOrigin: baseOrigin, index: index, size: pin.size, on: screen)
-            makeWindow(image: pin.image, size: pin.size, origin: origin, source: source)
+            makeWindow(
+                image: pin.image,
+                size: pin.size,
+                origin: origin,
+                source: source,
+                saveToHistory: true
+            )
         }
     }
 
-    private static func makeWindow(image: NSImage, size: NSSize, origin: NSPoint, source: PinSource?) {
+    private static func makeWindow(
+        image: NSImage,
+        size: NSSize,
+        origin: NSPoint,
+        source: PinSource?,
+        saveToHistory: Bool
+    ) {
         let window = PinWindow(
             contentRect: NSRect(origin: origin, size: size),
             styleMask: [.borderless],
@@ -183,6 +207,10 @@ enum PinLauncher {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(contentView)
+
+        if saveToHistory {
+            HistoryManager.shared.add(image: image)
+        }
     }
 
     private static func makeTextWindow(

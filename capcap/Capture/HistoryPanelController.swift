@@ -5670,7 +5670,7 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
     @objc private func pinCurrent() {
         guard let image = NSImage(contentsOf: currentEntry.fileURL) else { return }
         close()
-        PinLauncher.pin(image: image)
+        PinLauncher.pin(image: image, saveToHistory: false)
     }
 
     @objc private func recognizeCurrent() {
