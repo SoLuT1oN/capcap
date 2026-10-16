@@ -3,6 +3,7 @@ import AppKit
 enum HistoryMediaBadgeKind {
     case gif
     case mp4
+    case files(String)
 
     init?(entry: HistoryEntry) {
         switch entry.kind {
@@ -10,6 +11,8 @@ enum HistoryMediaBadgeKind {
             self = .gif
         case .video:
             self = .mp4
+        case .files(let files):
+            self = .files(files.typeLabel)
         case .image, .color, .text:
             return nil
         }
@@ -19,6 +22,7 @@ enum HistoryMediaBadgeKind {
         switch self {
         case .gif: return "GIF"
         case .mp4: return "MP4"
+        case .files(let title): return title
         }
     }
 }

@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "New pinned images appear on every desktop and full-screen Space";
 "historyCacheToggleLabel" = "Cache Screenshots";
 "historyCacheToggleHint" = "Store recent screenshots, picked colors, and upload links for quick reuse from the history panel";
-"clipboardTextCacheToggleLabel" = "Cache Clipboard Text";
-"clipboardTextCacheToggleHint" = "Store copied text in history for quick reuse";
-"clipboardTextHistoryLimitLabel" = "Text History Limit";
+"clipboardTextCacheToggleLabel" = "Record Clipboard Text and Files";
+"clipboardTextCacheToggleHint" = "Keep text and source file references without copying files";
+"clipboardTextHistoryLimitLabel" = "Text / File History Limit";
 "historyCacheLabel" = "Image and Media History Limit";
 "historyPanelDisplayModeLabel" = "History Panel Display";
 "historyPanelDisplayModeHint" = "Choose Dialog or Notch for history";
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Colors";
 "historyPanelFilterText" = "Text";
-"historyPanelSearchColorsAndText" = "Search colors and text";
+"historyPanelSearchColorsAndText" = "Search colors, text, and files";
 "historyPanelSearchColors" = "Search colors";
 "historyPanelSearchText" = "Search text";
 "historyPanelClearSearch" = "Clear search";
@@ -733,3 +733,23 @@
 "ocrResponseError" = "OCR failed or returned an incomplete response";
 "ocrTimeoutError" = "OCR timed out · Check the service or try again";
 "ocrRequestFailed" = "OCR request failed";
+
+"historyPanelFilterFiles" = "Files";
+
+"historyPanelFolder" = "Folder";
+
+"historyPanelSearchFiles" = "Search file names and paths";
+
+"historyPanelSourceUnavailable" = "Source unavailable";
+
+"historyPanelSourceUnavailableHint" = "Some source files are deleted, offline, or not downloaded";
+
+"historyFilePreviewPrevious" = "Previous file";
+
+"historyFilePreviewNext" = "Next file";
+
+"historyFilePreviewLoading" = "Loading preview";
+
+"historyFilePreviewRetry" = "Check again";
+
+"historyFilePreviewUnavailable" = "Preview unavailable for this file";

@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "オンにすると新しいピン画像がすべてのデスクトップとフルスクリーン操作スペースに表示されます";
 "historyCacheToggleLabel" = "スクリーンショットをキャッシュ";
 "historyCacheToggleHint" = "最近のスクリーンショット、取得した色、アップロード結果を保存し、履歴パネルからすばやく再コピーできます";
-"clipboardTextCacheToggleLabel" = "クリップボードのテキストをキャッシュ";
-"clipboardTextCacheToggleHint" = "コピーしたテキストを履歴に保存してすばやく再利用できます";
-"clipboardTextHistoryLimitLabel" = "テキスト履歴の上限";
+"clipboardTextCacheToggleLabel" = "クリップボードのテキストとファイルを記録";
+"clipboardTextCacheToggleHint" = "ファイルを複製せずテキストと元ファイルへの参照を保存";
+"clipboardTextHistoryLimitLabel" = "テキスト / ファイル履歴の上限";
 "historyCacheLabel" = "画像とメディアの履歴上限";
 "historyPanelDisplayModeLabel" = "履歴パネルの表示方式";
 "historyPanelDisplayModeHint" = "ダイアログまたはノッチで履歴を表示";
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "カラー";
 "historyPanelFilterText" = "テキスト";
-"historyPanelSearchColorsAndText" = "色とテキストを検索";
+"historyPanelSearchColorsAndText" = "色、テキスト、ファイルを検索";
 "historyPanelSearchColors" = "色を検索";
 "historyPanelSearchText" = "テキストを検索";
 "historyPanelClearSearch" = "検索をクリア";
@@ -733,3 +733,23 @@
 "ocrResponseError" = "OCR が失敗したか、応答が不完全です";
 "ocrTimeoutError" = "OCR がタイムアウトしました · サービスを確認するか再試行してください";
 "ocrRequestFailed" = "OCR リクエストが失敗しました";
+
+"historyPanelFilterFiles" = "ファイル";
+
+"historyPanelFolder" = "フォルダ";
+
+"historyPanelSearchFiles" = "ファイル名とパスを検索";
+
+"historyPanelSourceUnavailable" = "元のファイルを利用できません";
+
+"historyPanelSourceUnavailableHint" = "一部の元ファイルが削除済み、オフライン、または未ダウンロードです";
+
+"historyFilePreviewPrevious" = "前のファイル";
+
+"historyFilePreviewNext" = "次のファイル";
+
+"historyFilePreviewLoading" = "プレビューを読み込み中";
+
+"historyFilePreviewRetry" = "再確認";
+
+"historyFilePreviewUnavailable" = "このファイルはプレビューできません";

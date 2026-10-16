@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "Новые закрепленные изображения появляются на каждом рабочем столе и полноэкранном Space";
 "historyCacheToggleLabel" = "Кэшировать снимки";
 "historyCacheToggleHint" = "Сохраняет недавние снимки, выбранные цвета и ссылки загрузок для быстрого повторного копирования из панели истории";
-"clipboardTextCacheToggleLabel" = "Кэшировать текст буфера обмена";
-"clipboardTextCacheToggleHint" = "Сохраняет скопированный текст в истории для быстрого повторного использования";
-"clipboardTextHistoryLimitLabel" = "Лимит истории текста";
+"clipboardTextCacheToggleLabel" = "Записывать текст и файлы буфера обмена";
+"clipboardTextCacheToggleHint" = "Сохранять текст и ссылки на исходные файлы без копирования файлов";
+"clipboardTextHistoryLimitLabel" = "Лимит истории текста / файлов";
 "historyCacheLabel" = "Лимит истории изображений и медиа";
 "historyPanelDisplayModeLabel" = "Отображение панели истории";
 "historyPanelDisplayModeHint" = "Выберите диалог или вырез для истории";
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Цвета";
 "historyPanelFilterText" = "Текст";
-"historyPanelSearchColorsAndText" = "Поиск по цветам и тексту";
+"historyPanelSearchColorsAndText" = "Поиск по цветам, тексту и файлам";
 "historyPanelSearchColors" = "Поиск по цветам";
 "historyPanelSearchText" = "Поиск по тексту";
 "historyPanelClearSearch" = "Очистить поиск";
@@ -733,3 +733,23 @@
 "ocrResponseError" = "Ошибка OCR или неполный ответ";
 "ocrTimeoutError" = "Время ожидания OCR истекло · Проверьте сервис или повторите попытку";
 "ocrRequestFailed" = "Ошибка запроса OCR";
+
+"historyPanelFilterFiles" = "Файлы";
+
+"historyPanelFolder" = "Папка";
+
+"historyPanelSearchFiles" = "Поиск по именам и путям файлов";
+
+"historyPanelSourceUnavailable" = "Исходный файл недоступен";
+
+"historyPanelSourceUnavailableHint" = "Некоторые исходные файлы удалены, не подключены или не загружены";
+
+"historyFilePreviewPrevious" = "Предыдущий файл";
+
+"historyFilePreviewNext" = "Следующий файл";
+
+"historyFilePreviewLoading" = "Загрузка предпросмотра";
+
+"historyFilePreviewRetry" = "Проверить снова";
+
+"historyFilePreviewUnavailable" = "Предпросмотр этого файла недоступен";

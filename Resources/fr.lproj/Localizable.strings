@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "Les nouvelles images épinglées apparaissent sur chaque bureau et espace plein écran";
 "historyCacheToggleLabel" = "Mettre les captures en cache";
 "historyCacheToggleHint" = "Enregistre les captures récentes, les couleurs prélevées et les liens téléversés pour les recopier depuis le panneau d'historique";
-"clipboardTextCacheToggleLabel" = "Mettre le texte du presse-papiers en cache";
-"clipboardTextCacheToggleHint" = "Enregistre le texte copié dans l’historique pour le réutiliser rapidement";
-"clipboardTextHistoryLimitLabel" = "Limite de l’historique du texte";
+"clipboardTextCacheToggleLabel" = "Enregistrer le texte et les fichiers du presse-papiers";
+"clipboardTextCacheToggleHint" = "Conserver le texte et les références aux fichiers sans les copier";
+"clipboardTextHistoryLimitLabel" = "Limite de l’historique texte / fichiers";
 "historyCacheLabel" = "Limite de l’historique des images et médias";
 "historyPanelDisplayModeLabel" = "Affichage du panneau d'historique";
 "historyPanelDisplayModeHint" = "Choisir Dialogue ou Encoche pour l'historique";
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Couleurs";
 "historyPanelFilterText" = "Texte";
-"historyPanelSearchColorsAndText" = "Rechercher couleurs et texte";
+"historyPanelSearchColorsAndText" = "Rechercher couleurs, texte et fichiers";
 "historyPanelSearchColors" = "Rechercher des couleurs";
 "historyPanelSearchText" = "Rechercher du texte";
 "historyPanelClearSearch" = "Effacer la recherche";
@@ -733,3 +733,23 @@
 "ocrResponseError" = "Échec OCR ou réponse incomplète";
 "ocrTimeoutError" = "Délai OCR dépassé · Vérifiez le service ou réessayez";
 "ocrRequestFailed" = "Échec de la requête OCR";
+
+"historyPanelFilterFiles" = "Fichiers";
+
+"historyPanelFolder" = "Dossier";
+
+"historyPanelSearchFiles" = "Rechercher les noms et chemins de fichiers";
+
+"historyPanelSourceUnavailable" = "Source indisponible";
+
+"historyPanelSourceUnavailableHint" = "Certains fichiers sources sont supprimés, hors ligne ou non téléchargés";
+
+"historyFilePreviewPrevious" = "Fichier précédent";
+
+"historyFilePreviewNext" = "Fichier suivant";
+
+"historyFilePreviewLoading" = "Chargement de l’aperçu";
+
+"historyFilePreviewRetry" = "Vérifier à nouveau";
+
+"historyFilePreviewUnavailable" = "Aperçu indisponible pour ce fichier";

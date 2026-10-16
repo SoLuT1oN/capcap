@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "켜면 새 고정 이미지가 모든 데스크톱과 전체 화면 Space에 표시됩니다";
 "historyCacheToggleLabel" = "스크린샷 캐시";
 "historyCacheToggleHint" = "최근 스크린샷, 선택한 색상, 업로드 결과를 저장해 기록 패널에서 빠르게 다시 복사할 수 있습니다";
-"clipboardTextCacheToggleLabel" = "클립보드 텍스트 캐시";
-"clipboardTextCacheToggleHint" = "복사한 텍스트를 기록에 저장해 빠르게 재사용할 수 있습니다";
-"clipboardTextHistoryLimitLabel" = "텍스트 기록 한도";
+"clipboardTextCacheToggleLabel" = "클립보드 텍스트 및 파일 기록";
+"clipboardTextCacheToggleHint" = "파일을 복제하지 않고 텍스트와 원본 파일 참조 저장";
+"clipboardTextHistoryLimitLabel" = "텍스트 / 파일 기록 한도";
 "historyCacheLabel" = "이미지와 미디어 기록 한도";
 "historyPanelDisplayModeLabel" = "기록 패널 표시 방식";
 "historyPanelDisplayModeHint" = "팝업 또는 노치로 기록 보기";
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "색상";
 "historyPanelFilterText" = "텍스트";
-"historyPanelSearchColorsAndText" = "색상 및 텍스트 검색";
+"historyPanelSearchColorsAndText" = "색상, 텍스트 및 파일 검색";
 "historyPanelSearchColors" = "색상 검색";
 "historyPanelSearchText" = "텍스트 검색";
 "historyPanelClearSearch" = "검색 지우기";
@@ -733,3 +733,23 @@
 "ocrResponseError" = "OCR이 실패했거나 응답이 불완전함";
 "ocrTimeoutError" = "OCR 시간 초과 · 서비스를 확인하거나 다시 시도하세요";
 "ocrRequestFailed" = "OCR 요청 실패";
+
+"historyPanelFilterFiles" = "파일";
+
+"historyPanelFolder" = "폴더";
+
+"historyPanelSearchFiles" = "파일 이름 및 경로 검색";
+
+"historyPanelSourceUnavailable" = "원본 파일을 사용할 수 없음";
+
+"historyPanelSourceUnavailableHint" = "일부 원본 파일이 삭제되었거나 오프라인이거나 다운로드되지 않음";
+
+"historyFilePreviewPrevious" = "이전 파일";
+
+"historyFilePreviewNext" = "다음 파일";
+
+"historyFilePreviewLoading" = "미리보기 로드 중";
+
+"historyFilePreviewRetry" = "다시 확인";
+
+"historyFilePreviewUnavailable" = "이 파일을 미리 볼 수 없음";

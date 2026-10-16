@@ -4,6 +4,7 @@ enum HistorySearchScope: Equatable {
     case colorsAndText
     case colors
     case text
+    case files
 }
 
 enum HistorySearchMatcher {
@@ -20,6 +21,9 @@ enum HistorySearchMatcher {
         case .text(let content):
             guard scope == .colorsAndText || scope == .text else { return false }
             return contains(content.value, needle: needle)
+        case .files(let files):
+            guard scope == .colorsAndText || scope == .files else { return false }
+            return contains(files.searchText, needle: needle)
         case .image, .video:
             return false
         }
@@ -31,6 +35,8 @@ enum HistorySearchMatcher {
             return scope == .colorsAndText || scope == .colors
         case .text:
             return scope == .colorsAndText || scope == .text
+        case .files:
+            return scope == .colorsAndText || scope == .files
         case .image, .video:
             return false
         }
