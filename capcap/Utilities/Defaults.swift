@@ -338,6 +338,7 @@ enum L10n {
     static var historyPanelShortcutKeySpace: String { s("historyPanelShortcutKeySpace") }
     static var historyPanelShortcutSearch: String { s("historyPanelShortcutSearch") }
     static var historyPanelShortcutSwitchFilter: String { s("historyPanelShortcutSwitchFilter") }
+    static var historyPanelShortcutSwitchItem: String { s("historyPanelShortcutSwitchItem") }
     static var historyPanelShortcutToggleSelection: String { s("historyPanelShortcutToggleSelection") }
     static var historyPanelShortcutRangeSelection: String { s("historyPanelShortcutRangeSelection") }
     static var historyPanelShortcutSelectAll: String { s("historyPanelShortcutSelectAll") }

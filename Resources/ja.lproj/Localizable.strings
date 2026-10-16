@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "スペース";
 "historyPanelShortcutSearch" = "検索を開始または終了";
 "historyPanelShortcutSwitchFilter" = "カテゴリを切り替える";
+"historyPanelShortcutSwitchItem" = "前または次の項目に切り替える";
 "historyPanelShortcutToggleSelection" = "1項目を選択または解除";
 "historyPanelShortcutRangeSelection" = "範囲選択";
 "historyPanelShortcutSelectAll" = "表示中の項目をすべて選択";

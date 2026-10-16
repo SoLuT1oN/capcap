@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "스페이스";
 "historyPanelShortcutSearch" = "검색 시작 또는 종료";
 "historyPanelShortcutSwitchFilter" = "카테고리 전환";
+"historyPanelShortcutSwitchItem" = "이전 또는 다음 항목으로 전환";
 "historyPanelShortcutToggleSelection" = "항목 하나 선택 또는 해제";
 "historyPanelShortcutRangeSelection" = "범위 선택";
 "historyPanelShortcutSelectAll" = "표시된 항목 모두 선택";

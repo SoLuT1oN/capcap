@@ -1316,6 +1316,8 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     private var previewController: HistoryPreviewWindowController?
     private var filePreviewController: HistoryFileQuickLookWindowController?
     private weak var activeHoverTile: HistoryPanelTileView?
+    private var keyboardEntryID: String?
+    private var keyboardMouseOrigin: NSPoint?
     private var allEntries: [HistoryEntry] = []
     private var visibleEntries: [HistoryEntry] = []
     private var availableFilters: Set<HistoryPanelFilter> = [.all]
@@ -1617,6 +1619,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 updatePreviewLoading(initial: true)
             }
         } else {
+            clearKeyboardNavigation()
             endSearchMode(animated: false)
             if isReloading {
                 needsEntriesReload = true
@@ -1651,6 +1654,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     private func selectFilter(_ filter: HistoryPanelFilter) {
+        clearKeyboardNavigation()
         setShortcutGuideVisible(false)
         if isSearchMode, filter.searchScope == nil {
             endSearchMode(animated: true, updateResults: false)
@@ -1672,6 +1676,77 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
               let currentIndex = orderedFilters.firstIndex(of: selectedFilter) else { return }
         let offset = forward ? 1 : orderedFilters.count - 1
         selectFilter(orderedFilters[(currentIndex + offset) % orderedFilters.count])
+    }
+
+    private func moveEntry(forward: Bool) {
+        guard !visibleEntries.isEmpty else { return }
+        let currentID = isKeyboardNavigationActive
+            ? keyboardEntryID
+            : activeHoverTile.map { entryID($0.entry) }
+        let currentIndex = currentID.flatMap { id in
+            visibleEntries.firstIndex { entryID($0) == id }
+        }
+        let nextIndex: Int
+        if let currentIndex {
+            nextIndex = min(max(currentIndex + (forward ? 1 : -1), 0), visibleEntries.count - 1)
+        } else {
+            nextIndex = visibleIndexRange()?.lowerBound ?? 0
+        }
+
+        setDeleteConfirmation(false, animated: true)
+        hoverSyncWorkItem?.cancel()
+        hoverSyncWorkItem = nil
+        isScrollingContent = false
+        keyboardEntryID = entryID(visibleEntries[nextIndex])
+        keyboardMouseOrigin = NSEvent.mouseLocation
+        if nextIndex >= renderedEntryCount {
+            appendNextPage()
+        }
+        revealEntry(at: nextIndex)
+        syncHoverStateWithCurrentMouse()
+    }
+
+    private func revealEntry(at index: Int) {
+        layoutSubtreeIfNeeded()
+        collectionView.layoutSubtreeIfNeeded()
+        guard let attributes = collectionLayout.layoutAttributesForItem(
+            at: IndexPath(item: index, section: 0)
+        ) else { return }
+
+        // Scroll the clip view directly: the collection's automatic scrolling
+        // does not reliably reveal items with our disabled horizontal scroller.
+        let visibleRect = scrollView.documentVisibleRect
+        let padding = collectionLayout.minimumLineSpacing
+        let itemFrame = attributes.frame
+        var targetX = visibleRect.minX
+        if itemFrame.minX < visibleRect.minX + padding {
+            targetX = itemFrame.minX - padding
+        } else if itemFrame.maxX > visibleRect.maxX - padding {
+            targetX = itemFrame.maxX - visibleRect.width + padding
+        }
+        let maximumX = max(0, collectionView.bounds.width - visibleRect.width)
+        let clampedX = min(max(0, targetX), maximumX)
+        scrollView.contentView.scroll(to: NSPoint(
+            x: clampedX,
+            y: scrollView.contentView.bounds.origin.y
+        ))
+        scrollView.reflectScrolledClipView(scrollView.contentView)
+        collectionView.layoutSubtreeIfNeeded()
+    }
+
+    private func clearKeyboardNavigation() {
+        keyboardEntryID = nil
+        keyboardMouseOrigin = nil
+    }
+
+    private var isKeyboardNavigationActive: Bool {
+        guard keyboardEntryID != nil, let origin = keyboardMouseOrigin else { return false }
+        let current = NSEvent.mouseLocation
+        guard hypot(current.x - origin.x, current.y - origin.y) < 0.5 else {
+            clearKeyboardNavigation()
+            return false
+        }
+        return true
     }
 
     private func beginSearchMode() {
@@ -1760,6 +1835,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         guard isSearchInputActive != nextValue else { return }
         isSearchInputActive = nextValue
         if nextValue {
+            clearKeyboardNavigation()
             clearActiveHoverTile()
             startSearchMouseMovementTracking(origin: moveCursorToSearchField())
         } else {
@@ -1960,6 +2036,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         guard isShowingShortcutGuide != visible else { return }
         isShowingShortcutGuide = visible
         if visible {
+            clearKeyboardNavigation()
             clearActiveHoverTile()
             previewController?.close()
             filePreviewController?.close()
@@ -2051,6 +2128,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func applyEntries(_ entries: [HistoryEntry], hasAnyEntries: Bool) {
         previewWarmGeneration += 1
+        clearKeyboardNavigation()
         clearActiveHoverTile()
         visibleEntries = entries
         pruneSelection(to: entries)
@@ -2290,6 +2368,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     func resetTransientState(animated: Bool) {
+        clearKeyboardNavigation()
         setDeleteConfirmation(false, animated: animated)
         setShortcutGuideVisible(false)
         clearSelection()
@@ -2306,6 +2385,13 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         // Materialize its visible items before resolving the pointer target.
         layoutSubtreeIfNeeded()
         collectionView.layoutSubtreeIfNeeded()
+
+        if isKeyboardNavigationActive {
+            if let tile = visibleCollectionTiles.first(where: { entryID($0.entry) == keyboardEntryID }) {
+                updateActiveHoverTile(tile, isHovered: true, fromKeyboard: true)
+            }
+            return
+        }
 
         let windowPoint = window.convertPoint(fromScreen: NSEvent.mouseLocation)
         let contentPoint = convert(windowPoint, from: nil)
@@ -2326,7 +2412,14 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         clearActiveHoverTile()
     }
 
-    private func updateActiveHoverTile(_ tile: HistoryPanelTileView, isHovered: Bool) {
+    private func updateActiveHoverTile(
+        _ tile: HistoryPanelTileView,
+        isHovered: Bool,
+        fromKeyboard: Bool = false
+    ) {
+        // Scrolling under a stationary pointer emits tracking events. Keep the
+        // keyboard target until the user actually moves the pointer.
+        guard fromKeyboard || !isKeyboardNavigationActive else { return }
         if isHovered {
             guard !isScrollingContent else {
                 tile.setHovered(false)
@@ -2397,9 +2490,18 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func startSelectionKeyMonitoring() {
         guard selectionKeyMonitor == nil else { return }
-        selectionKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        selectionKeyMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown, .mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]
+        ) { [weak self] event in
             guard let self else { return event }
             guard event.window === self.window else { return event }
+            guard event.type == .keyDown else {
+                if self.keyboardEntryID != nil {
+                    self.clearKeyboardNavigation()
+                    self.syncHoverStateWithCurrentMouse()
+                }
+                return event
+            }
 
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             let shortcutModifiers = modifiers.intersection([.command, .control, .option, .shift])
@@ -2426,6 +2528,19 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 }
                 return event
             }
+            let isHorizontalArrow = event.keyCode == UInt16(kVK_LeftArrow)
+                || event.keyCode == UInt16(kVK_RightArrow)
+            if self.isActive, isHorizontalArrow {
+                let forward = event.keyCode == UInt16(kVK_RightArrow)
+                if shortcutModifiers == .shift {
+                    self.cycleFilter(forward: forward)
+                    return nil
+                }
+                if shortcutModifiers.isEmpty, !self.isSearchInputActive {
+                    self.moveEntry(forward: forward)
+                    return nil
+                }
+            }
             if self.isSearchMode {
                 if event.keyCode == UInt16(kVK_Escape) {
                     self.endSearchMode(animated: true)
@@ -2442,19 +2557,6 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 return event
             }
 
-            let hasFilterCycleModifier = !modifiers.intersection([.command, .control, .option, .shift]).isEmpty
-            if self.isActive, !hasFilterCycleModifier {
-                switch Int(event.keyCode) {
-                case kVK_LeftArrow:
-                    self.cycleFilter(forward: false)
-                    return nil
-                case kVK_RightArrow:
-                    self.cycleFilter(forward: true)
-                    return nil
-                default:
-                    break
-                }
-            }
             if event.keyCode == UInt16(kVK_Space), modifiers.isEmpty,
                let hoveredEntry = self.activeHoverTile?.entry,
                self.previewKind(for: hoveredEntry) != nil {
@@ -2599,7 +2701,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     private func suspendHoverUpdatesDuringScrolling() {
-        guard isActive else { return }
+        guard isActive, !isKeyboardNavigationActive else { return }
         if !isScrollingContent {
             isScrollingContent = true
             clearActiveHoverTile()
@@ -2800,6 +2902,10 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         let threshold = max(scrollView.bounds.width * 0.75, presentation.tileWidth * 3)
         guard contentWidth - visibleRect.maxX <= threshold else { return }
 
+        appendNextPage()
+    }
+
+    private func appendNextPage() {
         let oldCount = renderedEntryCount
         let newCount = min(oldCount + Self.pageSize, visibleEntries.count)
         guard newCount > oldCount else { return }
@@ -2812,6 +2918,14 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
             guard let self else { return }
             self.collectionView.layoutSubtreeIfNeeded()
             self.isAppendingPage = false
+            if self.isKeyboardNavigationActive {
+                if let index = self.visibleEntries.firstIndex(where: {
+                    self.entryID($0) == self.keyboardEntryID
+                }) {
+                    self.revealEntry(at: index)
+                }
+                self.syncHoverStateWithCurrentMouse()
+            }
         }
     }
 
@@ -3205,7 +3319,8 @@ private final class HistoryPanelShortcutGuideView: NSView {
         return [
             [
                 Item(shortcut: "⌘ K", description: L10n.historyPanelShortcutSearch),
-                Item(shortcut: "←  →", description: L10n.historyPanelShortcutSwitchFilter),
+                Item(shortcut: "←  →", description: L10n.historyPanelShortcutSwitchItem),
+                Item(shortcut: "⇧ ←  /  ⇧ →", description: L10n.historyPanelShortcutSwitchFilter),
                 Item(shortcut: "Esc", description: L10n.historyPanelShortcutCancel),
             ],
             [
@@ -3263,7 +3378,7 @@ private final class HistoryPanelShortcutGroupView: NSView {
     override func layout() {
         super.layout()
         let contentPadding: CGFloat = 5
-        let rowHeight = max(1, (bounds.height - contentPadding * 2) / 3)
+        let rowHeight = max(1, (bounds.height - contentPadding * 2) / CGFloat(max(3, rows.count)))
         let topOffset = rows.count == 2 ? rowHeight / 2 : 0
         for (index, row) in rows.enumerated() {
             row.frame = NSRect(

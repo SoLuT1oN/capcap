@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "空白鍵";
 "historyPanelShortcutSearch" = "搜尋或關閉搜尋";
 "historyPanelShortcutSwitchFilter" = "切換分類";
+"historyPanelShortcutSwitchItem" = "切換上一個或下一個項目";
 "historyPanelShortcutToggleSelection" = "單選或取消選取";
 "historyPanelShortcutRangeSelection" = "範圍選取";
 "historyPanelShortcutSelectAll" = "全選目前結果";

@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Space";
 "historyPanelShortcutSearch" = "Search or close search";
 "historyPanelShortcutSwitchFilter" = "Switch categories";
+"historyPanelShortcutSwitchItem" = "Switch to the previous or next item";
 "historyPanelShortcutToggleSelection" = "Select or deselect one item";
 "historyPanelShortcutRangeSelection" = "Select a range";
 "historyPanelShortcutSelectAll" = "Select all visible items";

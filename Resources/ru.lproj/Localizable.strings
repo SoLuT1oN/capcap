@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Пробел";
 "historyPanelShortcutSearch" = "Открыть или закрыть поиск";
 "historyPanelShortcutSwitchFilter" = "Переключить категорию";
+"historyPanelShortcutSwitchItem" = "Перейти к предыдущему или следующему элементу";
 "historyPanelShortcutToggleSelection" = "Выбрать или снять выбор с объекта";
 "historyPanelShortcutRangeSelection" = "Выбрать диапазон";
 "historyPanelShortcutSelectAll" = "Выбрать все видимые объекты";

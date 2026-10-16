@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Phím cách";
 "historyPanelShortcutSearch" = "Mở hoặc đóng tìm kiếm";
 "historyPanelShortcutSwitchFilter" = "Chuyển danh mục";
+"historyPanelShortcutSwitchItem" = "Chuyển sang mục trước hoặc tiếp theo";
 "historyPanelShortcutToggleSelection" = "Chọn hoặc bỏ chọn một mục";
 "historyPanelShortcutRangeSelection" = "Chọn một phạm vi";
 "historyPanelShortcutSelectAll" = "Chọn tất cả mục đang hiển thị";
