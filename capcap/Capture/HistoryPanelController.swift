@@ -2622,14 +2622,18 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func presentFilePreview(startingAt entry: HistoryEntry) {
         guard case .files(let files) = entry.kind else { return }
-        let entries = selectedEntryIDs.contains(entryID(entry)) ? selectedEntries() : [entry]
+        // Browse the complete filtered results, including unrendered pages,
+        // independently of the multi-selection used for copy/delete actions.
         var seenPaths = Set<String>()
-        let references = entries.flatMap { candidate -> [HistoryFileReferences.Reference] in
+        let references = visibleEntries.flatMap { candidate -> [HistoryFileReferences.Reference] in
             guard case .files(let files) = candidate.kind else { return [] }
             return files.references
-        }.filter { seenPaths.insert($0.path).inserted }
+        }.filter { seenPaths.insert(URL(fileURLWithPath: $0.path).standardizedFileURL.path).inserted }
         guard !references.isEmpty else { return }
-        let initialIndex = references.firstIndex { $0.path == files.references.first?.path } ?? 0
+        let initialPath = files.references.first.map { URL(fileURLWithPath: $0.path).standardizedFileURL.path }
+        let initialIndex = references.firstIndex {
+            URL(fileURLWithPath: $0.path).standardizedFileURL.path == initialPath
+        } ?? 0
         HotkeyManager.shared.unregisterHistoryPreview()
         previewController?.close()
         filePreviewController?.close()
@@ -4338,7 +4342,7 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         addSubview(cloudActionBarView)
 
         if let badgeKind = HistoryMediaBadgeKind(entry: entry) {
-            badgeView.title = badgeKind.title
+            badgeView.configure(kind: badgeKind)
             badgeView.isHidden = false
         } else {
             badgeView.isHidden = true
@@ -4571,7 +4575,7 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         cloudActionBarView.setPressedActionKind(nil)
 
         if let badgeKind = HistoryMediaBadgeKind(entry: entry) {
-            badgeView.title = badgeKind.title
+            badgeView.configure(kind: badgeKind)
             badgeView.isHidden = false
         } else {
             badgeView.isHidden = true
@@ -4948,7 +4952,7 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         imageView.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.045).cgColor
         metaLabel.lineBreakMode = .byTruncatingMiddle
         metaLabel.stringValue = files.displayName
-        toolTip = files.references.prefix(20).map { $0.path }.joined(separator: "\n")
+        toolTip = ([files.typeLabel] + files.references.prefix(20).map { $0.path }).joined(separator: "\n")
         refreshFileAvailability()
     }
 

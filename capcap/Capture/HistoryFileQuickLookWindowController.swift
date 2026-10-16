@@ -13,7 +13,9 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
     private let references: [HistoryFileReferences.Reference]
     private var currentIndex: Int
     private let filenameLabel = NSTextField(labelWithString: "")
+    private let filenameContainer = NSView(frame: NSRect(x: 0, y: 0, width: 0, height: 24))
     private let positionLabel = NSTextField(labelWithString: "")
+    private let titlebarHeader = NSStackView()
     private let previousButton = NSButton()
     private let nextButton = NSButton()
     private let retryButton = NSButton()
@@ -41,6 +43,10 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isMovableByWindowBackground = true
+        panel.backgroundColor = AdaptiveChrome.panelBackground
         panel.contentMinSize = NSSize(width: 420, height: 300)
         super.init(window: panel)
         panel.delegate = self
@@ -67,6 +73,7 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
                                    y: visible.midY - size.height / 2,
                                    width: size.width, height: size.height), display: false)
         }
+        updateTitlebarLayout()
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         loadCurrentItem()
@@ -74,35 +81,58 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
 
     private func setupContent() {
         guard let content = window?.contentView else { return }
-        let header = NSStackView()
+        let header = titlebarHeader
         header.orientation = .horizontal
-        header.spacing = 10
+        header.spacing = 6
         header.alignment = .centerY
-        header.translatesAutoresizingMaskIntoConstraints = false
+        header.detachesHiddenViews = true
+        header.edgeInsets = NSEdgeInsets(top: 0, left: 2, bottom: 0, right: 8)
+
+        filenameLabel.lineBreakMode = .byTruncatingTail
+        filenameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        filenameLabel.textColor = .labelColor
+        filenameLabel.maximumNumberOfLines = 1
+        filenameLabel.frame = filenameContainer.bounds
+        filenameLabel.autoresizingMask = [.width, .height]
+        filenameContainer.addSubview(filenameLabel)
+        let filenameAccessory = NSTitlebarAccessoryViewController()
+        filenameAccessory.layoutAttribute = .left
+        filenameAccessory.view = filenameContainer
+        window?.addTitlebarAccessoryViewController(filenameAccessory)
+
+        positionLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        positionLabel.textColor = .secondaryLabelColor
+        positionLabel.alignment = .center
+        positionLabel.translatesAutoresizingMaskIntoConstraints = false
+        positionLabel.widthAnchor.constraint(equalToConstant: 38).isActive = true
+        positionLabel.isHidden = references.count == 1
+        header.addArrangedSubview(positionLabel)
         for (button, symbol, label, action) in [
             (previousButton, "chevron.left", L10n.historyFilePreviewPrevious, #selector(previousItem)),
             (nextButton, "chevron.right", L10n.historyFilePreviewNext, #selector(nextItem))
         ] {
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)?
+                .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .medium))
             button.imagePosition = .imageOnly
-            button.bezelStyle = .texturedRounded
+            button.bezelStyle = .toolbar
+            button.isBordered = false
+            button.contentTintColor = .secondaryLabelColor
+            button.translatesAutoresizingMaskIntoConstraints = false
             button.setAccessibilityLabel(label)
             button.toolTip = label
             button.target = self
             button.action = action
             button.isEnabled = references.count > 1
+            button.isHidden = references.count == 1
             header.addArrangedSubview(button)
             button.widthAnchor.constraint(equalToConstant: 30).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 24).isActive = true
         }
-        filenameLabel.lineBreakMode = .byTruncatingMiddle
-        filenameLabel.font = .systemFont(ofSize: 13, weight: .medium)
-        filenameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        header.addArrangedSubview(filenameLabel)
-        positionLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        positionLabel.textColor = .secondaryLabelColor
-        positionLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
-        header.addArrangedSubview(positionLabel)
-        content.addSubview(header)
+        updateTitlebarLayout()
+        let accessory = NSTitlebarAccessoryViewController()
+        accessory.layoutAttribute = .right
+        accessory.view = header
+        window?.addTitlebarAccessoryViewController(accessory)
 
         previewHost.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewHost)
@@ -117,13 +147,9 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
         retryButton.translatesAutoresizingMaskIntoConstraints = false
         previewHost.addSubview(retryButton)
         NSLayoutConstraint.activate([
-            header.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 14),
-            header.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -14),
-            header.topAnchor.constraint(equalTo: content.topAnchor, constant: 10),
-            header.heightAnchor.constraint(equalToConstant: 30),
             previewHost.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             previewHost.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            previewHost.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 10),
+            previewHost.topAnchor.constraint(equalTo: content.topAnchor),
             previewHost.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             statusLabel.centerXAnchor.constraint(equalTo: previewHost.centerXAnchor),
             statusLabel.centerYAnchor.constraint(equalTo: previewHost.centerYAnchor, constant: -18),
@@ -131,6 +157,26 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
             retryButton.centerXAnchor.constraint(equalTo: previewHost.centerXAnchor),
             retryButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 14)
         ])
+    }
+
+    private func updateTitlebarLayout() {
+        guard let window else { return }
+        // Match HistoryPreviewWindowController's titlebar accessories.
+        titlebarHeader.layoutSubtreeIfNeeded()
+        let fittingSize = titlebarHeader.fittingSize
+        titlebarHeader.frame = NSRect(
+            x: 0, y: 0, width: ceil(fittingSize.width), height: max(24, ceil(fittingSize.height))
+        )
+        let availableWidth = window.frame.width - 148 - titlebarHeader.frame.width - 20
+        let width = min(280, max(0, floor(availableWidth)))
+        filenameContainer.isHidden = width < 48
+        filenameContainer.frame = NSRect(
+            x: 0, y: 0, width: width, height: 24
+        )
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        updateTitlebarLayout()
     }
 
     @objc private func previousItem() { move(by: -1) }
@@ -173,7 +219,7 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
         stopSourceWatcher()
         clearCurrentPreview()
         let reference = references[currentIndex]
-        setFilename(reference.name)
+        setFilename(reference.name, path: reference.path)
         statusLabel.stringValue = L10n.historyFilePreviewLoading
         statusLabel.toolTip = nil
         statusLabel.isHidden = false
@@ -199,8 +245,7 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
                     self.retryButton.isHidden = false
                     return
                 }
-                self.setFilename(url.lastPathComponent)
-                self.filenameLabel.toolTip = url.path
+                self.setFilename(url.lastPathComponent, path: url.path)
                 self.installSourceWatcher(descriptor: descriptor, generation: generation)
                 if self.previewView == nil {
                     guard let view = QLPreviewView(frame: self.previewHost.bounds, style: .normal) else {
@@ -221,11 +266,12 @@ final class HistoryFileQuickLookWindowController: NSWindowController, NSWindowDe
         }
     }
 
-    private func setFilename(_ name: String) {
+    private func setFilename(_ name: String, path: String) {
         filenameLabel.stringValue = name
-        filenameLabel.toolTip = name
+        filenameLabel.toolTip = path
         positionLabel.stringValue = "\(currentIndex + 1) / \(references.count)"
-        window?.title = "\(name) · \(currentIndex + 1) / \(references.count)"
+        window?.title = name
+        updateTitlebarLayout()
     }
 
     private func installSourceWatcher(descriptor: Int32, generation: Int) {
