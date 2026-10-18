@@ -5,7 +5,9 @@ Private fork changes are recorded here. Keep CHANGELOG.md identical to upstream 
 ## [Unreleased]
 
 ### Changed
-- Sync official release 1.7.19 while retaining AI Calendar and the upstream rotation and window-capture improvements
+- Sync official release 1.7.22 while retaining AI Calendar and copy-only screenshot completion
+- Separate AI Calendar state and pane registration from upstream beautify properties and settings panes so additions in those blocks can merge independently
+- Recover a missing custom release automatically when main already contains the latest official release
 - Restore copy-only screenshot completion; remove automatic pasting into the source application and its synchronization/release guards
 
 ## [1.7.11-ai.2] - 2026-09-05
@@ -23,7 +25,7 @@ Private fork changes are recorded here. Keep CHANGELOG.md identical to upstream 
 
 - Sync Upstream checks the latest published stable official Release, merges only its release-vX.Y.Z tag, validates the result, and starts the private release workflow when it pushes a new release
 - Resolve conflicts on a separate branch and retain both upstream behavior and private AI Calendar integration
-- After a manual merge into private main, explicitly run Release AI Calendar Build if that commit has not been released; a no-change sync run does not start a release
+- After a manual merge into private main, Sync Upstream starts Release AI Calendar Build if current main has no published custom release; existing releases are left in place
 - The private release workflow updates SoLuT1oN/homebrew-tap after publication
 
 ### Official release tracking

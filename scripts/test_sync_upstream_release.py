@@ -6,6 +6,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).with_name('sync_upstream_release.py')
 
@@ -69,6 +70,34 @@ class ReleaseSyncTests(unittest.TestCase):
         self.assertEqual(git(self.fork, 'status', '--porcelain'), '')
         self.assertFalse(self.sync('release-v1.0.1'))
 
+    def test_manual_merge_without_release_requests_publication(self):
+        with patch.object(self.module.subprocess, 'check_call') as dispatch:
+            self.assertTrue(self.module.ensure_current_release(
+                self.fork, 'owner/fork', {'tag_name': 'release-v1.0.0'},
+            ))
+        dispatch.assert_called_once_with([
+            'gh', 'workflow', 'run', 'release-ai.yml', '--repo', 'owner/fork', '--ref', 'main',
+        ])
+
+    def test_published_release_for_current_commit_skips_publication(self):
+        tag = 'custom-v1.0.0-ai.1'
+        git(self.fork, 'tag', tag)
+        with patch.object(self.module, 'published_release_tags', return_value={tag}), \
+                patch.object(self.module.subprocess, 'check_call') as dispatch:
+            self.assertFalse(self.module.ensure_current_release(
+                self.fork, 'owner/fork', {'tag_name': 'release-v1.0.0'},
+            ))
+        dispatch.assert_not_called()
+
+    def test_incomplete_tag_requests_release_recovery(self):
+        git(self.fork, 'tag', 'custom-v1.0.0-ai.1')
+        with patch.object(self.module, 'published_release_tags', return_value=set()), \
+                patch.object(self.module.subprocess, 'check_call') as dispatch:
+            self.assertTrue(self.module.ensure_current_release(
+                self.fork, 'owner/fork', {'tag_name': 'release-v1.0.0'},
+            ))
+        dispatch.assert_called_once()
+
     def test_moved_previous_tag_fails_even_with_new_release(self):
         self.commit(self.up, 'new.txt', 'new')
         git(self.up, 'tag', '-f', 'release-v1.0.0')
@@ -120,14 +149,48 @@ class ReleaseSyncTests(unittest.TestCase):
         self.assertIsNotNone(icon, 'Official translation icon declaration changed')
         future_line = f'case .translation: return "{icon.group(1)}.test"'
         changed = official.replace(icon.group(0), future_line, 1)
+        registration = 'paneViews[.ocr] = OCRSettingsPane()'
+        self.assertIn(registration, official, 'Official OCR pane registration changed')
+        future_pane = 'paneViews[.futurePane] = FutureSettingsPane()'
+        changed = changed.replace(registration, registration + '\n        ' + future_pane, 1)
         self.commit(self.up, path, changed)
         git(self.up, 'tag', 'release-v1.0.2')
         self.assertTrue(self.sync('release-v1.0.2'))
         merged = (self.fork / path).read_text()
         self.assertIn(future_line, merged)
+        self.assertIn(future_pane, merged)
+        self.assertIn(registration, merged)
         self.assertIn('case .aiCalendar: return "calendar.badge.plus"', merged)
         self.assertIn('paneViews[.aiCalendar] = buildAICalendarPane()', merged)
         self.assertIn('aiCalendarPane?.cancelConnectionTest()', merged)
+
+    def test_future_beautify_state_update_preserves_ai_calendar(self):
+        project = SCRIPT.parent.parent
+        tracked = json.loads((project / '.github/upstream-release.json').read_text())
+        path = 'capcap/Editor/EditWindowController.swift'
+        official = git(project, 'show', tracked['commit'] + ':' + path) + '\n'
+        private = (project / path).read_text()
+        for root in [self.up, self.fork]:
+            (root / 'capcap/Editor').mkdir(parents=True)
+        base = self.commit(self.up, path, official)
+        git(self.up, 'tag', 'release-v1.0.1')
+        git(self.fork, 'fetch', str(self.up), base)
+        git(self.fork, 'merge', '--no-edit', base)
+        state = {'tag': 'release-v1.0.1', 'commit': base, 'history_commit': base}
+        self.commit(self.fork, '.github/upstream-release.json', json.dumps(state))
+        self.commit(self.fork, path, private)
+        declaration = '    private var isAdjustingBeautifyShadowSize = false'
+        self.assertIn(declaration, official, 'Official beautify state declaration changed')
+        future_state = '    private var futureBeautifyOption = false'
+        changed = official.replace(declaration, declaration + '\n' + future_state, 1)
+        self.commit(self.up, path, changed)
+        git(self.up, 'tag', 'release-v1.0.2')
+        self.assertTrue(self.sync('release-v1.0.2'))
+        merged = (self.fork / path).read_text()
+        self.assertIn(future_state, merged)
+        self.assertIn('private var isAICalendarDispatchPending = false', merged)
+        self.assertIn('case .aiCalendar:', merged)
+        self.assertIn('self.performAICalendar()', merged)
 
     def test_explicit_reconciled_history_accepts_future_release(self):
         git(self.up, 'checkout', '--orphan', 'rewritten')

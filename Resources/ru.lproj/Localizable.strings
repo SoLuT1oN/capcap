@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "Новые закрепленные изображения появляются на каждом рабочем столе и полноэкранном Space";
 "historyCacheToggleLabel" = "Кэшировать снимки";
 "historyCacheToggleHint" = "Сохраняет недавние снимки, выбранные цвета и ссылки загрузок для быстрого повторного копирования из панели истории";
-"clipboardTextCacheToggleLabel" = "Кэшировать текст буфера обмена";
-"clipboardTextCacheToggleHint" = "Сохраняет скопированный текст в истории для быстрого повторного использования";
-"clipboardTextHistoryLimitLabel" = "Лимит истории текста";
+"clipboardTextCacheToggleLabel" = "Записывать текст и файлы буфера обмена";
+"clipboardTextCacheToggleHint" = "Сохранять текст и ссылки на исходные файлы без копирования файлов";
+"clipboardTextHistoryLimitLabel" = "Лимит истории текста / файлов";
 "historyCacheLabel" = "Лимит истории изображений и медиа";
 "historyPanelDisplayModeLabel" = "Отображение панели истории";
 "historyPanelDisplayModeHint" = "Выберите диалог или вырез для истории";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "с";
 "windowShadowToggleLabel" = "Тень при снимке окна";
 "windowShadowToggleHint" = "Скругляет углы снимков окон и добавляет тень в стиле macOS";
-"windowShadowSizeLabel" = "Размер тени";
+"shadowSizeLabel" = "Размер падающей тени";
 "windowShadowSizeHint" = "Чем больше значение, тем мягче и шире тень — окно словно приподнято выше";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Цвета";
 "historyPanelFilterText" = "Текст";
-"historyPanelSearchColorsAndText" = "Поиск по цветам и тексту";
+"historyPanelSearchColorsAndText" = "Поиск по цветам, тексту и файлам";
 "historyPanelSearchColors" = "Поиск по цветам";
 "historyPanelSearchText" = "Поиск по тексту";
 "historyPanelClearSearch" = "Очистить поиск";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Пробел";
 "historyPanelShortcutSearch" = "Открыть или закрыть поиск";
 "historyPanelShortcutSwitchFilter" = "Переключить категорию";
+"historyPanelShortcutSwitchItem" = "Перейти к предыдущему или следующему элементу";
 "historyPanelShortcutToggleSelection" = "Выбрать или снять выбор с объекта";
 "historyPanelShortcutRangeSelection" = "Выбрать диапазон";
 "historyPanelShortcutSelectAll" = "Выбрать все видимые объекты";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "Арктический лёд";
 "beautifyPresetSageCream" = "Шалфейный крем";
 "beautifyPresetGraphite" = "Графит";
-"beautifyShadowEffect" = "Тень";
-"beautifyAutoToggleLabel" = "Открывать редактор с Beautify";
-"beautifyAutoToggleHint" = "Автоматически применять последний пресет, отступ и тень при открытии редактора";
-"beautifyDefaultPresetLabel" = "Пресет по умолчанию";
-"beautifyDefaultPaddingLabel" = "Отступ по умолчанию";
+"beautifyShadowSizeHint" = "Изменяет только тень оформления, автоматически увеличивая отступы, чтобы она помещалась целиком";
 "textStrokeEffect" = "Обводка";
 "textCalloutEffect" = "Выноска";
 "textFontLabel" = "Шрифт";
 "textFontSystemDefault" = "Системный по умолчанию";
-"textFontDefaultLabel" = "Шрифт текста по умолчанию";
-"textFontDefaultHint" = "Шрифт для новых текстовых аннотаций";
 "shapeFillEffect" = "Заливка";
 "shapeFillNone" = "Контур";
 "shapeFillOpaque" = "Заливка";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "Не удалось сохранить текст, попробуйте ещё раз";
 
 "windowCapturePreparing" = "Подготовка снимка экрана";
+
+// Configurable OCR providers
+"settingsTabOCR" = "Распознавание текста";
+"ocrProviderApple" = "Apple · На устройстве";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "Визуальная модель с API OpenAI";
+"ocrProviderLabel" = "Провайдер OCR";
+"ocrEndpointLabel" = "Полный URL API";
+"ocrModelLabel" = "Название визуальной модели";
+"ocrRegionLabel" = "Регион";
+"ocrOptionalKey" = "Необязательно для серверов без авторизации";
+"ocrVisionModelHint" = "Введите установленную или доступную визуальную модель";
+"ocrLocalDescription" = "Распознавание текста на этом Mac без загрузки изображений";
+"ocrCloudDescription" = "При распознавании изображения отправляются выбранному провайдеру, в том числе при переводе снимков, в закреплённых изображениях и истории";
+"ocrCompatibleDescription" = "Используйте API Chat Completions с поддержкой изображений, включая OpenAI, Qwen или локальный сервер · Изображения отправляются по указанному адресу";
+"ocrOllamaDescription" = "Подключите Ollama и укажите установленную визуальную модель · Изображения отправляются на настроенный сервер Ollama";
+"ocrTextOnlyDescription" = "Модель возвращает текст без координат · Для закреплённых изображений и истории открывается панель результатов вместо выделения текста на изображении";
+"ocrDocumentation" = "Документация провайдера";
+"ocrSettingsSaved" = "Настройки сохраняются автоматически · Применяются к следующему запросу";
+"ocrConfigurationError" = "Заполните обязательные ключи, URL API и название модели";
+"ocrEndpointError" = "Укажите полный URL API HTTPS или HTTP на localhost";
+"ocrImageError" = "Не удалось декодировать изображение";
+"ocrResponseError" = "Ошибка OCR или неполный ответ";
+"ocrTimeoutError" = "Время ожидания OCR истекло · Проверьте сервис или повторите попытку";
+"ocrRequestFailed" = "Ошибка запроса OCR";
+
+"historyPanelFilterFiles" = "Файлы";
+
+"historyPanelFolder" = "Папка";
+
+"historyPanelSearchFiles" = "Поиск по именам и путям файлов";
+
+"historyPanelSourceUnavailable" = "Исходный файл недоступен";
+
+"historyPanelSourceUnavailableHint" = "Некоторые исходные файлы удалены, не подключены или не загружены";
+
+"historyFilePreviewPrevious" = "Предыдущий файл";
+
+"historyFilePreviewNext" = "Следующий файл";
+
+"historyFilePreviewLoading" = "Загрузка предпросмотра";
+
+"historyFilePreviewRetry" = "Проверить снова";
+
+"historyFilePreviewUnavailable" = "Предпросмотр этого файла недоступен";

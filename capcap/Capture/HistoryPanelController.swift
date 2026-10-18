@@ -3,6 +3,7 @@ import AVFoundation
 import AVKit
 import Carbon
 import ImageIO
+import UniformTypeIdentifiers
 
 private enum HistoryPanelLayout {
     static let headerTopInset: CGFloat = 12
@@ -1038,6 +1039,7 @@ enum HistoryPanelFilter: CaseIterable, Equatable {
     case mp4
     case colors
     case text
+    case files
 
     var title: String {
         switch self {
@@ -1048,13 +1050,14 @@ enum HistoryPanelFilter: CaseIterable, Equatable {
         case .mp4: return L10n.historyPanelFilterMP4
         case .colors: return L10n.historyPanelFilterColors
         case .text: return L10n.historyPanelFilterText
+        case .files: return L10n.historyPanelFilterFiles
         }
     }
 
     var symbolName: String? {
         switch self {
         case .favorites: return "star.fill"
-        case .all, .screenshots, .gif, .mp4, .colors, .text: return nil
+        case .all, .screenshots, .gif, .mp4, .colors, .text, .files: return nil
         }
     }
 
@@ -1066,6 +1069,8 @@ enum HistoryPanelFilter: CaseIterable, Equatable {
             return .colors
         case .text:
             return .text
+        case .files:
+            return .files
         case .screenshots, .gif, .mp4:
             return nil
         }
@@ -1079,6 +1084,8 @@ enum HistoryPanelFilter: CaseIterable, Equatable {
             return L10n.historyPanelSearchColors
         case .text:
             return L10n.historyPanelSearchText
+        case .files:
+            return L10n.historyPanelSearchFiles
         case .screenshots, .gif, .mp4:
             return nil
         }
@@ -1307,7 +1314,10 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     private var confirmationDismissMonitor: Any?
     private var selectionKeyMonitor: Any?
     private var previewController: HistoryPreviewWindowController?
+    private var filePreviewController: HistoryFileQuickLookWindowController?
     private weak var activeHoverTile: HistoryPanelTileView?
+    private var keyboardEntryID: String?
+    private var keyboardMouseOrigin: NSPoint?
     private var allEntries: [HistoryEntry] = []
     private var visibleEntries: [HistoryEntry] = []
     private var availableFilters: Set<HistoryPanelFilter> = [.all]
@@ -1609,6 +1619,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 updatePreviewLoading(initial: true)
             }
         } else {
+            clearKeyboardNavigation()
             endSearchMode(animated: false)
             if isReloading {
                 needsEntriesReload = true
@@ -1643,6 +1654,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     private func selectFilter(_ filter: HistoryPanelFilter) {
+        clearKeyboardNavigation()
         setShortcutGuideVisible(false)
         if isSearchMode, filter.searchScope == nil {
             endSearchMode(animated: true, updateResults: false)
@@ -1664,6 +1676,77 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
               let currentIndex = orderedFilters.firstIndex(of: selectedFilter) else { return }
         let offset = forward ? 1 : orderedFilters.count - 1
         selectFilter(orderedFilters[(currentIndex + offset) % orderedFilters.count])
+    }
+
+    private func moveEntry(forward: Bool) {
+        guard !visibleEntries.isEmpty else { return }
+        let currentID = isKeyboardNavigationActive
+            ? keyboardEntryID
+            : activeHoverTile.map { entryID($0.entry) }
+        let currentIndex = currentID.flatMap { id in
+            visibleEntries.firstIndex { entryID($0) == id }
+        }
+        let nextIndex: Int
+        if let currentIndex {
+            nextIndex = min(max(currentIndex + (forward ? 1 : -1), 0), visibleEntries.count - 1)
+        } else {
+            nextIndex = visibleIndexRange()?.lowerBound ?? 0
+        }
+
+        setDeleteConfirmation(false, animated: true)
+        hoverSyncWorkItem?.cancel()
+        hoverSyncWorkItem = nil
+        isScrollingContent = false
+        keyboardEntryID = entryID(visibleEntries[nextIndex])
+        keyboardMouseOrigin = NSEvent.mouseLocation
+        if nextIndex >= renderedEntryCount {
+            appendNextPage()
+        }
+        revealEntry(at: nextIndex)
+        syncHoverStateWithCurrentMouse()
+    }
+
+    private func revealEntry(at index: Int) {
+        layoutSubtreeIfNeeded()
+        collectionView.layoutSubtreeIfNeeded()
+        guard let attributes = collectionLayout.layoutAttributesForItem(
+            at: IndexPath(item: index, section: 0)
+        ) else { return }
+
+        // Scroll the clip view directly: the collection's automatic scrolling
+        // does not reliably reveal items with our disabled horizontal scroller.
+        let visibleRect = scrollView.documentVisibleRect
+        let padding = collectionLayout.minimumLineSpacing
+        let itemFrame = attributes.frame
+        var targetX = visibleRect.minX
+        if itemFrame.minX < visibleRect.minX + padding {
+            targetX = itemFrame.minX - padding
+        } else if itemFrame.maxX > visibleRect.maxX - padding {
+            targetX = itemFrame.maxX - visibleRect.width + padding
+        }
+        let maximumX = max(0, collectionView.bounds.width - visibleRect.width)
+        let clampedX = min(max(0, targetX), maximumX)
+        scrollView.contentView.scroll(to: NSPoint(
+            x: clampedX,
+            y: scrollView.contentView.bounds.origin.y
+        ))
+        scrollView.reflectScrolledClipView(scrollView.contentView)
+        collectionView.layoutSubtreeIfNeeded()
+    }
+
+    private func clearKeyboardNavigation() {
+        keyboardEntryID = nil
+        keyboardMouseOrigin = nil
+    }
+
+    private var isKeyboardNavigationActive: Bool {
+        guard keyboardEntryID != nil, let origin = keyboardMouseOrigin else { return false }
+        let current = NSEvent.mouseLocation
+        guard hypot(current.x - origin.x, current.y - origin.y) < 0.5 else {
+            clearKeyboardNavigation()
+            return false
+        }
+        return true
     }
 
     private func beginSearchMode() {
@@ -1752,6 +1835,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         guard isSearchInputActive != nextValue else { return }
         isSearchInputActive = nextValue
         if nextValue {
+            clearKeyboardNavigation()
             clearActiveHoverTile()
             startSearchMouseMovementTracking(origin: moveCursorToSearchField())
         } else {
@@ -1952,8 +2036,10 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         guard isShowingShortcutGuide != visible else { return }
         isShowingShortcutGuide = visible
         if visible {
+            clearKeyboardNavigation()
             clearActiveHoverTile()
             previewController?.close()
+            filePreviewController?.close()
         }
         infoButton.isSelected = visible
         infoButton.updateAccessibilityLabel(
@@ -2042,6 +2128,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func applyEntries(_ entries: [HistoryEntry], hasAnyEntries: Bool) {
         previewWarmGeneration += 1
+        clearKeyboardNavigation()
         clearActiveHoverTile()
         visibleEntries = entries
         pruneSelection(to: entries)
@@ -2106,6 +2193,13 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         }
 
         let tileID = entryID(tile.entry)
+        if case .files = tile.entry.kind {
+            HistoryPanelEntryActions.copyFiles(dragEntries(for: tile)) { [weak self, weak tile] success in
+                tile?.refreshFileAvailability()
+                if success { self?.onRequestDismiss?() }
+            }
+            return
+        }
         if hasSelection, selectedEntryIDs.contains(tileID) {
             if case .image = tile.entry.kind,
                HistoryPanelEntryActions.copyImages(selectedImageEntries()) {
@@ -2130,7 +2224,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
             switch entry.kind {
             case .color, .text:
                 return false
-            case .image, .video:
+            case .image, .video, .files:
                 return true
             }
         }
@@ -2274,6 +2368,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     func resetTransientState(animated: Bool) {
+        clearKeyboardNavigation()
         setDeleteConfirmation(false, animated: animated)
         setShortcutGuideVisible(false)
         clearSelection()
@@ -2290,6 +2385,13 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         // Materialize its visible items before resolving the pointer target.
         layoutSubtreeIfNeeded()
         collectionView.layoutSubtreeIfNeeded()
+
+        if isKeyboardNavigationActive {
+            if let tile = visibleCollectionTiles.first(where: { entryID($0.entry) == keyboardEntryID }) {
+                updateActiveHoverTile(tile, isHovered: true, fromKeyboard: true)
+            }
+            return
+        }
 
         let windowPoint = window.convertPoint(fromScreen: NSEvent.mouseLocation)
         let contentPoint = convert(windowPoint, from: nil)
@@ -2310,7 +2412,14 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         clearActiveHoverTile()
     }
 
-    private func updateActiveHoverTile(_ tile: HistoryPanelTileView, isHovered: Bool) {
+    private func updateActiveHoverTile(
+        _ tile: HistoryPanelTileView,
+        isHovered: Bool,
+        fromKeyboard: Bool = false
+    ) {
+        // Scrolling under a stationary pointer emits tracking events. Keep the
+        // keyboard target until the user actually moves the pointer.
+        guard fromKeyboard || !isKeyboardNavigationActive else { return }
         if isHovered {
             guard !isScrollingContent else {
                 tile.setHovered(false)
@@ -2348,6 +2457,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
               !isShowingShortcutGuide,
               !isSearchInputActive,
               previewController == nil,
+              !HistoryFileQuickLookWindowController.isPresented,
               let entry = activeHoverTile?.entry,
               previewKind(for: entry) != nil else {
             HotkeyManager.shared.unregisterHistoryPreview()
@@ -2380,9 +2490,18 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func startSelectionKeyMonitoring() {
         guard selectionKeyMonitor == nil else { return }
-        selectionKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        selectionKeyMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown, .mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]
+        ) { [weak self] event in
             guard let self else { return event }
             guard event.window === self.window else { return event }
+            guard event.type == .keyDown else {
+                if self.keyboardEntryID != nil {
+                    self.clearKeyboardNavigation()
+                    self.syncHoverStateWithCurrentMouse()
+                }
+                return event
+            }
 
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             let shortcutModifiers = modifiers.intersection([.command, .control, .option, .shift])
@@ -2409,6 +2528,19 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 }
                 return event
             }
+            let isHorizontalArrow = event.keyCode == UInt16(kVK_LeftArrow)
+                || event.keyCode == UInt16(kVK_RightArrow)
+            if self.isActive, isHorizontalArrow {
+                let forward = event.keyCode == UInt16(kVK_RightArrow)
+                if shortcutModifiers == .shift {
+                    self.cycleFilter(forward: forward)
+                    return nil
+                }
+                if shortcutModifiers.isEmpty, !self.isSearchInputActive {
+                    self.moveEntry(forward: forward)
+                    return nil
+                }
+            }
             if self.isSearchMode {
                 if event.keyCode == UInt16(kVK_Escape) {
                     self.endSearchMode(animated: true)
@@ -2425,19 +2557,6 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 return event
             }
 
-            let hasFilterCycleModifier = !modifiers.intersection([.command, .control, .option, .shift]).isEmpty
-            if self.isActive, !hasFilterCycleModifier {
-                switch Int(event.keyCode) {
-                case kVK_LeftArrow:
-                    self.cycleFilter(forward: false)
-                    return nil
-                case kVK_RightArrow:
-                    self.cycleFilter(forward: true)
-                    return nil
-                default:
-                    break
-                }
-            }
             if event.keyCode == UInt16(kVK_Space), modifiers.isEmpty,
                let hoveredEntry = self.activeHoverTile?.entry,
                self.previewKind(for: hoveredEntry) != nil {
@@ -2473,6 +2592,11 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
 
     private func presentPreview(startingAt entry: HistoryEntry) {
         guard let kind = previewKind(for: entry) else { return }
+        if case .files = entry.kind {
+            presentFilePreview(startingAt: entry)
+            return
+        }
+        filePreviewController?.close()
         let previewEntries = visibleEntries.filter { previewKind(for: $0) == kind }
         guard !previewEntries.isEmpty else { return }
         HotkeyManager.shared.unregisterHistoryPreview()
@@ -2496,10 +2620,38 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         controller.show(relativeTo: window?.screen)
     }
 
+    private func presentFilePreview(startingAt entry: HistoryEntry) {
+        guard case .files(let files) = entry.kind else { return }
+        // Browse the complete filtered results, including unrendered pages,
+        // independently of the multi-selection used for copy/delete actions.
+        var seenPaths = Set<String>()
+        let references = visibleEntries.flatMap { candidate -> [HistoryFileReferences.Reference] in
+            guard case .files(let files) = candidate.kind else { return [] }
+            return files.references
+        }.filter { seenPaths.insert(URL(fileURLWithPath: $0.path).standardizedFileURL.path).inserted }
+        guard !references.isEmpty else { return }
+        let initialPath = files.references.first.map { URL(fileURLWithPath: $0.path).standardizedFileURL.path }
+        let initialIndex = references.firstIndex {
+            URL(fileURLWithPath: $0.path).standardizedFileURL.path == initialPath
+        } ?? 0
+        HotkeyManager.shared.unregisterHistoryPreview()
+        previewController?.close()
+        filePreviewController?.close()
+        let controller = HistoryFileQuickLookWindowController(references: references, initialIndex: initialIndex)
+        controller.onClose = { [weak self, weak controller] in
+            guard let self, self.filePreviewController === controller else { return }
+            self.filePreviewController = nil
+            self.syncHoverStateWithCurrentMouse()
+        }
+        filePreviewController = controller
+        controller.show(relativeTo: window?.screen)
+    }
+
     private enum PreviewKind {
         case image
         case video
         case text
+        case files
     }
 
     private func previewKind(for entry: HistoryEntry) -> PreviewKind? {
@@ -2507,6 +2659,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         case .image: return .image
         case .video: return .video
         case .text: return .text
+        case .files: return .files
         case .color: return nil
         }
     }
@@ -2552,7 +2705,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
     }
 
     private func suspendHoverUpdatesDuringScrolling() {
-        guard isActive else { return }
+        guard isActive, !isKeyboardNavigationActive else { return }
         if !isScrollingContent {
             isScrollingContent = true
             clearActiveHoverTile()
@@ -2607,6 +2760,9 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
             return true
         case .text:
             guard case .text = entry.kind else { return false }
+            return true
+        case .files:
+            guard case .files = entry.kind else { return false }
             return true
         }
     }
@@ -2729,7 +2885,7 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
                 previewPrefetchRequests[entryID] = request
             case .text(let text):
                 text.preload()
-            case .color:
+            case .color, .files:
                 break
             }
         }
@@ -2750,6 +2906,10 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
         let threshold = max(scrollView.bounds.width * 0.75, presentation.tileWidth * 3)
         guard contentWidth - visibleRect.maxX <= threshold else { return }
 
+        appendNextPage()
+    }
+
+    private func appendNextPage() {
         let oldCount = renderedEntryCount
         let newCount = min(oldCount + Self.pageSize, visibleEntries.count)
         guard newCount > oldCount else { return }
@@ -2762,6 +2922,14 @@ private final class HistoryPanelContentView: NSView, NSCollectionViewDataSource,
             guard let self else { return }
             self.collectionView.layoutSubtreeIfNeeded()
             self.isAppendingPage = false
+            if self.isKeyboardNavigationActive {
+                if let index = self.visibleEntries.firstIndex(where: {
+                    self.entryID($0) == self.keyboardEntryID
+                }) {
+                    self.revealEntry(at: index)
+                }
+                self.syncHoverStateWithCurrentMouse()
+            }
         }
     }
 
@@ -3155,7 +3323,8 @@ private final class HistoryPanelShortcutGuideView: NSView {
         return [
             [
                 Item(shortcut: "⌘ K", description: L10n.historyPanelShortcutSearch),
-                Item(shortcut: "←  →", description: L10n.historyPanelShortcutSwitchFilter),
+                Item(shortcut: "←  →", description: L10n.historyPanelShortcutSwitchItem),
+                Item(shortcut: "⇧ ←  /  ⇧ →", description: L10n.historyPanelShortcutSwitchFilter),
                 Item(shortcut: "Esc", description: L10n.historyPanelShortcutCancel),
             ],
             [
@@ -3213,7 +3382,7 @@ private final class HistoryPanelShortcutGroupView: NSView {
     override func layout() {
         super.layout()
         let contentPadding: CGFloat = 5
-        let rowHeight = max(1, (bounds.height - contentPadding * 2) / 3)
+        let rowHeight = max(1, (bounds.height - contentPadding * 2) / CGFloat(max(3, rows.count)))
         let topOffset = rows.count == 2 ? rowHeight / 2 : 0
         for (index, row) in rows.enumerated() {
             row.frame = NSRect(
@@ -4093,6 +4262,8 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
     private var isSelectionModeActive = false
     private var selectionOrder: Int?
     private var didStartDrag = false
+    private var fileDragGeneration = 0
+    private var lastFilePreviewRefresh = Date.distantPast
     private var didDismissForCurrentDrag = false
     private var previewLoadState: PreviewLoadState = .idle
     private var previewLoadGeneration = 0
@@ -4171,7 +4342,7 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         addSubview(cloudActionBarView)
 
         if let badgeKind = HistoryMediaBadgeKind(entry: entry) {
-            badgeView.title = badgeKind.title
+            badgeView.configure(kind: badgeKind)
             badgeView.isHidden = false
         } else {
             badgeView.isHidden = true
@@ -4342,6 +4513,14 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         }
         refreshFavoriteState()
         updateSelectionBadgeVisibility()
+        if case .files = entry.kind {
+            refreshFileAvailability()
+        }
+        if hovered, case .files = entry.kind, previewLoadState == .loaded,
+           Date().timeIntervalSince(lastFilePreviewRefresh) > 2 {
+            previewLoadState = .idle
+            loadPreviewIfNeeded()
+        }
     }
 
     func setSelectionState(order: Int?, selectionModeActive: Bool) {
@@ -4370,15 +4549,20 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
     func reconfigure(with entry: HistoryEntry) {
         cancelPendingPreviewLoad()
         previewLoadGeneration += 1
+        fileDragGeneration += 1
+        lastFilePreviewRefresh = .distantPast
         self.entry = entry
         previewLoadState = .idle
 
         imageView.image = nil
+        imageView.alphaValue = 1
         imageView.contentTintColor = nil
         imageView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.24).cgColor
         textPreviewLabel.stringValue = ""
         textPreviewLabel.toolTip = nil
         textPreviewLabel.isHidden = true
+        toolTip = nil
+        metaLabel.lineBreakMode = .byTruncatingTail
 
         let overlayHint = Self.overlayHint(for: entry, supportsDrag: supportsDrag)
         overlayLabel.stringValue = overlayHint
@@ -4391,7 +4575,7 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         cloudActionBarView.setPressedActionKind(nil)
 
         if let badgeKind = HistoryMediaBadgeKind(entry: entry) {
-            badgeView.title = badgeKind.title
+            badgeView.configure(kind: badgeKind)
             badgeView.isHidden = false
         } else {
             badgeView.isHidden = true
@@ -4428,6 +4612,8 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         case .text:
             imageView.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.055).cgColor
             metaLabel.stringValue = Self.metadata(label: L10n.historyPanelFilterText, date: entry.createdAt)
+        case .files(let files):
+            configureFilePlaceholder(files)
         }
         needsLayout = true
     }
@@ -4478,10 +4664,15 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
             return true
         case .color:
             return true
+        case .files:
+            // Revalidate on each visible lifecycle; a path-only cache would keep
+            // showing stale availability and thumbnails after edits or deletion.
+            return false
         }
     }
 
     override func mouseDown(with event: NSEvent) {
+        fileDragGeneration += 1
         mouseDownPoint = convert(event.locationInWindow, from: nil)
         mouseDownHitSelectionBadge = selectionBadgeHitTest(mouseDownPoint ?? .zero)
         mouseDownCloudActionKind = mouseDownPoint.flatMap { cloudActionKind(at: $0) }
@@ -4503,6 +4694,26 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         let draggableEntries = draggedEntries.filter { Self.supportsDrag($0) }
         guard !draggableEntries.isEmpty else { return }
 
+        if draggableEntries.contains(where: { if case .files = $0.kind { return true }; return false }) {
+            let generation = previewLoadGeneration
+            let dragGeneration = fileDragGeneration
+            HistoryFileReferences.resolveTransfer(draggableEntries) { [weak self] urls in
+                guard let self, self.previewLoadGeneration == generation,
+                      self.fileDragGeneration == dragGeneration,
+                      self.window?.isVisible == true, self.didStartDrag else { return }
+                self.refreshFileAvailability()
+                guard let urls else {
+                    ToastWindow.show(message: L10n.historyPanelSourceUnavailableHint)
+                    return
+                }
+                // Source checks are asynchronous. A released mouse cancels the
+                // pending gesture instead of unexpectedly starting a later drag.
+                guard NSEvent.pressedMouseButtons & 1 != 0 else { return }
+                self.beginFileDrag(urls: urls, event: event)
+            }
+            return
+        }
+
         let draggingImage = imageView.image
             ?? NSImage(systemSymbolName: "photo", accessibilityDescription: nil)
             ?? NSImage(size: imageView.bounds.size)
@@ -4514,6 +4725,20 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
             let item = NSDraggingItem(pasteboardWriter: entry.fileURL as NSURL)
             let offset = CGFloat(min(index, 2)) * 4
             item.setDraggingFrame(dragFrame.offsetBy(dx: offset, dy: offset), contents: dragImage)
+            return item
+        }
+        beginDraggingSession(with: items, event: event, source: self)
+    }
+
+    private func beginFileDrag(urls: [URL], event: NSEvent) {
+        let baseImage = imageView.image ?? NSImage(systemSymbolName: "doc", accessibilityDescription: nil)
+            ?? NSImage(size: imageView.bounds.size)
+        let dragImage = urls.count > 1 ? Self.multiDragImage(base: baseImage, count: urls.count) : baseImage
+        let frame = draggingFrame(for: dragImage)
+        let items = urls.enumerated().map { index, url in
+            let item = NSDraggingItem(pasteboardWriter: url as NSURL)
+            let offset = CGFloat(min(index, 2)) * 4
+            item.setDraggingFrame(frame.offsetBy(dx: offset, dy: offset), contents: dragImage)
             return item
         }
         beginDraggingSession(with: items, event: event, source: self)
@@ -4609,12 +4834,15 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
         switch entry.kind {
         case .color, .text:
             return false
-        case .image, .video:
+        case .image, .video, .files:
             return true
         }
     }
 
     private static func overlayHint(for entry: HistoryEntry, supportsDrag: Bool) -> String {
+        if case .files(let files) = entry.kind, files.lastResolution?.isAvailable == false {
+            return L10n.historyPanelSourceUnavailableHint
+        }
         guard supportsDrag else { return L10n.historyPanelCopyHint }
         return L10n.historyPanelCopyDragHint.replacingOccurrences(of: " · ", with: "\n")
     }
@@ -4692,7 +4920,50 @@ private final class HistoryPanelTileView: NSView, NSDraggingSource {
                 self.previewLoadState = .loaded
                 self.configureTextPreview(value)
             }
+        case .files(let files):
+            let url = entry.fileURL
+            lastFilePreviewRefresh = Date()
+            previewRequest = HistoryFilePreviewLoader.shared.load(files: files, pixelSize: presentation.previewPixelSize) { [weak self] preview in
+                guard let self, self.previewLoadGeneration == generation,
+                      self.previewLoadState == .loading, self.entry.fileURL == url else { return }
+                self.previewRequest = nil
+                self.previewLoadState = .loaded
+                if let image = preview.image {
+                    self.imageView.image = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+                    self.imageView.contentTintColor = nil
+                } else {
+                    // A changed file whose provider fails must not retain the
+                    // old document's successful thumbnail.
+                    self.configureFilePlaceholder(files)
+                }
+                self.refreshFileAvailability()
+            }
         }
+    }
+
+    private func configureFilePlaceholder(_ files: HistoryFileReferences) {
+        let type = files.references.first?.typeIdentifier.flatMap { UTType($0) }
+        if let type {
+            imageView.image = NSWorkspace.shared.icon(for: type)
+        } else {
+            imageView.image = NSImage(systemSymbolName: "doc", accessibilityDescription: nil)
+            imageView.contentTintColor = .secondaryLabelColor
+        }
+        imageView.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.045).cgColor
+        metaLabel.lineBreakMode = .byTruncatingMiddle
+        metaLabel.stringValue = files.displayName
+        toolTip = ([files.typeLabel] + files.references.prefix(20).map { $0.path }).joined(separator: "\n")
+        refreshFileAvailability()
+    }
+
+    func refreshFileAvailability() {
+        guard case .files(let files) = entry.kind else { return }
+        let unavailable = files.lastResolution?.isAvailable == false
+        imageView.alphaValue = unavailable ? 0.3 : 1
+        textPreviewLabel.isHidden = !unavailable || isHovered
+        textPreviewLabel.stringValue = L10n.historyPanelSourceUnavailable
+        overlayLabel.stringValue = Self.overlayHint(for: entry, supportsDrag: true)
+        metaLabel.stringValue = files.displayName
     }
 
     private func loadPreview(generation: Int) {
@@ -5027,7 +5298,7 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
             contentKind = .video
         case .text:
             contentKind = .text
-        case .image, .color:
+        case .image, .color, .files:
             contentKind = .image
         }
         currentIndex = entries.firstIndex(where: {
@@ -5337,7 +5608,7 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
                 guard let self, self.loadGeneration == generation else { return }
                 self.loadCurrentText(value)
             }
-        case .color:
+        case .color, .files:
             return
         }
         updateTitlebarActionStackSize()
@@ -5670,7 +5941,7 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
     @objc private func pinCurrent() {
         guard let image = NSImage(contentsOf: currentEntry.fileURL) else { return }
         close()
-        PinLauncher.pin(image: image)
+        PinLauncher.pin(image: image, saveToHistory: false)
     }
 
     @objc private func recognizeCurrent() {
@@ -5684,13 +5955,32 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
         imageView.animates = false
         updateOCRButton(isRecognizing: true)
         ocrTask = Task { @MainActor [weak self] in
-            let lines = await OCRService.recognizeLines(image: image)
+            let result: OCRResult
+            do {
+                result = try await OCRService.recognizeResult(image: image)
+            } catch {
+                guard !Task.isCancelled, let self, self.loadGeneration == generation else { return }
+                self.ocrTask = nil
+                self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
+                self.updateOCRButton(isRecognizing: false)
+                ToastWindow.show(message: error.localizedDescription)
+                return
+            }
+            let lines = result.lines
             guard !Task.isCancelled else { return }
             // Match the existing OCR panel: use geometric text selection first,
             // with native Live Text as the fallback when no lines are found.
-            let analysis = lines.isEmpty ? await OCRService.analyzeText(image: image) : nil
+            let analysis = result.provider == .apple && lines.isEmpty ? await OCRService.analyzeText(image: image) : nil
             guard !Task.isCancelled, let self, self.loadGeneration == generation else { return }
             self.ocrTask = nil
+            if lines.isEmpty, !result.text.isEmpty, analysis == nil,
+               let window = self.window, let screen = window.screen ?? NSScreen.main {
+                self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
+                self.updateOCRButton(isRecognizing: false)
+                OCRTranslatePanel.presentTextRecognition(image: image, anchorRect: window.frame,
+                                                         screen: screen, initialResult: result)
+                return
+            }
             guard !lines.isEmpty || analysis != nil,
                   let content = self.window?.contentView else {
                 self.imageView.animates = self.currentEntry.fileURL.pathExtension.lowercased() == "gif"
@@ -5794,6 +6084,28 @@ private final class HistoryPreviewWindowController: NSWindowController, NSWindow
 }
 
 private enum HistoryPanelEntryActions {
+    static func copyFiles(_ entries: [HistoryEntry], completion: @escaping (Bool) -> Void) {
+        let changeCount = NSPasteboard.general.changeCount
+        HistoryFileReferences.resolveTransfer(entries) { urls in
+            // A later user copy always wins over an outstanding source check.
+            guard NSPasteboard.general.changeCount == changeCount else {
+                completion(false)
+                return
+            }
+            guard let urls else {
+                ToastWindow.show(message: L10n.historyPanelSourceUnavailableHint)
+                completion(false)
+                return
+            }
+            let success = ClipboardManager.copyHistoryFilesToClipboard(urls)
+            if success {
+                ToastWindow.show(message: L10n.copiedToClipboard)
+                entries.forEach { HistoryManager.shared.promoteCopiedEntryIfNeeded($0) }
+            }
+            completion(success)
+        }
+    }
+
     static func copy(_ entry: HistoryEntry) -> Bool {
         switch entry.kind {
         case .image:
@@ -5802,9 +6114,7 @@ private enum HistoryPanelEntryActions {
             ToastWindow.show()
             return recordSuccessfulCopy(of: entry)
         case .video:
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.writeObjects([entry.fileURL as NSURL])
+            guard ClipboardManager.copyHistoryFilesToClipboard([entry.fileURL]) else { return false }
             ToastWindow.show(message: L10n.copiedToClipboard)
             return recordSuccessfulCopy(of: entry)
         case .color(let hex):
@@ -5815,6 +6125,9 @@ private enum HistoryPanelEntryActions {
             ClipboardManager.copyHistoryTextToClipboard(text.value)
             ToastWindow.show(message: L10n.copiedToClipboard)
             return recordSuccessfulCopy(of: entry)
+        case .files:
+            copyFiles([entry]) { _ in }
+            return false
         }
     }
 

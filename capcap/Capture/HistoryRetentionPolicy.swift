@@ -20,6 +20,14 @@ enum HistoryRetentionPolicy {
     }
 
     @discardableResult
+    static func pruneFileReferences(in directory: URL, limit: Int) -> Int {
+        let files = storedFiles(in: directory, allowedExtensions: ["fileref"])
+            .filter { !HistoryManager.isFavorite(url: $0.url) }
+            .sorted(by: newestFirst)
+        return remove(files.dropFirst(max(0, limit)).map(\.url))
+    }
+
+    @discardableResult
     static func pruneText(
         in directory: URL,
         limit: Int,

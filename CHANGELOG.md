@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.22] - 2026-10-16
+
+### Added
+- Add keyboard navigation between history items (2ed2fda)
+- Record clipboard files in history (34b2374)
+- Add configurable OCR provider support (ee93222)
+
+### Fixed
+- Avoid duplicating history entries when pinning from history (24fbea6)
+
+### Changed
+- Polish history file previews and media badges (8f25499)
+
+## [1.7.21] - 2026-10-15
+
+### Changed
+- Remove separate beautify and text font defaults from Settings (8a0d282)
+
+## [1.7.20] - 2026-10-15
+
+### Fixed
+- Preserve source pixels when rendering beautified images (fbd355c)
+
+### Changed
+- Match beautify shadows to window capture and refine their sizing and localization (ffebf8a, 4c57250)
+
 ## [1.7.19] - 2026-10-11
 
 ### Fixed

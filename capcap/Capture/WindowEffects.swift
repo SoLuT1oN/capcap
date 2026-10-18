@@ -414,13 +414,11 @@ enum WindowEffects {
         guard size > 0, let shadowSource = image.cgImagePreservingBacking() else { return image }
 
         let pxScale = scale(of: image)
-        let shadowLayers = layers(forShadowSize: size)
-        let outsets = shadowOutsets(for: shadowLayers)
-
-        let padLeft = ceil(outsets.left)
-        let padRight = ceil(outsets.right)
-        let padTop = ceil(outsets.top)
-        let padBottom = ceil(outsets.bottom)
+        let padding = shadowPadding(forSize: size)
+        let padLeft = padding.left
+        let padRight = padding.right
+        let padTop = padding.top
+        let padBottom = padding.bottom
 
         let canvasSize = NSSize(
             width: image.size.width + padLeft + padRight,
@@ -458,14 +456,7 @@ enum WindowEffects {
             width: image.size.width,
             height: image.size.height
         )
-        for layer in shadowLayers {
-            drawShadowOnly(
-                image: shadowSource,
-                sourceRect: drawRect,
-                layer: layer,
-                context: context.cgContext
-            )
-        }
+        drawShadow(image: shadowSource, sourceRect: drawRect, size: size, context: context.cgContext)
 
         image.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0)
 
@@ -474,6 +465,24 @@ enum WindowEffects {
         let out = NSImage(size: canvasSize)
         out.addRepresentation(rep)
         return out
+    }
+
+    /// Cast from the image's actual alpha in both window and beautify output.
+    /// Raw bitmap callers supply their point-to-pixel scale; AppKit contexts
+    /// already establish a point-based shadow space.
+    static func drawShadow(
+        image: CGImage,
+        sourceRect: CGRect,
+        size: CGFloat,
+        baseScale: CGSize = CGSize(width: 1, height: 1),
+        context: CGContext
+    ) {
+        for layer in layers(forShadowSize: size) {
+            drawShadowOnly(
+                image: image, sourceRect: sourceRect, layer: layer,
+                baseScale: baseScale, context: context
+            )
+        }
     }
 
     private static func layers(forShadowSize size: CGFloat) -> [ShadowLayer] {
@@ -505,6 +514,16 @@ enum WindowEffects {
         ]
     }
 
+    /// Shared by window screenshots and beautify preview/export. The downward
+    /// key shadow needs more room below the image than above it.
+    static func shadowPadding(forSize size: CGFloat) -> NSEdgeInsets {
+        let outsets = shadowOutsets(for: layers(forShadowSize: size))
+        return NSEdgeInsets(
+            top: ceil(outsets.top), left: ceil(outsets.left),
+            bottom: ceil(outsets.bottom), right: ceil(outsets.right)
+        )
+    }
+
     private static func shadowOutsets(
         for layers: [ShadowLayer]
     ) -> (left: CGFloat, right: CGFloat, top: CGFloat, bottom: CGFloat) {
@@ -532,6 +551,7 @@ enum WindowEffects {
         image: CGImage,
         sourceRect: CGRect,
         layer: ShadowLayer,
+        baseScale: CGSize,
         context: CGContext
     ) {
         let clipOutset = shadowFringe(forBlur: layer.blur)
@@ -548,8 +568,11 @@ enum WindowEffects {
         context.saveGState()
         context.interpolationQuality = .high
         context.setShadow(
-            offset: CGSize(width: layer.offset.width - displacement, height: layer.offset.height),
-            blur: layer.blur,
+            offset: CGSize(
+                width: (layer.offset.width - displacement) * baseScale.width,
+                height: layer.offset.height * baseScale.height
+            ),
+            blur: layer.blur * max(baseScale.width, baseScale.height),
             color: NSColor.black.withAlphaComponent(layer.opacity).cgColor
         )
         context.draw(image, in: sourceRect.offsetBy(dx: displacement, dy: 0))

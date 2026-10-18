@@ -1,5 +1,15 @@
 import Foundation
 
+extension Defaults {
+    /// An explicit selection applies to every image-to-text entry point.
+    static var ocrProviderKind: OCRProviderKind {
+        get {
+            OCRProviderKind(rawValue: UserDefaults.standard.string(forKey: "ocr.provider") ?? "") ?? .apple
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "ocr.provider") }
+    }
+}
+
 /// A language the app's UI can be displayed in. Raw values double as the
 /// `appLanguage` UserDefaults value (kept stable for backward compatibility).
 enum AppLanguage: String, CaseIterable {
@@ -114,7 +124,7 @@ enum L10n {
     static var countdownSecondsSuffix: String { s("countdownSecondsSuffix") }
     static var windowShadowToggleLabel: String { s("windowShadowToggleLabel") }
     static var windowShadowToggleHint: String { s("windowShadowToggleHint") }
-    static var windowShadowSizeLabel: String { s("windowShadowSizeLabel") }
+    static var shadowSizeLabel: String { s("shadowSizeLabel") }
     static var windowShadowSizeHint: String { s("windowShadowSizeHint") }
     static var savePathTitle: String { s("savePathTitle") }
     static var savePathSubtitle: String { s("savePathSubtitle") }
@@ -295,6 +305,16 @@ enum L10n {
     static var historyPanelFilterMP4: String { s("historyPanelFilterMP4") }
     static var historyPanelFilterColors: String { s("historyPanelFilterColors") }
     static var historyPanelFilterText: String { s("historyPanelFilterText") }
+    static var historyPanelFilterFiles: String { s("historyPanelFilterFiles") }
+    static var historyPanelFolder: String { s("historyPanelFolder") }
+    static var historyPanelSearchFiles: String { s("historyPanelSearchFiles") }
+    static var historyPanelSourceUnavailable: String { s("historyPanelSourceUnavailable") }
+    static var historyPanelSourceUnavailableHint: String { s("historyPanelSourceUnavailableHint") }
+    static var historyFilePreviewPrevious: String { s("historyFilePreviewPrevious") }
+    static var historyFilePreviewNext: String { s("historyFilePreviewNext") }
+    static var historyFilePreviewLoading: String { s("historyFilePreviewLoading") }
+    static var historyFilePreviewRetry: String { s("historyFilePreviewRetry") }
+    static var historyFilePreviewUnavailable: String { s("historyFilePreviewUnavailable") }
     static var historyPanelSearchColorsAndText: String { s("historyPanelSearchColorsAndText") }
     static var historyPanelSearchColors: String { s("historyPanelSearchColors") }
     static var historyPanelSearchText: String { s("historyPanelSearchText") }
@@ -319,6 +339,7 @@ enum L10n {
     static var historyPanelShortcutKeySpace: String { s("historyPanelShortcutKeySpace") }
     static var historyPanelShortcutSearch: String { s("historyPanelShortcutSearch") }
     static var historyPanelShortcutSwitchFilter: String { s("historyPanelShortcutSwitchFilter") }
+    static var historyPanelShortcutSwitchItem: String { s("historyPanelShortcutSwitchItem") }
     static var historyPanelShortcutToggleSelection: String { s("historyPanelShortcutToggleSelection") }
     static var historyPanelShortcutRangeSelection: String { s("historyPanelShortcutRangeSelection") }
     static var historyPanelShortcutSelectAll: String { s("historyPanelShortcutSelectAll") }
@@ -497,19 +518,13 @@ enum L10n {
     static var beautifyPresetArcticIce: String { s("beautifyPresetArcticIce") }
     static var beautifyPresetSageCream: String { s("beautifyPresetSageCream") }
     static var beautifyPresetGraphite: String { s("beautifyPresetGraphite") }
-    static var beautifyShadowEffect: String { s("beautifyShadowEffect") }
-    static var beautifyAutoToggleLabel: String { s("beautifyAutoToggleLabel") }
-    static var beautifyAutoToggleHint: String { s("beautifyAutoToggleHint") }
-    static var beautifyDefaultPresetLabel: String { s("beautifyDefaultPresetLabel") }
-    static var beautifyDefaultPaddingLabel: String { s("beautifyDefaultPaddingLabel") }
+    static var beautifyShadowSizeHint: String { s("beautifyShadowSizeHint") }
 
     // Text tool
     static var textStrokeEffect: String { s("textStrokeEffect") }
     static var textCalloutEffect: String { s("textCalloutEffect") }
     static var textFontLabel: String { s("textFontLabel") }
     static var textFontSystemDefault: String { s("textFontSystemDefault") }
-    static var textFontDefaultLabel: String { s("textFontDefaultLabel") }
-    static var textFontDefaultHint: String { s("textFontDefaultHint") }
 
     // Shape tool
     static var shapeFillEffect: String { s("shapeFillEffect") }
@@ -785,6 +800,30 @@ enum L10n {
 
     // OCR & Translation — result panel
     static var ocrTextHeader: String { s("ocrTextHeader") }
+    static var settingsTabOCR: String { s("settingsTabOCR") }
+    static var ocrProviderApple: String { s("ocrProviderApple") }
+    static var ocrProviderBaidu: String { s("ocrProviderBaidu") }
+    static var ocrProviderTencent: String { s("ocrProviderTencent") }
+    static var ocrProviderCompatible: String { s("ocrProviderCompatible") }
+    static var ocrProviderLabel: String { s("ocrProviderLabel") }
+    static var ocrEndpointLabel: String { s("ocrEndpointLabel") }
+    static var ocrModelLabel: String { s("ocrModelLabel") }
+    static var ocrRegionLabel: String { s("ocrRegionLabel") }
+    static var ocrOptionalKey: String { s("ocrOptionalKey") }
+    static var ocrVisionModelHint: String { s("ocrVisionModelHint") }
+    static var ocrLocalDescription: String { s("ocrLocalDescription") }
+    static var ocrCloudDescription: String { s("ocrCloudDescription") }
+    static var ocrCompatibleDescription: String { s("ocrCompatibleDescription") }
+    static var ocrOllamaDescription: String { s("ocrOllamaDescription") }
+    static var ocrTextOnlyDescription: String { s("ocrTextOnlyDescription") }
+    static var ocrDocumentation: String { s("ocrDocumentation") }
+    static var ocrSettingsSaved: String { s("ocrSettingsSaved") }
+    static var ocrConfigurationError: String { s("ocrConfigurationError") }
+    static var ocrEndpointError: String { s("ocrEndpointError") }
+    static var ocrImageError: String { s("ocrImageError") }
+    static var ocrResponseError: String { s("ocrResponseError") }
+    static var ocrTimeoutError: String { s("ocrTimeoutError") }
+    static var ocrRequestFailed: String { s("ocrRequestFailed") }
     static var ocrRecognizing: String { s("ocrRecognizing") }
     static var ocrNoText: String { s("ocrNoText") }
     static var ocrCopy: String { s("ocrCopy") }
@@ -1899,9 +1938,7 @@ struct Defaults {
         }
     }
 
-    /// Default font family for text annotations. Shared by the settings pane
-    /// and the editor's font picker (which also writes it, matching the
-    /// "remember last used" model of the other text-tool properties).
+    /// Last font family selected in the editor's font picker, reused for new text annotations
     /// Normalized at the persistence boundary: a family that is no longer
     /// installed reads back as nil, i.e. the system bold default.
     static var textFontName: String? {
@@ -2080,28 +2117,26 @@ struct Defaults {
         }
     }
 
-    static var lastBeautifyPadding: Double {
+    static var lastBeautifyShadowSize: Double {
         get {
-            if defaults.object(forKey: "lastBeautifyPadding") == nil {
-                return 24
+            // Preserve the old slider position once, without sharing any state
+            // with the window-capture projection preferences.
+            if defaults.object(forKey: "lastBeautifyShadowSize") == nil {
+                let legacy = defaults.object(forKey: "lastBeautifyPadding") as? NSNumber
+                let size = BeautifyRenderer.normalizedShadowSize(
+                    CGFloat(legacy?.doubleValue ?? Double(BeautifyRenderer.shadowSizeDefault))
+                )
+                defaults.set(Double(size), forKey: "lastBeautifyShadowSize")
             }
-            let val = defaults.double(forKey: "lastBeautifyPadding")
-            return min(max(val, 0), 56)
+            return Double(BeautifyRenderer.normalizedShadowSize(
+                CGFloat(defaults.double(forKey: "lastBeautifyShadowSize"))
+            ))
         }
         set {
-            defaults.set(min(max(newValue, 0), 56), forKey: "lastBeautifyPadding")
-        }
-    }
-
-    static var lastBeautifyShadowEnabled: Bool {
-        get {
-            if defaults.object(forKey: "lastBeautifyShadowEnabled") == nil {
-                return true
-            }
-            return defaults.bool(forKey: "lastBeautifyShadowEnabled")
-        }
-        set {
-            defaults.set(newValue, forKey: "lastBeautifyShadowEnabled")
+            defaults.set(
+                Double(BeautifyRenderer.normalizedShadowSize(CGFloat(newValue))),
+                forKey: "lastBeautifyShadowSize"
+            )
         }
     }
 
@@ -2116,17 +2151,18 @@ struct Defaults {
         return result
     }
 
-    /// When true, the annotation editor opens with beautify already active,
-    /// using the last-used preset / padding / shadow settings.
-    static var beautifyAutoEnabled: Bool {
+    /// The user's last explicit beautify toggle, independent of temporary editor state
+    static var lastBeautifyEnabled: Bool {
         get {
-            if defaults.object(forKey: "beautifyAutoEnabled") == nil {
-                return false
+            if defaults.object(forKey: "lastBeautifyEnabled") == nil {
+                defaults.set(defaults.bool(forKey: "beautifyAutoEnabled"), forKey: "lastBeautifyEnabled")
+                defaults.removeObject(forKey: "beautifyAutoEnabled")
             }
-            return defaults.bool(forKey: "beautifyAutoEnabled")
+            return defaults.bool(forKey: "lastBeautifyEnabled")
         }
         set {
-            defaults.set(newValue, forKey: "beautifyAutoEnabled")
+            defaults.set(newValue, forKey: "lastBeautifyEnabled")
+            defaults.removeObject(forKey: "beautifyAutoEnabled")
         }
     }
 

@@ -40,6 +40,8 @@ let package = Package(
                 .linkedFramework("VisionKit"),
                 .linkedFramework("CoreImage"),
                 .linkedFramework("ImageIO"),
+                .linkedFramework("QuickLookThumbnailing"),
+                .linkedFramework("QuickLookUI"),
                 .linkedFramework("UniformTypeIdentifiers"),
                 .linkedFramework("EventKit"),
                 .linkedFramework("Carbon"),

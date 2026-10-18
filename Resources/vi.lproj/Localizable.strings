@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "Ảnh ghim mới xuất hiện trên mọi màn hình nền và Space toàn màn hình";
 "historyCacheToggleLabel" = "Lưu ảnh chụp vào bộ nhớ";
 "historyCacheToggleHint" = "Lưu ảnh chụp gần đây, màu đã chọn và liên kết tải lên để sao chép lại nhanh từ bảng lịch sử";
-"clipboardTextCacheToggleLabel" = "Lưu văn bản bảng nhớ tạm";
-"clipboardTextCacheToggleHint" = "Lưu văn bản đã sao chép vào lịch sử để nhanh chóng sử dụng lại";
-"clipboardTextHistoryLimitLabel" = "Giới hạn lịch sử văn bản";
+"clipboardTextCacheToggleLabel" = "Ghi lại văn bản và tệp bảng nhớ tạm";
+"clipboardTextCacheToggleHint" = "Lưu văn bản và tham chiếu tệp nguồn mà không sao chép tệp";
+"clipboardTextHistoryLimitLabel" = "Giới hạn lịch sử văn bản / tệp";
 "historyCacheLabel" = "Giới hạn lịch sử hình ảnh và phương tiện";
 "historyPanelDisplayModeLabel" = "Cách hiển thị bảng lịch sử";
 "historyPanelDisplayModeHint" = "Chọn Hộp thoại hoặc tai thỏ để xem lịch sử";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "giây";
 "windowShadowToggleLabel" = "Đổ bóng khi chụp cửa sổ";
 "windowShadowToggleHint" = "Bo góc ảnh chụp cửa sổ và thêm bóng đổ kiểu macOS";
-"windowShadowSizeLabel" = "Kích thước bóng";
+"shadowSizeLabel" = "Kích thước bóng đổ";
 "windowShadowSizeHint" = "Giá trị lớn hơn làm bóng mờ mềm hơn và lan rộng hơn, khiến cửa sổ trông nổi cao hơn";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Màu";
 "historyPanelFilterText" = "Văn bản";
-"historyPanelSearchColorsAndText" = "Tìm màu và văn bản";
+"historyPanelSearchColorsAndText" = "Tìm màu, văn bản và tệp";
 "historyPanelSearchColors" = "Tìm màu";
 "historyPanelSearchText" = "Tìm văn bản";
 "historyPanelClearSearch" = "Xóa tìm kiếm";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Phím cách";
 "historyPanelShortcutSearch" = "Mở hoặc đóng tìm kiếm";
 "historyPanelShortcutSwitchFilter" = "Chuyển danh mục";
+"historyPanelShortcutSwitchItem" = "Chuyển sang mục trước hoặc tiếp theo";
 "historyPanelShortcutToggleSelection" = "Chọn hoặc bỏ chọn một mục";
 "historyPanelShortcutRangeSelection" = "Chọn một phạm vi";
 "historyPanelShortcutSelectAll" = "Chọn tất cả mục đang hiển thị";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "Băng Bắc Cực";
 "beautifyPresetSageCream" = "Kem xô thơm";
 "beautifyPresetGraphite" = "Than chì";
-"beautifyShadowEffect" = "Hiệu ứng bóng";
-"beautifyAutoToggleLabel" = "Mở trình chỉnh sửa với Beautify";
-"beautifyAutoToggleHint" = "Tự động áp dụng preset, lề và bóng đã dùng lần trước khi mở trình chỉnh sửa";
-"beautifyDefaultPresetLabel" = "Preset mặc định";
-"beautifyDefaultPaddingLabel" = "Lề mặc định";
+"beautifyShadowSizeHint" = "Chỉ điều chỉnh bóng của hiệu ứng làm đẹp, lề tự động tăng để chứa toàn bộ bóng";
 "textStrokeEffect" = "Viền chữ";
 "textCalloutEffect" = "Chú thích";
 "textFontLabel" = "Phông chữ";
 "textFontSystemDefault" = "Mặc định hệ thống";
-"textFontDefaultLabel" = "Phông chữ văn bản mặc định";
-"textFontDefaultHint" = "Phông chữ dùng cho chú thích văn bản mới tạo";
 "shapeFillEffect" = "Tô màu";
 "shapeFillNone" = "Viền";
 "shapeFillOpaque" = "Tô màu";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "Không thể lưu văn bản, vui lòng thử lại";
 
 "windowCapturePreparing" = "Đang chuẩn bị ảnh chụp màn hình";
+
+// Configurable OCR providers
+"settingsTabOCR" = "Nhận dạng văn bản";
+"ocrProviderApple" = "Apple · Trên thiết bị";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "Mô hình thị giác tương thích OpenAI";
+"ocrProviderLabel" = "Nhà cung cấp OCR";
+"ocrEndpointLabel" = "Địa chỉ API đầy đủ";
+"ocrModelLabel" = "Tên mô hình thị giác";
+"ocrRegionLabel" = "Khu vực";
+"ocrOptionalKey" = "Có thể bỏ trống nếu máy chủ không cần xác thực";
+"ocrVisionModelHint" = "Nhập mô hình thị giác đã cài hoặc có sẵn";
+"ocrLocalDescription" = "Nhận dạng văn bản trên máy Mac này mà không tải ảnh lên";
+"ocrCloudDescription" = "Ảnh được gửi đến nhà cung cấp đã chọn khi dùng OCR, bao gồm dịch ảnh chụp, ảnh ghim và xem trước lịch sử";
+"ocrCompatibleDescription" = "Dùng API Chat Completions hỗ trợ thị giác như OpenAI, Qwen hoặc máy chủ cục bộ · Ảnh được gửi đến địa chỉ bạn cấu hình";
+"ocrOllamaDescription" = "Kết nối Ollama và nhập mô hình thị giác đã cài · Ảnh được gửi đến máy chủ Ollama đã cấu hình";
+"ocrTextOnlyDescription" = "Mô hình này chỉ trả về văn bản, không có tọa độ · Ảnh ghim và lịch sử sẽ mở bảng kết quả thay vì chọn chữ trên ảnh";
+"ocrDocumentation" = "Tài liệu nhà cung cấp";
+"ocrSettingsSaved" = "Tự động lưu cài đặt · Áp dụng cho lần nhận dạng tiếp theo";
+"ocrConfigurationError" = "Điền thông tin xác thực, địa chỉ API và mô hình bắt buộc";
+"ocrEndpointError" = "Dùng URL API HTTPS đầy đủ hoặc HTTP trên localhost";
+"ocrImageError" = "Không thể giải mã ảnh";
+"ocrResponseError" = "OCR thất bại hoặc phản hồi không đầy đủ";
+"ocrTimeoutError" = "OCR hết thời gian chờ · Kiểm tra dịch vụ hoặc thử lại";
+"ocrRequestFailed" = "Yêu cầu OCR thất bại";
+
+"historyPanelFilterFiles" = "Tệp";
+
+"historyPanelFolder" = "Thư mục";
+
+"historyPanelSearchFiles" = "Tìm tên và đường dẫn tệp";
+
+"historyPanelSourceUnavailable" = "Tệp nguồn không khả dụng";
+
+"historyPanelSourceUnavailableHint" = "Một số tệp nguồn đã bị xóa, ngoại tuyến hoặc chưa tải xuống";
+
+"historyFilePreviewPrevious" = "Tệp trước";
+
+"historyFilePreviewNext" = "Tệp tiếp theo";
+
+"historyFilePreviewLoading" = "Đang tải bản xem trước";
+
+"historyFilePreviewRetry" = "Kiểm tra lại";
+
+"historyFilePreviewUnavailable" = "Không thể xem trước tệp này";

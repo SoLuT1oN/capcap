@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "Les nouvelles images épinglées apparaissent sur chaque bureau et espace plein écran";
 "historyCacheToggleLabel" = "Mettre les captures en cache";
 "historyCacheToggleHint" = "Enregistre les captures récentes, les couleurs prélevées et les liens téléversés pour les recopier depuis le panneau d'historique";
-"clipboardTextCacheToggleLabel" = "Mettre le texte du presse-papiers en cache";
-"clipboardTextCacheToggleHint" = "Enregistre le texte copié dans l’historique pour le réutiliser rapidement";
-"clipboardTextHistoryLimitLabel" = "Limite de l’historique du texte";
+"clipboardTextCacheToggleLabel" = "Enregistrer le texte et les fichiers du presse-papiers";
+"clipboardTextCacheToggleHint" = "Conserver le texte et les références aux fichiers sans les copier";
+"clipboardTextHistoryLimitLabel" = "Limite de l’historique texte / fichiers";
 "historyCacheLabel" = "Limite de l’historique des images et médias";
 "historyPanelDisplayModeLabel" = "Affichage du panneau d'historique";
 "historyPanelDisplayModeHint" = "Choisir Dialogue ou Encoche pour l'historique";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "s";
 "windowShadowToggleLabel" = "Ombre des captures de fenêtre";
 "windowShadowToggleHint" = "Arrondit les coins des captures de fenêtre et ajoute une ombre portée façon macOS";
-"windowShadowSizeLabel" = "Taille de l'ombre";
+"shadowSizeLabel" = "Taille de l’ombre portée";
 "windowShadowSizeHint" = "Des valeurs élevées adoucissent et élargissent l'ombre : la fenêtre semble flotter plus haut";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Couleurs";
 "historyPanelFilterText" = "Texte";
-"historyPanelSearchColorsAndText" = "Rechercher couleurs et texte";
+"historyPanelSearchColorsAndText" = "Rechercher couleurs, texte et fichiers";
 "historyPanelSearchColors" = "Rechercher des couleurs";
 "historyPanelSearchText" = "Rechercher du texte";
 "historyPanelClearSearch" = "Effacer la recherche";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Espace";
 "historyPanelShortcutSearch" = "Rechercher ou fermer la recherche";
 "historyPanelShortcutSwitchFilter" = "Changer de catégorie";
+"historyPanelShortcutSwitchItem" = "Passer à l’élément précédent ou suivant";
 "historyPanelShortcutToggleSelection" = "Sélectionner ou désélectionner un élément";
 "historyPanelShortcutRangeSelection" = "Sélectionner une plage";
 "historyPanelShortcutSelectAll" = "Sélectionner tous les éléments visibles";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "Glace arctique";
 "beautifyPresetSageCream" = "Sauge crème";
 "beautifyPresetGraphite" = "Graphite";
-"beautifyShadowEffect" = "Ombre";
-"beautifyAutoToggleLabel" = "Ouvrir l'éditeur avec Beautify";
-"beautifyAutoToggleHint" = "Applique automatiquement le dernier préréglage, le padding et l'ombre à l'ouverture de l'éditeur";
-"beautifyDefaultPresetLabel" = "Préréglage par défaut";
-"beautifyDefaultPaddingLabel" = "Marge par défaut";
+"beautifyShadowSizeHint" = "Ajuste uniquement l’ombre de l’embellissement, avec des marges qui s’agrandissent automatiquement pour la contenir";
 "textStrokeEffect" = "Contour";
 "textCalloutEffect" = "Annotation";
 "textFontLabel" = "Police";
 "textFontSystemDefault" = "Police système";
-"textFontDefaultLabel" = "Police de texte par défaut";
-"textFontDefaultHint" = "Police utilisée par les nouvelles annotations de texte";
 "shapeFillEffect" = "Remplir";
 "shapeFillNone" = "Contour";
 "shapeFillOpaque" = "Remplissage";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "Impossible d’enregistrer le texte, veuillez réessayer";
 
 "windowCapturePreparing" = "Préparation de la capture";
+
+// Configurable OCR providers
+"settingsTabOCR" = "Reconnaissance de texte";
+"ocrProviderApple" = "Apple · Sur cet appareil";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "Modèle visuel compatible OpenAI";
+"ocrProviderLabel" = "Fournisseur OCR";
+"ocrEndpointLabel" = "URL complète de l’API";
+"ocrModelLabel" = "Nom du modèle visuel";
+"ocrRegionLabel" = "Région";
+"ocrOptionalKey" = "Facultatif pour un serveur sans authentification";
+"ocrVisionModelHint" = "Saisissez un modèle visuel installé ou disponible";
+"ocrLocalDescription" = "Reconnaître le texte sur ce Mac sans téléverser les images";
+"ocrCloudDescription" = "Les images sont envoyées au fournisseur choisi lors de la reconnaissance, y compris pour la traduction de captures, les images épinglées et l’historique";
+"ocrCompatibleDescription" = "Utilisez une API Chat Completions visuelle, dont OpenAI, Qwen ou un serveur local · Les images sont envoyées à l’adresse configurée";
+"ocrOllamaDescription" = "Connectez Ollama et indiquez un modèle visuel installé · Les images sont envoyées au serveur Ollama configuré";
+"ocrTextOnlyDescription" = "Ce modèle renvoie du texte sans coordonnées · Les images épinglées et l’historique ouvrent le panneau de résultats au lieu de la sélection dans l’image";
+"ocrDocumentation" = "Documentation du fournisseur";
+"ocrSettingsSaved" = "Paramètres enregistrés automatiquement · Appliqués à la prochaine reconnaissance";
+"ocrConfigurationError" = "Complétez les identifiants, l’URL et le modèle requis";
+"ocrEndpointError" = "Utilisez une URL API HTTPS complète ou HTTP sur localhost";
+"ocrImageError" = "Impossible de décoder l’image";
+"ocrResponseError" = "Échec OCR ou réponse incomplète";
+"ocrTimeoutError" = "Délai OCR dépassé · Vérifiez le service ou réessayez";
+"ocrRequestFailed" = "Échec de la requête OCR";
+
+"historyPanelFilterFiles" = "Fichiers";
+
+"historyPanelFolder" = "Dossier";
+
+"historyPanelSearchFiles" = "Rechercher les noms et chemins de fichiers";
+
+"historyPanelSourceUnavailable" = "Source indisponible";
+
+"historyPanelSourceUnavailableHint" = "Certains fichiers sources sont supprimés, hors ligne ou non téléchargés";
+
+"historyFilePreviewPrevious" = "Fichier précédent";
+
+"historyFilePreviewNext" = "Fichier suivant";
+
+"historyFilePreviewLoading" = "Chargement de l’aperçu";
+
+"historyFilePreviewRetry" = "Vérifier à nouveau";
+
+"historyFilePreviewUnavailable" = "Aperçu indisponible pour ce fichier";

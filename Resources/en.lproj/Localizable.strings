@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "New pinned images appear on every desktop and full-screen Space";
 "historyCacheToggleLabel" = "Cache Screenshots";
 "historyCacheToggleHint" = "Store recent screenshots, picked colors, and upload links for quick reuse from the history panel";
-"clipboardTextCacheToggleLabel" = "Cache Clipboard Text";
-"clipboardTextCacheToggleHint" = "Store copied text in history for quick reuse";
-"clipboardTextHistoryLimitLabel" = "Text History Limit";
+"clipboardTextCacheToggleLabel" = "Record Clipboard Text and Files";
+"clipboardTextCacheToggleHint" = "Keep text and source file references without copying files";
+"clipboardTextHistoryLimitLabel" = "Text / File History Limit";
 "historyCacheLabel" = "Image and Media History Limit";
 "historyPanelDisplayModeLabel" = "History Panel Display";
 "historyPanelDisplayModeHint" = "Choose Dialog or Notch for history";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "s";
 "windowShadowToggleLabel" = "Window Capture Shadow";
 "windowShadowToggleHint" = "Round the corners of window captures and add a macOS-style drop shadow";
-"windowShadowSizeLabel" = "Shadow Size";
+"shadowSizeLabel" = "Drop Shadow Size";
 "windowShadowSizeHint" = "Larger values blur softer and spread wider, so the window appears to float higher";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "Colors";
 "historyPanelFilterText" = "Text";
-"historyPanelSearchColorsAndText" = "Search colors and text";
+"historyPanelSearchColorsAndText" = "Search colors, text, and files";
 "historyPanelSearchColors" = "Search colors";
 "historyPanelSearchText" = "Search text";
 "historyPanelClearSearch" = "Clear search";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "Space";
 "historyPanelShortcutSearch" = "Search or close search";
 "historyPanelShortcutSwitchFilter" = "Switch categories";
+"historyPanelShortcutSwitchItem" = "Switch to the previous or next item";
 "historyPanelShortcutToggleSelection" = "Select or deselect one item";
 "historyPanelShortcutRangeSelection" = "Select a range";
 "historyPanelShortcutSelectAll" = "Select all visible items";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "Arctic Ice";
 "beautifyPresetSageCream" = "Sage Cream";
 "beautifyPresetGraphite" = "Graphite";
-"beautifyShadowEffect" = "Shadow Effect";
-"beautifyAutoToggleLabel" = "Open Editor with Beautify";
-"beautifyAutoToggleHint" = "Automatically apply the last beautify preset, padding, and shadow when the editor opens";
-"beautifyDefaultPresetLabel" = "Default Preset";
-"beautifyDefaultPaddingLabel" = "Default Padding";
+"beautifyShadowSizeHint" = "Adjust only the beautify shadow, with margins that grow automatically to fit it";
 "textStrokeEffect" = "Stroke";
 "textCalloutEffect" = "Callout";
 "textFontLabel" = "Font";
 "textFontSystemDefault" = "System default";
-"textFontDefaultLabel" = "Default text font";
-"textFontDefaultHint" = "Font used by newly created text annotations";
 "shapeFillEffect" = "Fill";
 "shapeFillNone" = "Outline";
 "shapeFillOpaque" = "Fill";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "Unable to save text, please try again";
 
 "windowCapturePreparing" = "Preparing screenshot";
+
+// Configurable OCR providers
+"settingsTabOCR" = "OCR";
+"ocrProviderApple" = "Apple · On-device";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "OpenAI-compatible vision model";
+"ocrProviderLabel" = "OCR provider";
+"ocrEndpointLabel" = "Full API endpoint";
+"ocrModelLabel" = "Vision model name";
+"ocrRegionLabel" = "Region";
+"ocrOptionalKey" = "Optional for servers without authentication";
+"ocrVisionModelHint" = "Enter an installed or available vision model";
+"ocrLocalDescription" = "Recognize text on this Mac without uploading images";
+"ocrCloudDescription" = "Images are sent to the selected provider when you use OCR, including screenshot translation, pins and history previews";
+"ocrCompatibleDescription" = "Use a vision-capable Chat Completions API, including OpenAI, Qwen or a local server · Images are sent to the endpoint you configure";
+"ocrOllamaDescription" = "Connect to Ollama and enter an installed vision model · Images are sent to your configured Ollama server";
+"ocrTextOnlyDescription" = "This model returns text without coordinates · Pins and history open the text result panel instead of image text selection";
+"ocrDocumentation" = "Provider documentation";
+"ocrSettingsSaved" = "Settings saved automatically · Applies to the next recognition request";
+"ocrConfigurationError" = "Complete the required credentials, endpoint and model settings";
+"ocrEndpointError" = "Use a full HTTPS API URL or HTTP on localhost";
+"ocrImageError" = "Unable to decode the image";
+"ocrResponseError" = "OCR failed or returned an incomplete response";
+"ocrTimeoutError" = "OCR timed out · Check the service or try again";
+"ocrRequestFailed" = "OCR request failed";
+
+"historyPanelFilterFiles" = "Files";
+
+"historyPanelFolder" = "Folder";
+
+"historyPanelSearchFiles" = "Search file names and paths";
+
+"historyPanelSourceUnavailable" = "Source unavailable";
+
+"historyPanelSourceUnavailableHint" = "Some source files are deleted, offline, or not downloaded";
+
+"historyFilePreviewPrevious" = "Previous file";
+
+"historyFilePreviewNext" = "Next file";
+
+"historyFilePreviewLoading" = "Loading preview";
+
+"historyFilePreviewRetry" = "Check again";
+
+"historyFilePreviewUnavailable" = "Preview unavailable for this file";

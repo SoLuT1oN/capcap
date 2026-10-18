@@ -13,6 +13,7 @@ enum SettingsTab: CaseIterable {
     case history
     case files
     case upload
+    case ocr
     case translation
     case aiCalendar
     case permissions
@@ -32,6 +33,7 @@ enum SettingsTab: CaseIterable {
         case .files: return L10n.settingsGeneralFiles
         case .toolbar: return L10n.settingsTabToolbar
         case .upload: return L10n.settingsTabUpload
+        case .ocr: return L10n.settingsTabOCR
         case .translation: return L10n.settingsTabTranslation
         case .permissions: return L10n.settingsTabPermissions
         case .about: return L10n.settingsTabAbout
@@ -52,6 +54,7 @@ enum SettingsTab: CaseIterable {
         case .files: return "doc"
         case .toolbar: return "slider.horizontal.3"
         case .upload: return "icloud.and.arrow.up.fill"
+        case .ocr: return "text.viewfinder"
         case .translation: return "translate"
         case .permissions: return "lock.shield.fill"
         case .about: return "info.circle.fill"
@@ -70,7 +73,7 @@ enum SettingsTab: CaseIterable {
         case .toolbar, .recording:
             return NSColor(calibratedRed: 0.95, green: 0.54, blue: 0.62, alpha: 1.0)
         case .upload: return NSColor(calibratedRed: 0.99, green: 0.72, blue: 0.32, alpha: 1.0)
-        case .translation, .files:
+        case .translation, .files, .ocr:
             return NSColor(calibratedRed: 0.38, green: 0.80, blue: 0.78, alpha: 1.0)
         case .permissions: return NSColor(calibratedRed: 0.36, green: 0.78, blue: 0.50, alpha: 1.0)
         case .about, .history:
@@ -123,23 +126,6 @@ class SettingsView: NSView {
     private var windowShadowSubtitleLabel: NSTextField?
     private var windowShadowSizeTitleLabel: NSTextField!
     private var windowShadowSizeHintLabel: NSTextField!
-
-    // Beautify defaults card
-    private var beautifyAutoSwitch: NSSwitch!
-    private var beautifyAutoTitleLabel: NSTextField!
-    private var beautifyAutoSubtitleLabel: NSTextField?
-    private var beautifyPresetTitleLabel: NSTextField!
-    private var beautifyPaddingTitleLabel: NSTextField!
-    private var beautifyPaddingValueLabel: NSTextField!
-    private var beautifyPaddingSlider: NSSlider!
-    private var beautifyShadowSwitch: NSSwitch!
-    private var beautifyShadowTitleLabel: NSTextField!
-    private var beautifyPresetSwatches: [BeautifySettingsSwatchView] = []
-
-    // Text annotation defaults card
-    private var textFontTitleLabel: NSTextField!
-    private var textFontHintLabel: NSTextField!
-    private var textFontPopup: NSPopUpButton!
 
     // Screenshot shortcut card
     private var shortcutTitleLabel: NSTextField!
@@ -500,13 +486,16 @@ class SettingsView: NSView {
             detail.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
         ])
 
+        // Keep custom pane registration separate from the upstream pane list
+        paneViews[.aiCalendar] = buildAICalendarPane()
+
         // Build all panes
         buildCapturePreferencePanes()
         paneViews[.shortcuts] = buildShortcutsPane()
         paneViews[.toolbar] = buildToolbarPane()
         paneViews[.upload] = buildUploadPane()
         paneViews[.translation] = buildTranslationPane()
-        paneViews[.aiCalendar] = buildAICalendarPane()
+        paneViews[.ocr] = OCRSettingsPane()
         paneViews[.permissions] = buildPermissionsPane()
         paneViews[.about] = buildAboutPane()
 
@@ -826,9 +815,6 @@ class SettingsView: NSView {
 
         buildCountdownCard(into: capture)
         buildWindowShadowCard(into: capture)
-        buildBeautifyDefaultsCard(into: capture)
-        updateBeautifyControlsEnabled()
-        buildTextFontCard(into: capture)
         let pinCard = CardView()
         let pinInner = verticalInnerStack()
         pinCard.addSubview(pinInner)
@@ -900,7 +886,7 @@ class SettingsView: NSView {
         header.spacing = 8
         header.translatesAutoresizingMaskIntoConstraints = false
 
-        windowShadowSizeTitleLabel = primaryLabel(L10n.windowShadowSizeLabel)
+        windowShadowSizeTitleLabel = primaryLabel(L10n.shadowSizeLabel)
         header.addArrangedSubview(windowShadowSizeTitleLabel)
         header.addArrangedSubview(flexSpacer())
 
@@ -953,219 +939,6 @@ class SettingsView: NSView {
         windowShadowSizeTitleLabel?.textColor = NSColor.white.withAlphaComponent(on ? 0.94 : 0.4)
         windowShadowSizeValueLabel?.textColor = NSColor.white.withAlphaComponent(on ? 0.88 : 0.4)
         windowShadowPreview?.isEffectEnabled = on
-    }
-
-    /// Default beautify behaviour when the annotation editor opens: optional
-    /// auto-enable plus the shared last-used preset / padding / shadow.
-    private func buildBeautifyDefaultsCard(into stack: NSStackView) {
-        let card = CardView()
-        let inner = NSStackView()
-        inner.orientation = .vertical
-        inner.alignment = .leading
-        inner.spacing = 10
-        inner.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(inner)
-        pin(inner, to: card, insets: NSEdgeInsets(top: 4, left: 14, bottom: 14, right: 14))
-
-        let toggle = makeToggleRow(
-            title: L10n.beautifyAutoToggleLabel,
-            subtitle: L10n.beautifyAutoToggleHint,
-            isOn: Defaults.beautifyAutoEnabled,
-            action: #selector(beautifyAutoToggled(_:))
-        )
-        beautifyAutoTitleLabel = toggle.title
-        beautifyAutoSubtitleLabel = toggle.subtitle
-        beautifyAutoSwitch = toggle.toggle
-        inner.addArrangedSubview(toggle.row)
-        toggle.row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        let divider = rowDivider()
-        inner.addArrangedSubview(divider)
-        divider.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        beautifyPresetTitleLabel = primaryLabel(L10n.beautifyDefaultPresetLabel)
-        inner.addArrangedSubview(beautifyPresetTitleLabel)
-
-        let swatchRow = NSStackView()
-        swatchRow.orientation = .horizontal
-        swatchRow.alignment = .centerY
-        swatchRow.spacing = 8
-        swatchRow.translatesAutoresizingMaskIntoConstraints = false
-
-        let selectedID = Defaults.lastBeautifyPresetID ?? BeautifyPreset.defaultPreset.id
-        let visiblePresets = BeautifyPreset.toolbarPresets(
-            preferredIDs: Defaults.beautifyToolbarPresetIDs
-        )
-        beautifyPresetSwatches = []
-        for preset in visiblePresets {
-            let swatch = BeautifySettingsSwatchView(preset: preset)
-            swatch.isSelected = (preset.id == selectedID)
-            swatch.target = self
-            swatch.action = #selector(beautifyPresetSwatchClicked(_:))
-            swatch.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                swatch.widthAnchor.constraint(equalToConstant: 24),
-                swatch.heightAnchor.constraint(equalToConstant: 24),
-            ])
-            if preset.isWallpaper, let screen = NSScreen.main {
-                BeautifyRenderer.loadWallpaperImage(for: screen) { [weak swatch] image in
-                    swatch?.wallpaperThumbnail = image
-                }
-            }
-            swatchRow.addArrangedSubview(swatch)
-            beautifyPresetSwatches.append(swatch)
-        }
-        inner.addArrangedSubview(swatchRow)
-
-        let paddingHeader = NSStackView()
-        paddingHeader.orientation = .horizontal
-        paddingHeader.alignment = .firstBaseline
-        paddingHeader.spacing = 8
-        paddingHeader.translatesAutoresizingMaskIntoConstraints = false
-
-        beautifyPaddingTitleLabel = primaryLabel(L10n.beautifyDefaultPaddingLabel)
-        paddingHeader.addArrangedSubview(beautifyPaddingTitleLabel)
-        paddingHeader.addArrangedSubview(flexSpacer())
-
-        beautifyPaddingValueLabel = NSTextField(labelWithString: "\(Int(Defaults.lastBeautifyPadding.rounded()))")
-        beautifyPaddingValueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-        beautifyPaddingValueLabel.textColor = NSColor.white.withAlphaComponent(0.88)
-        paddingHeader.addArrangedSubview(beautifyPaddingValueLabel)
-
-        inner.addArrangedSubview(paddingHeader)
-        paddingHeader.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        let paddingSlider = NSSlider(
-            value: Defaults.lastBeautifyPadding,
-            minValue: Double(BeautifyRenderer.paddingSliderMin),
-            maxValue: Double(BeautifyRenderer.paddingSliderMax),
-            target: self,
-            action: #selector(beautifyPaddingChanged(_:))
-        )
-        paddingSlider.controlSize = .small
-        paddingSlider.isContinuous = true
-        paddingSlider.translatesAutoresizingMaskIntoConstraints = false
-        beautifyPaddingSlider = paddingSlider
-        inner.addArrangedSubview(paddingSlider)
-        paddingSlider.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        let shadowToggle = makeToggleRow(
-            title: L10n.beautifyShadowEffect,
-            subtitle: nil,
-            isOn: Defaults.lastBeautifyShadowEnabled,
-            action: #selector(beautifyShadowToggled(_:))
-        )
-        beautifyShadowTitleLabel = shadowToggle.title
-        beautifyShadowSwitch = shadowToggle.toggle
-        inner.addArrangedSubview(shadowToggle.row)
-        shadowToggle.row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        stack.addArrangedSubview(card)
-        card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-    }
-
-    /// Default font family for the editor's text tool. Lives beside the
-    /// beautify defaults because both are "what a freshly created editor
-    /// starts with" preferences rather than toolbar layout.
-    private func buildTextFontCard(into stack: NSStackView) {
-        let card = CardView()
-        let inner = verticalInnerStack()
-        card.addSubview(inner)
-        pin(inner, to: card, insets: NSEdgeInsets(top: 6, left: 14, bottom: 6, right: 14))
-
-        let row = NSView()
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        let textStack = NSStackView()
-        textStack.orientation = .vertical
-        textStack.alignment = .leading
-        textStack.spacing = 2
-        textStack.translatesAutoresizingMaskIntoConstraints = false
-
-        textFontTitleLabel = primaryLabel(L10n.textFontDefaultLabel)
-        textFontTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        textFontHintLabel = secondaryLabel(L10n.textFontDefaultHint, wrapping: true)
-        textStack.addArrangedSubview(textFontTitleLabel)
-        textStack.addArrangedSubview(textFontHintLabel)
-
-        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
-        popup.controlSize = .small
-        popup.font = NSFont.systemFont(ofSize: 12)
-        popup.target = self
-        popup.action = #selector(textFontChanged(_:))
-        popup.translatesAutoresizingMaskIntoConstraints = false
-        popup.widthAnchor.constraint(greaterThanOrEqualToConstant: 160).isActive = true
-        popup.setAccessibilityLabel(L10n.textFontDefaultLabel)
-        textFontPopup = popup
-        rebuildTextFontPopupItems()
-
-        row.addSubview(textStack)
-        row.addSubview(popup)
-        NSLayoutConstraint.activate([
-            textStack.leadingAnchor.constraint(equalTo: row.leadingAnchor),
-            textStack.topAnchor.constraint(equalTo: row.topAnchor, constant: 10),
-            textStack.bottomAnchor.constraint(equalTo: row.bottomAnchor, constant: -10),
-            textStack.trailingAnchor.constraint(lessThanOrEqualTo: popup.leadingAnchor, constant: -12),
-
-            popup.trailingAnchor.constraint(equalTo: row.trailingAnchor),
-            popup.centerYAnchor.constraint(equalTo: textStack.centerYAnchor),
-        ])
-
-        inner.addArrangedSubview(row)
-        row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
-
-        stack.addArrangedSubview(card)
-        card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-    }
-
-    /// Item 0 is the system default, item 1 a separator, the rest are the
-    /// shared `FontCatalog` families.
-    ///
-    /// Plain titles on purpose: the pop-up button renders its selected item, so
-    /// an attributed title would break the 12pt system font every other popup
-    /// in this window uses. The font previews live in the editor's HUD menu.
-    private func rebuildTextFontPopupItems() {
-        guard let popup = textFontPopup, let menu = popup.menu else { return }
-        popup.removeAllItems()
-        // Built as menu items rather than `addItem(withTitle:)`, which drops an
-        // existing item when two families share a localized display name.
-        menu.addItem(NSMenuItem(title: L10n.textFontSystemDefault, action: nil, keyEquivalent: ""))
-        menu.addItem(.separator())
-        for family in FontCatalog.families {
-            let item = NSMenuItem(
-                title: FontCatalog.displayName(for: family),
-                action: nil,
-                keyEquivalent: ""
-            )
-            item.representedObject = family
-            menu.addItem(item)
-        }
-        selectStoredTextFont()
-    }
-
-    private func selectStoredTextFont() {
-        guard let popup = textFontPopup else { return }
-        guard let family = Defaults.textFontName,
-              let index = FontCatalog.families.firstIndex(of: family) else {
-            popup.selectItem(at: 0)
-            return
-        }
-        // +2 skips the system-default item and the separator.
-        popup.selectItem(at: index + 2)
-    }
-
-    @objc private func textFontChanged(_ sender: NSPopUpButton) {
-        Defaults.textFontName = sender.selectedItem?.representedObject as? String
-    }
-
-    private func updateBeautifyControlsEnabled() {
-        let enabled = Defaults.beautifyAutoEnabled
-        beautifyPaddingSlider?.isEnabled = enabled
-        beautifyShadowSwitch?.isEnabled = enabled
-        for label in [beautifyPresetTitleLabel, beautifyPaddingTitleLabel, beautifyPaddingValueLabel, beautifyShadowTitleLabel] {
-            label?.textColor = NSColor.white.withAlphaComponent(enabled ? 0.94 : 0.4)
-        }
-        for swatch in beautifyPresetSwatches { swatch.isEnabled = enabled }
     }
 
     private func updateHistoryCacheControlsEnabled() {
@@ -3545,27 +3318,6 @@ class SettingsView: NSView {
         windowShadowPreview?.shadowSize = CGFloat(Defaults.windowShadowSize)
     }
 
-    @objc private func beautifyAutoToggled(_ sender: NSSwitch) {
-        Defaults.beautifyAutoEnabled = sender.state == .on
-        updateBeautifyControlsEnabled()
-    }
-
-    @objc private func beautifyPresetSwatchClicked(_ sender: BeautifySettingsSwatchView) {
-        Defaults.lastBeautifyPresetID = sender.preset.id
-        for swatch in beautifyPresetSwatches {
-            swatch.isSelected = (swatch.preset.id == sender.preset.id)
-        }
-    }
-
-    @objc private func beautifyPaddingChanged(_ sender: NSSlider) {
-        Defaults.lastBeautifyPadding = sender.doubleValue
-        beautifyPaddingValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyPadding.rounded()))"
-    }
-
-    @objc private func beautifyShadowToggled(_ sender: NSSwitch) {
-        Defaults.lastBeautifyShadowEnabled = sender.state == .on
-    }
-
     @objc private func launchAtLoginToggled(_ sender: NSSwitch) {
         let enable = sender.state == .on
         let ok = LaunchAtLogin.setEnabled(enable)
@@ -5642,27 +5394,8 @@ class SettingsView: NSView {
         updateHistoryPanelModeControlsEnabled()
         windowShadowTitleLabel?.stringValue = L10n.windowShadowToggleLabel
         windowShadowSubtitleLabel?.stringValue = L10n.windowShadowToggleHint
-        windowShadowSizeTitleLabel?.stringValue = L10n.windowShadowSizeLabel
+        windowShadowSizeTitleLabel?.stringValue = L10n.shadowSizeLabel
         windowShadowSizeHintLabel?.stringValue = L10n.windowShadowSizeHint
-        beautifyAutoTitleLabel?.stringValue = L10n.beautifyAutoToggleLabel
-        beautifyAutoSubtitleLabel?.stringValue = L10n.beautifyAutoToggleHint
-        beautifyPresetTitleLabel?.stringValue = L10n.beautifyDefaultPresetLabel
-        beautifyPaddingTitleLabel?.stringValue = L10n.beautifyDefaultPaddingLabel
-        beautifyShadowTitleLabel?.stringValue = L10n.beautifyShadowEffect
-        textFontTitleLabel?.stringValue = L10n.textFontDefaultLabel
-        textFontHintLabel?.stringValue = L10n.textFontDefaultHint
-        textFontPopup?.setAccessibilityLabel(L10n.textFontDefaultLabel)
-        rebuildTextFontPopupItems()
-        beautifyAutoSwitch?.state = Defaults.beautifyAutoEnabled ? .on : .off
-        updateBeautifyControlsEnabled()
-        beautifyPaddingSlider?.doubleValue = Defaults.lastBeautifyPadding
-        beautifyPaddingValueLabel?.stringValue = "\(Int(Defaults.lastBeautifyPadding.rounded()))"
-        beautifyShadowSwitch?.state = Defaults.lastBeautifyShadowEnabled ? .on : .off
-        let beautifySelectedID = Defaults.lastBeautifyPresetID ?? BeautifyPreset.defaultPreset.id
-        for swatch in beautifyPresetSwatches {
-            swatch.isSelected = (swatch.preset.id == beautifySelectedID)
-            swatch.needsDisplay = true
-        }
         countdownTitleLabel?.stringValue = L10n.countdownLabel
         countdownHintLabel?.stringValue = L10n.countdownHint
         countdownValueLabel?.stringValue = "\(Defaults.countdownSeconds)\(L10n.countdownSecondsSuffix)"
@@ -6383,99 +6116,6 @@ private final class SettingsTickSlider: NSControl {
         let steps = ((clamped - minValue) / stepValue).rounded()
         let snapped = minValue + steps * stepValue
         return min(max(snapped, minValue), maxValue)
-    }
-}
-
-// MARK: - Beautify settings swatch
-
-/// Compact circular preset swatch used in the general settings beautify card.
-private final class BeautifySettingsSwatchView: NSView {
-    let preset: BeautifyPreset
-    weak var target: AnyObject?
-    var action: Selector?
-
-    var isEnabled = true {
-        didSet {
-            alphaValue = isEnabled ? 1 : 0.4
-            setAccessibilityEnabled(isEnabled)
-            window?.invalidateCursorRects(for: self)
-        }
-    }
-
-    var isSelected: Bool = false {
-        didSet { needsDisplay = true }
-    }
-
-    var wallpaperThumbnail: NSImage? {
-        didSet { needsDisplay = true }
-    }
-
-    init(preset: BeautifyPreset) {
-        self.preset = preset
-        super.init(frame: .zero)
-        toolTip = preset.displayName
-        setAccessibilityLabel(preset.displayName)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func resetCursorRects() {
-        super.resetCursorRects()
-        if isEnabled { addCursorRect(bounds, cursor: .pointingHand) }
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        guard isEnabled else { return }
-        if let action {
-            _ = target?.perform(action, with: self)
-        }
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let inset: CGFloat = isSelected ? 1 : 2
-        let circleRect = bounds.insetBy(dx: inset, dy: inset)
-        let clipPath = NSBezierPath(ovalIn: circleRect)
-        NSGraphicsContext.saveGraphicsState()
-        clipPath.addClip()
-
-        if preset.isTransparent {
-            BeautifyRenderer.drawCheckerboard(in: circleRect, square: 4)
-        } else if preset.isWallpaper, let wpImage = wallpaperThumbnail {
-            wpImage.draw(in: circleRect, from: .zero, operation: .sourceOver, fraction: 1.0)
-        } else if preset.isWallpaper {
-            NSColor(red: 0.4, green: 0.65, blue: 0.45, alpha: 1).setFill()
-            circleRect.fill()
-            let sky = NSRect(
-                x: circleRect.origin.x,
-                y: circleRect.midY,
-                width: circleRect.width,
-                height: circleRect.height / 2
-            )
-            NSColor(red: 0.55, green: 0.75, blue: 0.92, alpha: 1).setFill()
-            sky.fill()
-        } else if let gradient = NSGradient(starting: preset.startColor, ending: preset.endColor) {
-            gradient.draw(in: circleRect, angle: preset.angleDegrees)
-        } else {
-            preset.startColor.setFill()
-            circleRect.fill()
-        }
-        NSGraphicsContext.restoreGraphicsState()
-
-        let border = NSBezierPath(ovalIn: circleRect)
-        AdaptiveChrome.border.setStroke()
-        border.lineWidth = 0.5
-        border.stroke()
-
-        if isSelected {
-            let ring = NSBezierPath(ovalIn: bounds)
-            NSColor(calibratedRed: 0, green: 0.83, blue: 0.42, alpha: 1).setStroke()
-            ring.lineWidth = 2
-            ring.stroke()
-        }
     }
 }
 

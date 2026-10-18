@@ -73,16 +73,43 @@ def sync_release(root, release, remote=f'https://github.com/{UPSTREAM}.git'):
     return True
 
 
+def published_release_tags(repository):
+    return set(subprocess.check_output([
+        'gh', 'api', '--paginate', f'repos/{repository}/releases',
+        '--jq', '.[].tag_name',
+    ], text=True).splitlines())
+
+
+def ensure_current_release(root, repository, release):
+    """Recover publication after a manual upstream merge or an interrupted run."""
+    base_version = '.'.join(map(str, version(release['tag_name'])))
+    tags = set(git(root, 'tag', '--points-at', 'HEAD', '--list',
+                   f'custom-v{base_version}-ai.*').splitlines())
+    if tags and tags & published_release_tags(repository):
+        print('Current main already has a published custom release')
+        return False
+    subprocess.check_call([
+        'gh', 'workflow', 'run', 'release-ai.yml', '--repo', repository, '--ref', 'main',
+    ])
+    print('Requested a custom release for the synchronized main commit')
+    return True
+
+
 def main():
     release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{UPSTREAM}/releases/latest'], text=True))
     root = git('.', 'rev-parse', '--show-toplevel')
     git(root, 'config', 'user.name', 'github-actions[bot]')
     git(root, 'config', 'user.email', 'github-actions[bot]@users.noreply.github.com')
     changed = sync_release(root, release)
+    release_requested = not changed and ensure_current_release(
+        root, os.environ['GITHUB_REPOSITORY'], release,
+    )
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
         output.write(f'changed={str(changed).lower()}\n')
     with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
         summary.write(f"## Official release sync\n\n{release['tag_name']}: " + ('merge prepared for validation' if changed else 'already synchronized') + '\n')
+        if release_requested:
+            summary.write('Requested the missing custom release for current main\n')
 
 
 if __name__ == '__main__':
