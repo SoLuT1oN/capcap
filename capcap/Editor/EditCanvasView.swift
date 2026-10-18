@@ -1947,13 +1947,10 @@ class EditCanvasView: NSView {
     func compositeImage(
         fallbackBaseImage: NSImage?,
         beautifyPreset: BeautifyPreset? = nil,
-        beautifyPadding: CGFloat? = nil,
-        beautifyShadowEnabled: Bool = true,
+        beautifyShadowSize: CGFloat = BeautifyRenderer.shadowSizeDefault,
         wallpaperImage: NSImage? = nil,
         annotationClipMask: NSImage? = nil,
-        beautifyInnerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius,
-        beautifyInnerShadowCornerRadius: CGFloat = BeautifyRenderer.innerCornerRadius,
-        beautifyInnerShadowInset: CGFloat = 0
+        beautifyInnerClipRadius: CGFloat? = BeautifyRenderer.innerCornerRadius
     ) -> NSImage? {
         guard let baseImage = previewImage ?? fallbackBaseImage else { return nil }
 
@@ -2002,16 +1999,12 @@ class EditCanvasView: NSView {
 
         guard let orientedImage = imageRotation.render(innerImage) else { return nil }
         if let preset = beautifyPreset {
-            let pad = beautifyPadding ?? BeautifyRenderer.paddingSliderDefault
             let rendered = BeautifyRenderer.render(
                 innerImage: orientedImage,
                 preset: preset,
-                padding: pad,
                 wallpaperImage: wallpaperImage,
-                shadowEnabled: beautifyShadowEnabled,
-                innerClipRadius: beautifyInnerClipRadius,
-                innerShadowCornerRadius: beautifyInnerShadowCornerRadius,
-                innerShadowInset: beautifyInnerShadowInset
+                shadowSize: beautifyShadowSize,
+                innerClipRadius: beautifyInnerClipRadius
             )
             return rendered
         }

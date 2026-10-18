@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "开启后新贴图会出现在所有桌面与全屏空间";
 "historyCacheToggleLabel" = "缓存截图";
 "historyCacheToggleHint" = "保存最近截图、取色和上传结果，便于从历史面板快速再次复制";
-"clipboardTextCacheToggleLabel" = "缓存剪贴板文本";
-"clipboardTextCacheToggleHint" = "将复制的文本保存到历史记录，便于从历史记录快速复用";
-"clipboardTextHistoryLimitLabel" = "文本历史数量";
+"clipboardTextCacheToggleLabel" = "记录剪贴板文本与文件";
+"clipboardTextCacheToggleHint" = "保存文本和源文件引用，不复制文件副本";
+"clipboardTextHistoryLimitLabel" = "文本 / 文件历史数量";
 "historyCacheLabel" = "图片与媒体历史数量";
 "historyPanelDisplayModeLabel" = "历史面板显示方式";
 "historyPanelDisplayModeHint" = "选择通过弹窗或刘海查看历史记录";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "秒";
 "windowShadowToggleLabel" = "窗口截图阴影";
 "windowShadowToggleHint" = "点选窗口截图时自动裁出圆角，并加上 macOS 风格的投影";
-"windowShadowSizeLabel" = "阴影大小";
+"shadowSizeLabel" = "投影大小";
 "windowShadowSizeHint" = "数值越大投影越柔和、扩散越远，窗口看起来悬浮得越高";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "颜色";
 "historyPanelFilterText" = "文本";
-"historyPanelSearchColorsAndText" = "搜索颜色和文本";
+"historyPanelSearchColorsAndText" = "搜索颜色、文本和文件";
 "historyPanelSearchColors" = "搜索颜色";
 "historyPanelSearchText" = "搜索文本";
 "historyPanelClearSearch" = "清空搜索";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "空格";
 "historyPanelShortcutSearch" = "搜索或关闭搜索";
 "historyPanelShortcutSwitchFilter" = "切换分类";
+"historyPanelShortcutSwitchItem" = "切换上一个或下一个条目";
 "historyPanelShortcutToggleSelection" = "单个选择或取消选择";
 "historyPanelShortcutRangeSelection" = "范围选择";
 "historyPanelShortcutSelectAll" = "全选当前结果";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "极地冰蓝";
 "beautifyPresetSageCream" = "鼠尾草奶油";
 "beautifyPresetGraphite" = "石墨灰";
-"beautifyShadowEffect" = "阴影效果";
-"beautifyAutoToggleLabel" = "进入编辑器默认开启美化";
-"beautifyAutoToggleHint" = "打开编辑器时自动应用上次的美化预设、边距和阴影";
-"beautifyDefaultPresetLabel" = "默认预设";
-"beautifyDefaultPaddingLabel" = "默认边距";
+"beautifyShadowSizeHint" = "仅调整美化投影，边距会随投影范围自动增加";
 "textStrokeEffect" = "描边";
 "textCalloutEffect" = "标注";
 "textFontLabel" = "字体";
 "textFontSystemDefault" = "系统默认";
-"textFontDefaultLabel" = "默认文字字体";
-"textFontDefaultHint" = "新建文字标注使用的字体";
 "shapeFillEffect" = "填充";
 "shapeFillNone" = "线框";
 "shapeFillOpaque" = "填充";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "文本保存失败，请重试";
 
 "windowCapturePreparing" = "正在准备截图";
+
+// Configurable OCR providers
+"settingsTabOCR" = "文字识别";
+"ocrProviderApple" = "Apple · 本地识别";
+"ocrProviderBaidu" = "百度 OCR";
+"ocrProviderTencent" = "腾讯云 OCR";
+"ocrProviderCompatible" = "OpenAI 兼容视觉模型";
+"ocrProviderLabel" = "OCR 提供商";
+"ocrEndpointLabel" = "完整 API 地址";
+"ocrModelLabel" = "视觉模型名称";
+"ocrRegionLabel" = "地域";
+"ocrOptionalKey" = "无需认证的服务可留空";
+"ocrVisionModelHint" = "填写已安装或可用的视觉模型";
+"ocrLocalDescription" = "在这台 Mac 上识别文字，无需上传图片";
+"ocrCloudDescription" = "使用文字识别时会将图片发送至所选提供商，包括截图翻译、贴图和历史预览";
+"ocrCompatibleDescription" = "支持 OpenAI、通义千问或本地服务的视觉 Chat Completions 接口 · 图片会发送至你配置的地址";
+"ocrOllamaDescription" = "连接 Ollama 并填写已安装的视觉模型 · 图片会发送至你配置的 Ollama 服务";
+"ocrTextOnlyDescription" = "此模型只返回文字，不提供坐标 · 贴图和历史预览会打开文字结果面板，无法在图片上选字";
+"ocrDocumentation" = "提供商文档";
+"ocrSettingsSaved" = "设置自动保存 · 下次识别时生效";
+"ocrConfigurationError" = "请补全所需的密钥、API 地址和模型设置";
+"ocrEndpointError" = "请填写完整 HTTPS API 地址，本机服务可使用 HTTP";
+"ocrImageError" = "无法解码图片";
+"ocrResponseError" = "OCR 识别失败或返回了不完整的响应";
+"ocrTimeoutError" = "OCR 识别超时 · 请检查服务或重试";
+"ocrRequestFailed" = "OCR 请求失败";
+
+"historyPanelFilterFiles" = "文件";
+
+"historyPanelFolder" = "文件夹";
+
+"historyPanelSearchFiles" = "搜索文件名和路径";
+
+"historyPanelSourceUnavailable" = "源文件不可用";
+
+"historyPanelSourceUnavailableHint" = "部分源文件已删除、离线或尚未下载";
+
+"historyFilePreviewPrevious" = "上一个文件";
+
+"historyFilePreviewNext" = "下一个文件";
+
+"historyFilePreviewLoading" = "正在加载预览";
+
+"historyFilePreviewRetry" = "重新检查";
+
+"historyFilePreviewUnavailable" = "此文件无法预览";

@@ -1375,8 +1375,10 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
         presentTextRecognition(image: image, anchorRect: anchorRect, screen: screen)
     }
 
-    static func presentTextRecognition(image: NSImage, anchorRect: NSRect, screen: NSScreen) {
-        present(image: image, anchorRect: anchorRect, screen: screen, mode: .textRecognition)
+    static func presentTextRecognition(image: NSImage, anchorRect: NSRect, screen: NSScreen,
+                                       initialResult: OCRResult? = nil) {
+        present(image: image, anchorRect: anchorRect, screen: screen,
+                mode: .textRecognition, initialResult: initialResult)
     }
 
     static func presentScreenshotTranslation(image: NSImage, anchorRect: NSRect, screen: NSScreen) {
@@ -1406,7 +1408,8 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
         panel.runOCR()
     }
 
-    private static func present(image: NSImage, anchorRect: NSRect, screen: NSScreen, mode: Mode) {
+    private static func present(image: NSImage, anchorRect: NSRect, screen: NSScreen, mode: Mode,
+                                initialResult: OCRResult? = nil) {
         current?.dismiss()
         let panel = OCRTranslatePanel(
             image: image,
@@ -1418,7 +1421,7 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
         current = panel
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        panel.runOCR()
+        panel.runOCR(initialResult: initialResult)
     }
 
     private init(
@@ -1585,7 +1588,9 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
         copyButton.isEnabled = false
         ocrCopyButton = copyButton
 
-        let header = NSStackView(views: [title, flexSpacer(), copyButton])
+        let retryButton = makeSmallButton(L10n.ocrRetry, action: #selector(retryOCRTapped))
+        retryButton.target = self
+        let header = NSStackView(views: [title, flexSpacer(), retryButton, copyButton])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.translatesAutoresizingMaskIntoConstraints = false
@@ -1697,30 +1702,48 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
 
     // MARK: OCR / Translation
 
-    private func runOCR() {
+    @objc private func retryOCRTapped() { runOCR() }
+
+    private func runOCR(initialResult: OCRResult? = nil) {
         ocrTask?.cancel()
         liveTextTask?.cancel()
+        ocrReady = false
+        applyOCRResult(text: "", lines: [], liveTextAnalysis: nil)
+        ocrTextView?.isEditable = false
+        ocrTextView?.string = L10n.ocrRecognizing
+        ocrTextView?.textColor = .secondaryLabelColor
+        ocrCopyButton?.isEnabled = false
         let screenshot = screenshot
         let sourceText = sourceText
         let mode = mode
         ocrTask = Task { @MainActor [weak self] in
             var text = ""
             var lines: [RecognizedTextLine] = []
-            var analysis: ImageAnalysis?
-            switch mode {
-            case .textRecognition:
-                lines = await OCRService.recognizeLines(image: screenshot)
-                guard !Task.isCancelled else { return }
-                if lines.isEmpty {
-                    analysis = await OCRService.analyzeText(image: screenshot)
-                    text = analysis?.transcript.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                } else {
-                    text = Self.text(from: lines)
+            var provider: OCRProviderKind = .apple
+            do {
+                switch mode {
+                case .textRecognition, .screenshotTranslation:
+                    let result: OCRResult
+                    if let initialResult {
+                        result = initialResult
+                    } else {
+                        result = try await OCRService.recognizeResult(image: screenshot)
+                    }
+                    text = result.text
+                    lines = result.lines
+                    provider = result.provider
+                case .textTranslation:
+                    text = sourceText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 }
-            case .screenshotTranslation:
-                text = await OCRService.recognize(image: screenshot)
-            case .textTranslation:
-                text = sourceText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            } catch {
+                guard !Task.isCancelled, let self else { return }
+                self.ocrTask = nil
+                self.ocrReady = true
+                self.ocrTextView?.string = error.localizedDescription
+                self.ocrTextView?.textColor = .systemOrange
+                self.setTranslationPlaceholder(error.localizedDescription)
+                self.refreshHeight()
+                return
             }
 
             guard !Task.isCancelled, let self else { return }
@@ -1728,7 +1751,7 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
             if mode == .textTranslation {
                 self.recognizedText = text
             } else {
-                self.applyOCRResult(text: text, lines: lines, liveTextAnalysis: analysis)
+                self.applyOCRResult(text: text, lines: lines, liveTextAnalysis: nil)
             }
             self.ocrReady = true
 
@@ -1739,7 +1762,7 @@ final class OCRTranslatePanel: NSPanel, NSTextViewDelegate {
                 self.finishOCRAndStartTranslation()
             }
             self.refreshHeight()
-            if mode == .textRecognition, !lines.isEmpty {
+            if mode == .textRecognition, provider == .apple, !text.isEmpty {
                 self.startLiveTextAnalysis()
             }
         }

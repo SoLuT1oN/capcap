@@ -56,6 +56,16 @@ struct ClipboardManager {
         writeTextToClipboard(text, skipHistory: true)
     }
 
+    @discardableResult
+    static func copyHistoryFilesToClipboard(_ urls: [URL]) -> Bool {
+        guard !urls.isEmpty else { return false }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        guard pasteboard.writeObjects(urls.map { $0 as NSURL }) else { return false }
+        pasteboard.setString("1", forType: skipClipboardHistoryPasteboardType)
+        return true
+    }
+
     private static func writeTextToClipboard(_ text: String, skipHistory: Bool = false) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -135,9 +145,28 @@ final class ClipboardTextHistoryMonitor: NSObject {
         guard changeCount != lastChangeCount else { return }
         lastChangeCount = changeCount
         guard Defaults.clipboardTextCacheEnabled,
-              pasteboard.availableType(from: [skipClipboardHistoryPasteboardType]) == nil,
+              pasteboard.availableType(from: [skipClipboardHistoryPasteboardType]) == nil else { return }
+
+        // Inspect declared file types before requesting a text representation.
+        // A pasted path string must remain text even if it names a real file.
+        let legacyFiles = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+        if pasteboard.availableType(from: [.fileURL, legacyFiles]) != nil {
+            var urls = pasteboard.readObjects(forClasses: [NSURL.self],
+                options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+            if urls.isEmpty, let paths = pasteboard.propertyList(forType: legacyFiles) as? [String] {
+                urls = paths.map { URL(fileURLWithPath: $0) }
+            }
+            guard pasteboard.changeCount == changeCount else { return }
+            HistoryManager.shared.addFileReferences(urls)
+            return
+        }
+        // Virtual/promised files have no stable source URL. Never record their
+        // accompanying filename or TIFF icon as an ordinary history item.
+        let promisedTypes = ["com.apple.pasteboard.promised-file-url", "com.apple.NSFilesPromisePboardType"]
+        if pasteboard.types?.contains(where: { promisedTypes.contains($0.rawValue) }) == true { return }
+        guard
               let text = pasteboard.string(forType: .string),
-              !text.isEmpty else { return }
+              !text.isEmpty, pasteboard.changeCount == changeCount else { return }
         if Defaults.historyCacheEnabled,
            let hex = ClipboardColorParser.normalizedHex(from: text) {
             HistoryManager.shared.addColor(hex: hex)

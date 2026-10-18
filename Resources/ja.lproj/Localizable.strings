@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "オンにすると新しいピン画像がすべてのデスクトップとフルスクリーン操作スペースに表示されます";
 "historyCacheToggleLabel" = "スクリーンショットをキャッシュ";
 "historyCacheToggleHint" = "最近のスクリーンショット、取得した色、アップロード結果を保存し、履歴パネルからすばやく再コピーできます";
-"clipboardTextCacheToggleLabel" = "クリップボードのテキストをキャッシュ";
-"clipboardTextCacheToggleHint" = "コピーしたテキストを履歴に保存してすばやく再利用できます";
-"clipboardTextHistoryLimitLabel" = "テキスト履歴の上限";
+"clipboardTextCacheToggleLabel" = "クリップボードのテキストとファイルを記録";
+"clipboardTextCacheToggleHint" = "ファイルを複製せずテキストと元ファイルへの参照を保存";
+"clipboardTextHistoryLimitLabel" = "テキスト / ファイル履歴の上限";
 "historyCacheLabel" = "画像とメディアの履歴上限";
 "historyPanelDisplayModeLabel" = "履歴パネルの表示方式";
 "historyPanelDisplayModeHint" = "ダイアログまたはノッチで履歴を表示";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "秒";
 "windowShadowToggleLabel" = "ウインドウ撮影の影";
 "windowShadowToggleHint" = "ウインドウを選んで撮影すると角を丸め、macOS 風のドロップシャドウを追加します";
-"windowShadowSizeLabel" = "影のサイズ";
+"shadowSizeLabel" = "ドロップシャドウのサイズ";
 "windowShadowSizeHint" = "値を大きくするほど影が柔らかく広がり、ウインドウが高く浮いて見えます";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "カラー";
 "historyPanelFilterText" = "テキスト";
-"historyPanelSearchColorsAndText" = "色とテキストを検索";
+"historyPanelSearchColorsAndText" = "色、テキスト、ファイルを検索";
 "historyPanelSearchColors" = "色を検索";
 "historyPanelSearchText" = "テキストを検索";
 "historyPanelClearSearch" = "検索をクリア";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "スペース";
 "historyPanelShortcutSearch" = "検索を開始または終了";
 "historyPanelShortcutSwitchFilter" = "カテゴリを切り替える";
+"historyPanelShortcutSwitchItem" = "前または次の項目に切り替える";
 "historyPanelShortcutToggleSelection" = "1項目を選択または解除";
 "historyPanelShortcutRangeSelection" = "範囲選択";
 "historyPanelShortcutSelectAll" = "表示中の項目をすべて選択";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "アークティックアイス";
 "beautifyPresetSageCream" = "セージクリーム";
 "beautifyPresetGraphite" = "グラファイト";
-"beautifyShadowEffect" = "影効果";
-"beautifyAutoToggleLabel" = "エディタ起動時に美化を有効化";
-"beautifyAutoToggleHint" = "エディタを開くと前回の美化プリセット・余白・影を自動適用します";
-"beautifyDefaultPresetLabel" = "デフォルトのプリセット";
-"beautifyDefaultPaddingLabel" = "デフォルトの余白";
+"beautifyShadowSizeHint" = "美化の影のみを調整し、影が収まるよう余白を自動で広げます";
 "textStrokeEffect" = "縁取り";
 "textCalloutEffect" = "吹き出し";
 "textFontLabel" = "フォント";
 "textFontSystemDefault" = "システム標準";
-"textFontDefaultLabel" = "デフォルトのテキストフォント";
-"textFontDefaultHint" = "新しく作成するテキスト注釈に使うフォント";
 "shapeFillEffect" = "塗りつぶし";
 "shapeFillNone" = "枠線";
 "shapeFillOpaque" = "塗りつぶし";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "テキストを保存できませんでした、再試行してください";
 
 "windowCapturePreparing" = "スクリーンショットを準備中";
+
+// Configurable OCR providers
+"settingsTabOCR" = "文字認識";
+"ocrProviderApple" = "Apple · デバイス内";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "OpenAI 互換の視覚モデル";
+"ocrProviderLabel" = "OCR プロバイダー";
+"ocrEndpointLabel" = "完全な API URL";
+"ocrModelLabel" = "視覚モデル名";
+"ocrRegionLabel" = "リージョン";
+"ocrOptionalKey" = "認証不要のサーバーでは省略可能";
+"ocrVisionModelHint" = "インストール済みまたは利用可能な視覚モデルを入力";
+"ocrLocalDescription" = "画像をアップロードせずにこの Mac で文字を認識";
+"ocrCloudDescription" = "スクリーンショット翻訳、ピン留め、履歴プレビューを含む OCR の使用時に、選択したプロバイダーへ画像を送信";
+"ocrCompatibleDescription" = "OpenAI、Qwen、ローカルサーバーなどの視覚対応 Chat Completions API を使用 · 設定した URL に画像を送信";
+"ocrOllamaDescription" = "Ollama に接続してインストール済みの視覚モデルを入力 · 設定した Ollama サーバーに画像を送信";
+"ocrTextOnlyDescription" = "このモデルは座標なしのテキストを返します · ピン留めと履歴では画像内の文字選択の代わりに結果パネルを表示";
+"ocrDocumentation" = "プロバイダーのドキュメント";
+"ocrSettingsSaved" = "設定を自動保存 · 次の認識から適用";
+"ocrConfigurationError" = "必要な認証情報、API URL、モデル設定を入力してください";
+"ocrEndpointError" = "完全な HTTPS API URL を入力してください · localhost は HTTP も利用可能";
+"ocrImageError" = "画像をデコードできません";
+"ocrResponseError" = "OCR が失敗したか、応答が不完全です";
+"ocrTimeoutError" = "OCR がタイムアウトしました · サービスを確認するか再試行してください";
+"ocrRequestFailed" = "OCR リクエストが失敗しました";
+
+"historyPanelFilterFiles" = "ファイル";
+
+"historyPanelFolder" = "フォルダ";
+
+"historyPanelSearchFiles" = "ファイル名とパスを検索";
+
+"historyPanelSourceUnavailable" = "元のファイルを利用できません";
+
+"historyPanelSourceUnavailableHint" = "一部の元ファイルが削除済み、オフライン、または未ダウンロードです";
+
+"historyFilePreviewPrevious" = "前のファイル";
+
+"historyFilePreviewNext" = "次のファイル";
+
+"historyFilePreviewLoading" = "プレビューを読み込み中";
+
+"historyFilePreviewRetry" = "再確認";
+
+"historyFilePreviewUnavailable" = "このファイルはプレビューできません";

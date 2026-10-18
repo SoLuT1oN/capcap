@@ -16,9 +16,9 @@
 "pinAcrossSpacesHint" = "켜면 새 고정 이미지가 모든 데스크톱과 전체 화면 Space에 표시됩니다";
 "historyCacheToggleLabel" = "스크린샷 캐시";
 "historyCacheToggleHint" = "최근 스크린샷, 선택한 색상, 업로드 결과를 저장해 기록 패널에서 빠르게 다시 복사할 수 있습니다";
-"clipboardTextCacheToggleLabel" = "클립보드 텍스트 캐시";
-"clipboardTextCacheToggleHint" = "복사한 텍스트를 기록에 저장해 빠르게 재사용할 수 있습니다";
-"clipboardTextHistoryLimitLabel" = "텍스트 기록 한도";
+"clipboardTextCacheToggleLabel" = "클립보드 텍스트 및 파일 기록";
+"clipboardTextCacheToggleHint" = "파일을 복제하지 않고 텍스트와 원본 파일 참조 저장";
+"clipboardTextHistoryLimitLabel" = "텍스트 / 파일 기록 한도";
 "historyCacheLabel" = "이미지와 미디어 기록 한도";
 "historyPanelDisplayModeLabel" = "기록 패널 표시 방식";
 "historyPanelDisplayModeHint" = "팝업 또는 노치로 기록 보기";
@@ -31,7 +31,7 @@
 "countdownSecondsSuffix" = "초";
 "windowShadowToggleLabel" = "창 캡처 그림자";
 "windowShadowToggleHint" = "창을 선택해 캡처할 때 모서리를 둥글게 하고 macOS 스타일 그림자를 추가합니다";
-"windowShadowSizeLabel" = "그림자 크기";
+"shadowSizeLabel" = "드롭 섀도 크기";
 "windowShadowSizeHint" = "값이 클수록 그림자가 부드럽고 넓게 퍼져 창이 더 높이 떠 보입니다";
 
 /* Screenshot shortcut */
@@ -154,7 +154,7 @@
 "historyPanelFilterMP4" = "MP4";
 "historyPanelFilterColors" = "색상";
 "historyPanelFilterText" = "텍스트";
-"historyPanelSearchColorsAndText" = "색상 및 텍스트 검색";
+"historyPanelSearchColorsAndText" = "색상, 텍스트 및 파일 검색";
 "historyPanelSearchColors" = "색상 검색";
 "historyPanelSearchText" = "텍스트 검색";
 "historyPanelClearSearch" = "검색 지우기";
@@ -177,6 +177,7 @@
 "historyPanelShortcutKeySpace" = "스페이스";
 "historyPanelShortcutSearch" = "검색 시작 또는 종료";
 "historyPanelShortcutSwitchFilter" = "카테고리 전환";
+"historyPanelShortcutSwitchItem" = "이전 또는 다음 항목으로 전환";
 "historyPanelShortcutToggleSelection" = "항목 하나 선택 또는 해제";
 "historyPanelShortcutRangeSelection" = "범위 선택";
 "historyPanelShortcutSelectAll" = "표시된 항목 모두 선택";
@@ -312,17 +313,11 @@
 "beautifyPresetArcticIce" = "아틱 아이스";
 "beautifyPresetSageCream" = "세이지 크림";
 "beautifyPresetGraphite" = "그래파이트";
-"beautifyShadowEffect" = "그림자";
-"beautifyAutoToggleLabel" = "편집기 열 때 미화 자동 적용";
-"beautifyAutoToggleHint" = "편집기를 열면 마지막 미화 프리셋, 여백, 그림자를 자동으로 적용합니다";
-"beautifyDefaultPresetLabel" = "기본 프리셋";
-"beautifyDefaultPaddingLabel" = "기본 여백";
+"beautifyShadowSizeHint" = "꾸미기 그림자만 조절하며 그림자가 잘리지 않도록 여백이 자동으로 늘어납니다";
 "textStrokeEffect" = "테두리";
 "textCalloutEffect" = "콜아웃";
 "textFontLabel" = "글꼴";
 "textFontSystemDefault" = "시스템 기본값";
-"textFontDefaultLabel" = "기본 텍스트 글꼴";
-"textFontDefaultHint" = "새로 만드는 텍스트 주석에 사용할 글꼴";
 "shapeFillEffect" = "채우기";
 "shapeFillNone" = "윤곽선";
 "shapeFillOpaque" = "채우기";
@@ -785,3 +780,49 @@
 "historyPreviewTextSaveFailed" = "텍스트를 저장하지 못했습니다, 다시 시도해 주세요";
 
 "windowCapturePreparing" = "스크린샷 준비 중";
+
+// Configurable OCR providers
+"settingsTabOCR" = "문자 인식";
+"ocrProviderApple" = "Apple · 기기 내 인식";
+"ocrProviderBaidu" = "Baidu OCR";
+"ocrProviderTencent" = "Tencent Cloud OCR";
+"ocrProviderCompatible" = "OpenAI 호환 비전 모델";
+"ocrProviderLabel" = "OCR 제공업체";
+"ocrEndpointLabel" = "전체 API 주소";
+"ocrModelLabel" = "비전 모델 이름";
+"ocrRegionLabel" = "리전";
+"ocrOptionalKey" = "인증이 필요 없는 서버는 생략 가능";
+"ocrVisionModelHint" = "설치되었거나 사용 가능한 비전 모델 입력";
+"ocrLocalDescription" = "이미지를 업로드하지 않고 이 Mac에서 문자 인식";
+"ocrCloudDescription" = "스크린샷 번역, 고정 이미지, 기록 미리보기를 포함한 OCR 사용 시 선택한 제공업체로 이미지 전송";
+"ocrCompatibleDescription" = "OpenAI, Qwen 또는 로컬 서버의 비전 지원 Chat Completions API 사용 · 설정한 주소로 이미지 전송";
+"ocrOllamaDescription" = "Ollama에 연결하고 설치된 비전 모델 입력 · 설정한 Ollama 서버로 이미지 전송";
+"ocrTextOnlyDescription" = "이 모델은 좌표 없이 텍스트만 반환 · 고정 이미지와 기록에서는 이미지 내 문자 선택 대신 텍스트 결과 패널 표시";
+"ocrDocumentation" = "제공업체 문서";
+"ocrSettingsSaved" = "설정 자동 저장 · 다음 인식 요청부터 적용";
+"ocrConfigurationError" = "필수 인증 정보, API 주소 및 모델 설정을 입력하세요";
+"ocrEndpointError" = "전체 HTTPS API 주소를 입력하세요 · localhost는 HTTP 사용 가능";
+"ocrImageError" = "이미지를 디코딩할 수 없음";
+"ocrResponseError" = "OCR이 실패했거나 응답이 불완전함";
+"ocrTimeoutError" = "OCR 시간 초과 · 서비스를 확인하거나 다시 시도하세요";
+"ocrRequestFailed" = "OCR 요청 실패";
+
+"historyPanelFilterFiles" = "파일";
+
+"historyPanelFolder" = "폴더";
+
+"historyPanelSearchFiles" = "파일 이름 및 경로 검색";
+
+"historyPanelSourceUnavailable" = "원본 파일을 사용할 수 없음";
+
+"historyPanelSourceUnavailableHint" = "일부 원본 파일이 삭제되었거나 오프라인이거나 다운로드되지 않음";
+
+"historyFilePreviewPrevious" = "이전 파일";
+
+"historyFilePreviewNext" = "다음 파일";
+
+"historyFilePreviewLoading" = "미리보기 로드 중";
+
+"historyFilePreviewRetry" = "다시 확인";
+
+"historyFilePreviewUnavailable" = "이 파일을 미리 볼 수 없음";
